@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Natal Chart Aspect Viewer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; height: 100vh; }
+  #controls {
+    width: 300px; padding: 20px; background: #16213e;
+    display: flex; flex-direction: column; gap: 16px;
+    overflow-y: auto; flex-shrink: 0;
+  }
+  #controls h2 { font-size: 16px; color: #a0c4ff; margin-bottom: 4px; }
+  .param { display: flex; flex-direction: column; gap: 4px; }
+  .param label { font-size: 13px; color: #8899aa; }
+  .param .row { display: flex; align-items: center; gap: 8px; }
+  .param input[type="range"] { flex: 1; accent-color: #4fc3f7; }
+  .param .val { font-size: 13px; min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+  .aspects { display: flex; flex-wrap: wrap; gap: 8px; }
+  .aspects label { font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .aspects input[type="checkbox"] { accent-color: #4fc3f7; }
+  .btn {
+    padding: 8px 12px; border: none; border-radius: 6px;
+    background: #4fc3f7; color: #1a1a2e; font-weight: 600;
+    cursor: pointer; font-size: 14px;
+  }
+  .btn:hover { background: #81d4fa; }
+  details.controls-group {
+    border: 1px solid #2a3a5e; border-radius: 6px; padding: 0;
+    margin-bottom: 8px;
+  }
+  details.controls-group summary {
+    padding: 8px 12px; cursor: pointer; font-size: 13px; color: #a0c4ff;
+    user-select: none; list-style: none;
+  }
+  details.controls-group summary::-webkit-details-marker { display: none; }
+  details.controls-group summary::before { content: '\25b6'; margin-right: 6px; font-size: 10px; display: inline-block; transition: transform 0.15s; }
+  details.controls-group[open] summary::before { transform: rotate(90deg); }
+  details.controls-group .controls-body { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 12px; }
+  #areas {
+    margin-top: 8px; font-size: 12px; color: #8899aa;
+    flex: 1; overflow-y: auto; min-height: 0;
+  }
+  #areas h3 { font-size: 13px; color: #a0c4ff; margin-bottom: 4px; }
+  #areas .area-row {
+    display: flex; align-items: center; gap: 4px; padding: 4px 6px;
+    border-bottom: 1px solid #1a1a2e; cursor: pointer; border-radius: 3px;
+  }
+  #areas .area-row .copy-btn {
+    background: none; border: 1px solid #556; color: #8899aa; cursor: pointer;
+    font-size: 10px; padding: 1px 4px; border-radius: 3px; flex-shrink: 0;
+  }
+  #areas .area-row .copy-btn:hover { background: #334; color: #ccc; }
+  #areas .area-row .copy-btn.copied { color: #4f4; border-color: #4f4; }
+  #areas .area-row:hover { background: #1a1a3e; }
+  #areas .area-row.active { background: #3a3a1e; }
+  #areas .area-row .idx { color: #4fc3f7; }
+  #areas .area-row .val { font-variant-numeric: tabular-nums; }
+  #areas .area-row.filtered { opacity: 0.35; text-decoration: line-through; }
+  #main { flex: 1; display: flex; flex-direction: column; }
+  #canvas { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; background: #000; overflow: hidden; position: relative; cursor: zoom-in; }
+  #canvas svg { max-width: 100%; max-height: 100%; transition: transform 0.2s ease; transform-origin: var(--zx, 50%) var(--zy, 50%); }
+  #canvas.zoomed { cursor: zoom-out; }
+  #canvas.zoomed svg { transform: scale(3); }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <h2>Natal Chart Aspects</h2>
+
+  <details class="controls-group" open>
+    <summary>Controls</summary>
+    <div class="controls-body">
+      <div class="param">
+        <label>Aspects</label>
+        <div class="aspects">
+          <label><input type="checkbox" id="asp180" checked> 180° Opposition</label>
+          <label><input type="checkbox" id="asp120" checked> 120° Trine</label>
+          <label><input type="checkbox" id="asp90" checked> 90° Square</label>
+          <label><input type="checkbox" id="asp60" checked> 60° Sextile</label>
+          <label><input type="checkbox" id="asp30"> 30° Semi-sextile</label>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Orb (sensitivity)</label>
+        <div class="row">
+          <input type="range" id="orb" min="0" max="15" step="0.5" value="3">
+          <span class="val" id="orbVal">3°</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Line thickness</label>
+        <div class="row">
+          <input type="range" id="expansion" min="0.5" max="40" step="0.5" value="5">
+          <span class="val" id="expansionVal">5</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Circle radius</label>
+        <div class="row">
+          <input type="range" id="radius" min="50" max="400" step="1" value="200">
+          <span class="val" id="radiusVal">200</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Border thickness</label>
+        <div class="row">
+          <input type="range" id="border" min="0" max="40" step="0.5" value="10">
+          <span class="val" id="borderVal">10</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Min area filter</label>
+        <div class="row">
+          <input type="range" id="minArea" min="0" max="500" step="5" value="185">
+          <span class="val" id="minAreaVal">185</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Min angle filter</label>
+        <div class="row">
+          <input type="range" id="minAngle" min="0" max="45" step="1" value="5">
+          <span class="val" id="minAngleVal">5°</span>
+        </div>
+      </div>
+
+      <div class="param">
+        <label>Fillet radius</label>
+        <div class="row">
+          <input type="range" id="fillet" min="0" max="30" step="0.5" value="8">
+          <span class="val" id="filletVal">8</span>
+        </div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8899aa;cursor:pointer">
+        <input type="checkbox" id="showSegments"> Show initial segments
+      </label>
+
+      <button class="btn" id="randomBtn">Randomize Chart</button>
+      <button class="btn" id="downloadBtn">Download SVG</button>
+      <button class="btn" id="downloadDxfBtn">Download DXF</button>
+
+      <div id="timing" style="font-size:11px;color:#667;font-variant-numeric:tabular-nums;"></div>
+      <div id="lineCount" style="font-size:11px;color:#667;"></div>
+      <div id="skippedInfo" style="font-size:11px;color:#667;"></div>
+      <div id="volumeInfo" style="font-size:11px;color:#667;"></div>
+    </div>
+  </details>
+
+  <div id="areas"></div>
+</div>
+
+<div id="main">
+  <div id="canvas"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/makerjs@0/target/js/browser.maker.js"></script>
+<script>
+var m = require('makerjs');
+
+// --- 12 planet positions (angles in degrees, 0-360) ---
+var planets = [];
+
+function generatePlanets() {
+  planets = [];
+  for (var i = 0; i < 12; i++) {
+    planets.push(Math.random() * 360);
+  }
+  planets.sort(function(a, b) { return a - b; });
+}
+
+generatePlanets();
+
+// Compute aspect lines based on planet positions and selected aspects
+function computeChords(aspectAngles, orb) {
+  var lines = [];
+  for (var i = 0; i < planets.length; i++) {
+    for (var j = i + 1; j < planets.length; j++) {
+      var diff = Math.abs(planets[i] - planets[j]);
+      if (diff > 180) diff = 360 - diff;
+      for (var k = 0; k < aspectAngles.length; k++) {
+        if (Math.abs(diff - aspectAngles[k]) <= orb) {
+          // Convert degree positions to radians for the chord endpoints
+          var a1 = planets[i] * Math.PI / 180;
+          var a2 = planets[j] * Math.PI / 180;
+          lines.push({ a1: a1, a2: a2 });
+          break;
+        }
+      }
+    }
+  }
+  return lines;
+}
+
+function chainDebugInfo(entry) {
+  var info = { area: entry.area, filtered: entry.filtered, linkCount: 0, links: [] };
+  var chain = entry.chain;
+  if (!chain || !chain.links) return info;
+  info.linkCount = chain.links.length;
+  info.endless = !!chain.endless;
+  for (var i = 0; i < chain.links.length; i++) {
+    var link = chain.links[i];
+    var wp = link.walkedPath;
+    var pc = wp ? wp.pathContext : null;
+    var linkInfo = { index: i, pathId: wp ? wp.pathId : null, type: pc ? pc.type : null, reversed: !!link.reversed };
+    if (pc) {
+      if (pc.type === 'line') {
+        linkInfo.origin = pc.origin;
+        linkInfo.end = pc.end;
+      } else if (pc.type === 'arc') {
+        linkInfo.origin = pc.origin;
+        linkInfo.radius = pc.radius;
+        linkInfo.startAngle = pc.startAngle;
+        linkInfo.endAngle = pc.endAngle;
+      } else if (pc.type === 'circle') {
+        linkInfo.origin = pc.origin;
+        linkInfo.radius = pc.radius;
+      }
+    }
+    // Compute angle to next link
+    if (i < chain.links.length - 1 || chain.endless) {
+      var j = (i + 1) % chain.links.length;
+      var nextPc = chain.links[j].walkedPath ? chain.links[j].walkedPath.pathContext : null;
+      if (pc && nextPc) {
+        try {
+          var angle = m.path.angleBetweenTwoPaths(pc, nextPc);
+          linkInfo.angleToNext = angle;
+        } catch(e) { linkInfo.angleToNext = 'error'; }
+      }
+    }
+    info.links.push(linkInfo);
+  }
+  return info;
+}
+
+function cornerAngle(linkA, linkB) {
+  var pcA = linkA.walkedPath.pathContext;
+  var pcB = linkB.walkedPath.pathContext;
+  var dax, day;
+  if (pcA.type === 'line') {
+    dax = pcA.end[0] - pcA.origin[0]; day = pcA.end[1] - pcA.origin[1];
+    if (linkA.reversed) { dax = -dax; day = -day; }
+  } else if (pcA.type === 'arc') {
+    var a = (linkA.reversed ? pcA.startAngle : pcA.endAngle) * Math.PI / 180;
+    if (linkA.reversed) { dax = Math.sin(a); day = -Math.cos(a); }
+    else { dax = -Math.sin(a); day = Math.cos(a); }
+  } else return 90;
+  var dbx, dby;
+  if (pcB.type === 'line') {
+    dbx = pcB.end[0] - pcB.origin[0]; dby = pcB.end[1] - pcB.origin[1];
+    if (linkB.reversed) { dbx = -dbx; dby = -dby; }
+  } else if (pcB.type === 'arc') {
+    var a = (linkB.reversed ? pcB.endAngle : pcB.startAngle) * Math.PI / 180;
+    if (linkB.reversed) { dbx = Math.sin(a); dby = -Math.cos(a); }
+    else { dbx = -Math.sin(a); dby = Math.cos(a); }
+  } else return 90;
+  var lenA = Math.sqrt(dax * dax + day * day);
+  var lenB = Math.sqrt(dbx * dbx + dby * dby);
+  if (lenA < 1e-10 || lenB < 1e-10) return 90;
+  var dot = (dax * dbx + day * dby) / (lenA * lenB);
+  dot = Math.max(-1, Math.min(1, dot));
+  return 180 - Math.acos(dot) * 180 / Math.PI;
+}
+
+function manualLineFillet(linkA, linkB, radius) {
+  var pcA = linkA.walkedPath.pathContext;
+  var pcB = linkB.walkedPath.pathContext;
+  if (pcA.type !== 'line' || pcB.type !== 'line') {
+    console.log('  manual: not line-line', pcA.type, pcB.type);
+    return null;
+  }
+
+  // Meeting point: walked-end of A ≈ walked-start of B
+  var endA = linkA.reversed ? pcA.origin : pcA.end;
+  var startB = linkB.reversed ? pcB.end : pcB.origin;
+  var px = (endA[0] + startB[0]) / 2, py = (endA[1] + startB[1]) / 2;
+
+  // Far ends of each path
+  var farA = linkA.reversed ? pcA.end : pcA.origin;
+  var farB = linkB.reversed ? pcB.origin : pcB.end;
+
+  // Direction of A toward P, direction of B away from P
+  var dax = px - farA[0], day = py - farA[1];
+  var la = Math.sqrt(dax * dax + day * day);
+  if (la < 1e-10) { console.log('  manual: pathA zero length'); return null; }
+  dax /= la; day /= la;
+
+  var dbx = farB[0] - px, dby = farB[1] - py;
+  var lb = Math.sqrt(dbx * dbx + dby * dby);
+  if (lb < 1e-10) { console.log('  manual: pathB zero length'); return null; }
+  dbx /= lb; dby /= lb;
+
+  // Cross product determines turn direction
+  var cross = dax * dby - day * dbx;
+  var angleDeg = Math.asin(Math.min(1, Math.abs(cross))) * 180 / Math.PI;
+  if (Math.abs(cross) < 1e-10) {
+    console.log('  manual: parallel lines, cross=' + cross);
+    return null;
+  }
+
+  console.log('  manual: cross=' + cross.toFixed(4) + ' angle~' + angleDeg.toFixed(1) + '° la=' + la.toFixed(1) + ' lb=' + lb.toFixed(1));
+
+  // Interior-side normals (opposite side from what m.path.fillet uses)
+  var side = cross < 0 ? -1 : 1;
+  var nax = side * (-day), nay = side * dax;
+  var nbx = side * (-dby), nby = side * dbx;
+
+  // Offset points on interior-side parallel lines
+  var oax = px + radius * nax, oay = py + radius * nay;
+  var obx = px + radius * nbx, oby = py + radius * nby;
+
+  // Intersect the two offset lines to find fillet center
+  var det = dbx * day - dby * dax;
+  if (Math.abs(det) < 1e-10) { console.log('  manual: det~0'); return null; }
+  var ddx = obx - oax, ddy = oby - oay;
+  var s = (ddy * dax - ddx * day) / det;
+  var cx = obx + s * dbx, cy = oby + s * dby;
+
+  // Tangent points (perpendicular foot from center onto each line)
+  var tA = (cx - farA[0]) * dax + (cy - farA[1]) * day;
+  var tpAx = farA[0] + tA * dax, tpAy = farA[1] + tA * day;
+
+  var tB = (cx - px) * dbx + (cy - py) * dby;
+  var tpBx = px + tB * dbx, tpBy = py + tB * dby;
+
+  // Verify tangent points lie within the path segments
+  if (tA < 0 || tA > la) {
+    console.log('  manual: tangent A out of bounds, tA=' + tA.toFixed(1) + ' la=' + la.toFixed(1));
+    return null;
+  }
+  if (tB < 0 || tB > lb) {
+    console.log('  manual: tangent B out of bounds, tB=' + tB.toFixed(1) + ' lb=' + lb.toFixed(1));
+    return null;
+  }
+
+  // Arc angles
+  var angA = Math.atan2(tpAy - cy, tpAx - cx) * 180 / Math.PI;
+  var angB = Math.atan2(tpBy - cy, tpBx - cx) * 180 / Math.PI;
+  if (angA < 0) angA += 360;
+  if (angB < 0) angB += 360;
+
+  // Pick the short arc (< 180°)
+  var span = angB - angA;
+  if (span < 0) span += 360;
+  var startAng, endAng;
+  if (span <= 180) { startAng = angA; endAng = angB; }
+  else { startAng = angB; endAng = angA; }
+
+  // Trim paths to tangent points
+  if (linkA.reversed) pcA.origin = [tpAx, tpAy];
+  else pcA.end = [tpAx, tpAy];
+  if (linkB.reversed) pcB.end = [tpBx, tpBy];
+  else pcB.origin = [tpBx, tpBy];
+
+  return { type: 'arc', origin: [cx, cy], radius: radius, startAngle: startAng, endAngle: endAng };
+}
+
+function polygonArea(pts) {
+  var n = pts.length;
+  if (n < 3) return 0;
+  var area = 0;
+  for (var i = 0; i < n; i++) {
+    var j = (i + 1) % n;
+    area += pts[i][0] * pts[j][1];
+    area -= pts[j][0] * pts[i][1];
+  }
+  return Math.abs(area) / 2;
+}
+
+function chainMinAngle(chain) {
+  var links = chain.links;
+  if (!links || links.length < 2) return 180;
+  var minAng = 180;
+  var count = chain.endless ? links.length : links.length - 1;
+  for (var i = 0; i < count; i++) {
+    var k = (i + 1) % links.length;
+    var pcA = links[i].walkedPath.pathContext;
+    var pcB = links[k].walkedPath.pathContext;
+
+    // Get tangent direction at walked-end of A
+    var dax, day;
+    if (pcA.type === 'line') {
+      dax = pcA.end[0] - pcA.origin[0]; day = pcA.end[1] - pcA.origin[1];
+      if (links[i].reversed) { dax = -dax; day = -day; }
+    } else if (pcA.type === 'arc') {
+      var ang = (links[i].reversed ? pcA.startAngle : pcA.endAngle) * Math.PI / 180;
+      // tangent CCW: (-sin, cos). If reversed (walking CW): (sin, -cos)
+      if (links[i].reversed) { dax = Math.sin(ang); day = -Math.cos(ang); }
+      else { dax = -Math.sin(ang); day = Math.cos(ang); }
+    } else continue;
+
+    // Get tangent direction at walked-start of B
+    var dbx, dby;
+    if (pcB.type === 'line') {
+      dbx = pcB.end[0] - pcB.origin[0]; dby = pcB.end[1] - pcB.origin[1];
+      if (links[k].reversed) { dbx = -dbx; dby = -dby; }
+    } else if (pcB.type === 'arc') {
+      var ang = (links[k].reversed ? pcB.endAngle : pcB.startAngle) * Math.PI / 180;
+      if (links[k].reversed) { dbx = Math.sin(ang); dby = -Math.cos(ang); }
+      else { dbx = -Math.sin(ang); dby = Math.cos(ang); }
+    } else continue;
+
+    // Angle between directions via dot product
+    var lenA = Math.sqrt(dax * dax + day * day);
+    var lenB = Math.sqrt(dbx * dbx + dby * dby);
+    if (lenA < 1e-10 || lenB < 1e-10) continue;
+    var dot = (dax * dbx + day * dby) / (lenA * lenB);
+    dot = Math.max(-1, Math.min(1, dot));
+    var interior = 180 - Math.acos(dot) * 180 / Math.PI; // 0°=pointy sliver, 180°=straight
+    if (interior < minAng) minAng = interior;
+  }
+  return minAng;
+}
+
+function pointsToSvgPath(pts, minX, maxY) {
+  var sx = pts[0][0] - minX, sy = maxY - pts[0][1];
+  var d = 'M ' + sx + ' ' + sy;
+  for (var j = 1; j < pts.length; j++) {
+    d += ' L ' + (pts[j][0] - minX) + ' ' + (maxY - pts[j][1]);
+  }
+  return d + ' Z';
+}
+
+function buildModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius) {
+  var lineModel = { paths: {} };
+
+  for (var i = 0; i < chords.length; i++) {
+    var c = chords[i];
+    // Chord endpoints on the actual circle
+    var x1 = Math.cos(c.a1) * circleRadius;
+    var y1 = Math.sin(c.a1) * circleRadius;
+    var x2 = Math.cos(c.a2) * circleRadius;
+    var y2 = Math.sin(c.a2) * circleRadius;
+    // Extend along chord direction so expanded band overshoots the circle
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1e-10) continue;
+    var ext = expansion * 3 / len;
+    lineModel.paths['line' + i] = new m.paths.Line(
+      [x1 - dx * ext, y1 - dy * ext],
+      [x2 + dx * ext, y2 + dy * ext]
+    );
+  }
+
+  var expanded = m.model.expandPaths(lineModel, expansion);
+  var circle = { paths: { circle: new m.paths.Circle([0, 0], circleRadius) } };
+  m.model.combine(expanded, circle, true, false, false, true);
+
+  var result = { models: { expanded: expanded, circle: circle } };
+
+  // Pre-pass: collapse short segments (tiny arcs AND short lines) into a point,
+  // joining adjacent paths at the segment midpoint so filters see true angles
+  if (expansion > 0) {
+    var threshold = expansion * 1.5;
+    var preChains = m.model.findChains(result);
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var i = 0; i < preChains.length; i++) {
+        var chain = preChains[i];
+        var links = chain.links;
+        if (!links || links.length < 3) continue;
+        for (var j = 0; j < links.length; j++) {
+          var pc = links[j].walkedPath.pathContext;
+          var segLen = 0;
+          if (pc.type === 'arc') {
+            var span = pc.endAngle - pc.startAngle;
+            if (span < 0) span += 360;
+            if (span > 360) span -= 360;
+            segLen = (span / 360) * 2 * Math.PI * pc.radius;
+          } else if (pc.type === 'line') {
+            var dx = pc.end[0] - pc.origin[0];
+            var dy = pc.end[1] - pc.origin[1];
+            segLen = Math.sqrt(dx * dx + dy * dy);
+          } else continue;
+          if (segLen >= threshold) continue;
+
+          var prevIdx = (j - 1 + links.length) % links.length;
+          var nextIdx = (j + 1) % links.length;
+          var prevPc = links[prevIdx].walkedPath.pathContext;
+          var nextPc = links[nextIdx].walkedPath.pathContext;
+          // Skip if both neighbors are arcs (can't join two arcs at arbitrary point)
+          if (prevPc.type !== 'line' && nextPc.type !== 'line') continue;
+
+          if (prevPc.type === 'line' && nextPc.type === 'line') {
+            // Both neighbors are lines: extend them to their intersection
+            var ax1 = prevPc.origin[0], ay1 = prevPc.origin[1];
+            var ax2 = prevPc.end[0], ay2 = prevPc.end[1];
+            var cx1 = nextPc.origin[0], cy1 = nextPc.origin[1];
+            var cx2 = nextPc.end[0], cy2 = nextPc.end[1];
+            var dax = ax2 - ax1, day = ay2 - ay1;
+            var dcx = cx2 - cx1, dcy = cy2 - cy1;
+            var det = dax * dcy - day * dcx;
+            var meet;
+            if (Math.abs(det) < 1e-10) {
+              // Parallel lines — fall back to midpoint of tiny segment
+              if (pc.type === 'arc') {
+                var sp = pc.endAngle - pc.startAngle;
+                if (sp < 0) sp += 360;
+                var midAngle = (pc.startAngle + sp / 2) * Math.PI / 180;
+                meet = [pc.origin[0] + pc.radius * Math.cos(midAngle),
+                        pc.origin[1] + pc.radius * Math.sin(midAngle)];
+              } else {
+                meet = [(pc.origin[0] + pc.end[0]) / 2, (pc.origin[1] + pc.end[1]) / 2];
+              }
+            } else {
+              var t = ((cx1 - ax1) * dcy - (cy1 - ay1) * dcx) / det;
+              meet = [ax1 + t * dax, ay1 + t * day];
+            }
+            if (links[prevIdx].reversed) { prevPc.origin = meet; }
+            else { prevPc.end = meet; }
+            if (links[nextIdx].reversed) { nextPc.end = meet; }
+            else { nextPc.origin = meet; }
+          } else if (prevPc.type === 'line' && nextPc.type === 'arc') {
+            // prev=line, next=arc: extend line to intersect arc's circle
+            var lx1 = prevPc.origin[0], ly1 = prevPc.origin[1];
+            var ldx = prevPc.end[0] - lx1, ldy = prevPc.end[1] - ly1;
+            var ccx = nextPc.origin[0], ccy = nextPc.origin[1], cr = nextPc.radius;
+            var exx = lx1 - ccx, eyy = ly1 - ccy;
+            var qa = ldx * ldx + ldy * ldy;
+            var qb = 2 * (exx * ldx + eyy * ldy);
+            var qc = exx * exx + eyy * eyy - cr * cr;
+            var disc = qb * qb - 4 * qa * qc;
+            if (disc >= 0 && qa > 1e-10) {
+              var sq = Math.sqrt(disc);
+              var t1 = (-qb + sq) / (2 * qa), t2 = (-qb - sq) / (2 * qa);
+              var p1 = [lx1 + t1 * ldx, ly1 + t1 * ldy];
+              var p2 = [lx1 + t2 * ldx, ly1 + t2 * ldy];
+              // Pick intersection closest to arc's current walked-start
+              var rAng = (links[nextIdx].reversed ? nextPc.endAngle : nextPc.startAngle) * Math.PI / 180;
+              var rPt = [ccx + cr * Math.cos(rAng), ccy + cr * Math.sin(rAng)];
+              var d1 = (p1[0]-rPt[0])*(p1[0]-rPt[0]) + (p1[1]-rPt[1])*(p1[1]-rPt[1]);
+              var d2 = (p2[0]-rPt[0])*(p2[0]-rPt[0]) + (p2[1]-rPt[1])*(p2[1]-rPt[1]);
+              var meet = d1 < d2 ? p1 : p2;
+              if (links[prevIdx].reversed) { prevPc.origin = meet; }
+              else { prevPc.end = meet; }
+              var nAng = Math.atan2(meet[1] - ccy, meet[0] - ccx) * 180 / Math.PI;
+              if (nAng < 0) nAng += 360;
+              if (links[nextIdx].reversed) { nextPc.endAngle = nAng; }
+              else { nextPc.startAngle = nAng; }
+            } else {
+              // Fallback: move line to arc's existing endpoint
+              var arcAng = (links[nextIdx].reversed ? nextPc.endAngle : nextPc.startAngle) * Math.PI / 180;
+              var arcPt = [ccx + cr * Math.cos(arcAng), ccy + cr * Math.sin(arcAng)];
+              if (links[prevIdx].reversed) { prevPc.origin = arcPt; }
+              else { prevPc.end = arcPt; }
+            }
+          } else {
+            // prev=arc, next=line: extend line to intersect arc's circle
+            var lx1 = nextPc.origin[0], ly1 = nextPc.origin[1];
+            var ldx = nextPc.end[0] - lx1, ldy = nextPc.end[1] - ly1;
+            var ccx = prevPc.origin[0], ccy = prevPc.origin[1], cr = prevPc.radius;
+            var exx = lx1 - ccx, eyy = ly1 - ccy;
+            var qa = ldx * ldx + ldy * ldy;
+            var qb = 2 * (exx * ldx + eyy * ldy);
+            var qc = exx * exx + eyy * eyy - cr * cr;
+            var disc = qb * qb - 4 * qa * qc;
+            if (disc >= 0 && qa > 1e-10) {
+              var sq = Math.sqrt(disc);
+              var t1 = (-qb + sq) / (2 * qa), t2 = (-qb - sq) / (2 * qa);
+              var p1 = [lx1 + t1 * ldx, ly1 + t1 * ldy];
+              var p2 = [lx1 + t2 * ldx, ly1 + t2 * ldy];
+              // Pick intersection closest to arc's current walked-end
+              var rAng = (links[prevIdx].reversed ? prevPc.startAngle : prevPc.endAngle) * Math.PI / 180;
+              var rPt = [ccx + cr * Math.cos(rAng), ccy + cr * Math.sin(rAng)];
+              var d1 = (p1[0]-rPt[0])*(p1[0]-rPt[0]) + (p1[1]-rPt[1])*(p1[1]-rPt[1]);
+              var d2 = (p2[0]-rPt[0])*(p2[0]-rPt[0]) + (p2[1]-rPt[1])*(p2[1]-rPt[1]);
+              var meet = d1 < d2 ? p1 : p2;
+              if (links[nextIdx].reversed) { nextPc.end = meet; }
+              else { nextPc.origin = meet; }
+              var nAng = Math.atan2(meet[1] - ccy, meet[0] - ccx) * 180 / Math.PI;
+              if (nAng < 0) nAng += 360;
+              if (links[prevIdx].reversed) { prevPc.startAngle = nAng; }
+              else { prevPc.endAngle = nAng; }
+            } else {
+              // Fallback: move line to arc's existing endpoint
+              var arcAng = (links[prevIdx].reversed ? prevPc.startAngle : prevPc.endAngle) * Math.PI / 180;
+              var arcPt = [ccx + cr * Math.cos(arcAng), ccy + cr * Math.sin(arcAng)];
+              if (links[nextIdx].reversed) { nextPc.end = arcPt; }
+              else { nextPc.origin = arcPt; }
+            }
+          }
+
+          // Delete the short segment
+          var wp = links[j].walkedPath;
+          if (wp.modelContext && wp.modelContext.paths) {
+            delete wp.modelContext.paths[wp.pathId];
+          }
+          changed = true;
+          break;
+        }
+        if (changed) break;
+      }
+      if (changed) preChains = m.model.findChains(result);
+    }
+  }
+
+  // Filter small closed regions (by area and by min corner angle)
+  var areas = [];
+  if (minArea > 0 || minAngle > 0) {
+    var chains = m.model.findChains(result);
+    for (var i = 0; i < chains.length; i++) {
+      var chain = chains[i];
+      if (!chain.endless) continue;
+      try {
+        var pts = m.chain.toKeyPoints(chain, 1);
+        var area = polygonArea(pts);
+        var angle = chainMinAngle(chain);
+        var tooSmall = minArea > 0 && area < minArea;
+        var tooNarrow = minAngle > 0 && angle < minAngle;
+        var filtered = tooSmall || tooNarrow;
+        areas.push({ area: area, minAngle: angle, filtered: filtered, pts: pts, chain: chain });
+        if (filtered) {
+          for (var j = 0; j < chain.links.length; j++) {
+            var link = chain.links[j];
+            var wp = link.walkedPath;
+            if (wp && wp.modelContext && wp.modelContext.paths) {
+              delete wp.modelContext.paths[wp.pathId];
+            }
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // Border
+  if (borderThickness > 0) {
+    result.models.border = {
+      paths: { outer: new m.paths.Circle([0, 0], circleRadius + borderThickness) }
+    };
+  }
+
+  // Fillet — try the full radius, step down until it fits
+  if (filletRadius > 0) {
+    var fChains = m.model.findChains(result);
+    var filletsModel = { paths: {} };
+    var fi = 0;
+    for (var i = 0; i < fChains.length; i++) {
+      var chain = fChains[i];
+      var links = chain.links;
+      if (!links || links.length < 2) continue;
+      var count = chain.endless ? links.length : links.length - 1;
+      for (var j = 0; j < count; j++) {
+        var k = (j + 1) % links.length;
+        var pathA = links[j].walkedPath.pathContext;
+        var pathB = links[k].walkedPath.pathContext;
+        // Adaptive start: scale up for obtuse corners so fillets are visible
+        var interior = cornerAngle(links[j], links[k]);
+        var span = Math.max(15, 180 - interior);
+        var startR = filletRadius * Math.pow(90 / span, 1.5);
+        // Step down from adaptive radius until it fits
+        var arc = null;
+        var tryR = startR;
+        for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
+          try {
+            arc = m.path.fillet(pathA, pathB, tryR);
+          } catch(e) { arc = null; }
+          if (arc) break;
+          tryR *= 0.65;
+        }
+        if (!arc) {
+          // Manual fallback for line-line corners, also stepping down
+          tryR = startR;
+          for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
+            arc = manualLineFillet(links[j], links[k], tryR);
+            if (arc) break;
+            tryR *= 0.65;
+          }
+        }
+        if (arc) {
+          filletsModel.paths['f' + (fi++)] = arc;
+        }
+      }
+    }
+    result.models.fillets = filletsModel;
+  }
+
+  // Compute areas if we didn't filter
+  if (minArea <= 0) {
+    var chains = m.model.findChains(result);
+    for (var i = 0; i < chains.length; i++) {
+      if (!chains[i].endless) continue;
+      try {
+        var pts = m.chain.toKeyPoints(chains[i], 1);
+        areas.push({ area: polygonArea(pts), minAngle: chainMinAngle(chains[i]), filtered: false, pts: pts, chain: chains[i] });
+      } catch(e) {}
+    }
+  }
+
+  result._areas = areas;
+  return result;
+}
+
+// --- UI wiring ---
+var sliderIds = ['orb', 'expansion', 'radius', 'border', 'minArea', 'minAngle', 'fillet'];
+var inputs = {};
+sliderIds.forEach(function(id) { inputs[id] = document.getElementById(id); });
+
+var aspectCheckboxes = ['asp180', 'asp120', 'asp90', 'asp60', 'asp30'];
+var aspectValues =     [180,      120,      90,     60,      30];
+
+var currentAreas = [];
+var selectedIndex = -1;
+var svgMinX = 0, svgMaxY = 0;
+var downloadSvg = '';
+var zoomState = { zoomed: false, x: '50%', y: '50%' };
+var lastModel = null;
+
+function getSelectedAspects() {
+  var selected = [];
+  for (var i = 0; i < aspectCheckboxes.length; i++) {
+    if (document.getElementById(aspectCheckboxes[i]).checked) {
+      selected.push(aspectValues[i]);
+    }
+  }
+  return selected;
+}
+
+function highlightRegion(idx) {
+  var prev = document.getElementById('region-highlight');
+  if (prev) prev.remove();
+
+  var rows = document.querySelectorAll('#areas .area-row');
+  rows.forEach(function(r) { r.classList.remove('active'); });
+
+  if (idx === selectedIndex) {
+    selectedIndex = -1;
+    return;
+  }
+  selectedIndex = idx;
+
+  if (idx < 0 || idx >= currentAreas.length) return;
+  rows[idx].classList.add('active');
+
+  var entry = currentAreas[idx];
+  if (!entry.pts || entry.pts.length < 3) return;
+
+  var d = pointsToSvgPath(entry.pts, svgMinX, svgMaxY);
+  var svgEl = document.querySelector('#canvas svg');
+  if (!svgEl) return;
+
+  var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('id', 'region-highlight');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'rgba(255,255,0,0.25)');
+  path.setAttribute('stroke', '#ffff00');
+  path.setAttribute('stroke-width', '2');
+  svgEl.querySelector('g').appendChild(path);
+}
+
+function render() {
+  var orb = parseFloat(inputs.orb.value);
+  var exp = parseFloat(inputs.expansion.value);
+  var r   = parseFloat(inputs.radius.value);
+  var b   = parseFloat(inputs.border.value);
+  var ma  = parseFloat(inputs.minArea.value);
+  var mAng = parseFloat(inputs.minAngle.value);
+  var f   = parseFloat(inputs.fillet.value);
+
+  document.getElementById('orbVal').textContent       = orb + '°';
+  document.getElementById('expansionVal').textContent  = exp;
+  document.getElementById('radiusVal').textContent     = r;
+  document.getElementById('borderVal').textContent     = b;
+  document.getElementById('minAreaVal').textContent    = ma;
+  document.getElementById('minAngleVal').textContent   = mAng + '°';
+  document.getElementById('filletVal').textContent     = f;
+
+  var aspectAngles = getSelectedAspects();
+  var chords = computeChords(aspectAngles, orb);
+
+  document.getElementById('lineCount').textContent = chords.length + ' aspect lines';
+  document.getElementById('skippedInfo').textContent = '';
+  document.getElementById('volumeInfo').textContent = '';
+
+  selectedIndex = -1;
+  var t0 = performance.now();
+
+  try {
+    var model = buildModel(chords, exp, r, b, ma, mAng, f);
+
+    var ext = m.measure.modelExtents(model);
+    svgMinX = ext.low[0];
+    svgMaxY = ext.high[1];
+
+    var areas = model._areas || [];
+    areas.sort(function(a, b) { return a.area - b.area; });
+    currentAreas = areas;
+
+    var kept = areas.filter(function(a) { return !a.filtered; }).length;
+    var html = '<h3>Regions: ' + kept + ' kept, ' + areas.filter(function(a) { return a.filtered; }).length + ' filtered</h3>';
+    for (var i = 0; i < areas.length; i++) {
+      html += '<div class="area-row' + (areas[i].filtered ? ' filtered' : '') + '" data-idx="' + i + '">'
+        + '<span class="idx">#' + (i + 1) + '</span>'
+        + '<span class="val" style="flex:1">' + areas[i].area.toFixed(0) + ' sq ' + (areas[i].minAngle !== undefined ? areas[i].minAngle.toFixed(0) + '°' : '') + '</span>'
+        + '<button class="copy-btn" data-idx="' + i + '" title="Copy path details">cp</button>'
+        + '</div>';
+    }
+    document.getElementById('areas').innerHTML = html;
+
+    document.querySelectorAll('#areas .area-row').forEach(function(row) {
+      row.addEventListener('click', function(e) {
+        if (e.target.classList.contains('copy-btn')) return;
+        highlightRegion(parseInt(this.getAttribute('data-idx')));
+      });
+    });
+
+    document.querySelectorAll('#areas .copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(this.getAttribute('data-idx'));
+        var entry = currentAreas[idx];
+        if (!entry) return;
+        var info = chainDebugInfo(entry);
+        var text = JSON.stringify(info, null, 2);
+        var self = this;
+        navigator.clipboard.writeText(text).then(function() {
+          self.classList.add('copied');
+          self.textContent = 'ok';
+          setTimeout(function() { self.classList.remove('copied'); self.textContent = 'cp'; }, 1500);
+        });
+      });
+    });
+
+    // Build filled polygons, skip the single largest (outer boundary)
+    var fillChains = m.model.findChains(model);
+    var fillCandidates = [];
+    for (var i = 0; i < fillChains.length; i++) {
+      var ch = fillChains[i];
+      if (!ch.endless) continue;
+      try {
+        var pts = m.chain.toKeyPoints(ch, 1);
+        if (pts.length < 3) continue;
+        var area = polygonArea(pts);
+        fillCandidates.push({ area: area, d: pointsToSvgPath(pts, svgMinX, svgMaxY) });
+      } catch(e) {}
+    }
+    // Skip any region >= 95% of full circle area (outer boundary or degenerate full-circle arcs)
+    var circleArea = Math.PI * r * r;
+    var fills = [];
+    var skippedLarge = 0;
+    var skippedDetails = [];
+    for (var i = 0; i < fillCandidates.length; i++) {
+      if (fillCandidates[i].area < circleArea * 0.95) {
+        fills.push(fillCandidates[i].d);
+      } else {
+        skippedLarge++;
+        skippedDetails.push(Math.round(fillCandidates[i].area));
+      }
+    }
+
+    lastModel = model;
+
+    downloadSvg = m.exporter.toSVG(model, {
+      stroke: '#000',
+      strokeWidth: '0.25mm',
+      fill: 'none',
+      useSvgPathOnly: true,
+    });
+    downloadSvg = downloadSvg
+      .replace(/\s*data-route="[^"]*"/g, '')
+      .replace(/\s*vector-effect="[^"]*"/g, '');
+
+    var beige = '#e8dcc8';
+    var darkBeige = '#c4b49a';
+    // Hide circle arcs from display — they cause a dark ring against the beige background
+    var savedCircle = model.models.circle;
+    delete model.models.circle;
+    var svg = m.exporter.toSVG(model, {
+      stroke: darkBeige,
+      strokeWidth: '1px',
+      fill: 'none',
+      useSvgPathOnly: false,
+    });
+    model.models.circle = savedCircle;
+
+    var outerR = r + b;
+    var bgCircle = '<circle cx="' + (0 - svgMinX) + '" cy="' + (svgMaxY - 0) + '" r="' + outerR + '" fill="' + beige + '" stroke="none"/>';
+    var fillSvg = bgCircle;
+    for (var i = 0; i < fills.length; i++) {
+      fillSvg += '<path d="' + fills[i] + '" fill="#000" stroke="none"/>';
+    }
+    svg = svg.replace(/(<g[^>]*>)/, '$1' + fillSvg);
+
+    // Overlay initial segments in red if toggled
+    if (document.getElementById('showSegments').checked) {
+      var segSvg = '';
+      for (var i = 0; i < chords.length; i++) {
+        var c = chords[i];
+        var sx1 = Math.cos(c.a1) * r - svgMinX;
+        var sy1 = svgMaxY - Math.sin(c.a1) * r;
+        var sx2 = Math.cos(c.a2) * r - svgMinX;
+        var sy2 = svgMaxY - Math.sin(c.a2) * r;
+        segSvg += '<line x1="' + sx1 + '" y1="' + sy1 + '" x2="' + sx2 + '" y2="' + sy2 + '" stroke="red" stroke-width="0.5" opacity="0.7"/>';
+      }
+      svg = svg.replace(/<\/svg>/, segSvg + '</svg>');
+    }
+
+    var canvas = document.getElementById('canvas');
+    canvas.innerHTML = svg;
+    if (zoomState.zoomed) {
+      canvas.classList.add('zoomed');
+      var svgEl = canvas.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.setProperty('--zx', zoomState.x);
+        svgEl.style.setProperty('--zy', zoomState.y);
+      }
+    }
+    document.getElementById('timing').textContent = 'Built in ' + (performance.now() - t0).toFixed(1) + ' ms';
+    document.getElementById('skippedInfo').textContent = skippedLarge + ' large skipped (' + skippedDetails.join(', ') + '), ' + fills.length + ' filled';
+
+    // Volume estimate: outer disc minus cut-out regions, scaled to 1.5" diameter, 1/8" thick
+    var outerR = r + b;
+    var outerArea = Math.PI * outerR * outerR;
+    var cutArea = 0;
+    for (var i = 0; i < fillCandidates.length; i++) {
+      if (fillCandidates[i].area < circleArea * 0.95) cutArea += fillCandidates[i].area;
+    }
+    var remainArea = outerArea - cutArea;
+    var scale = 1.5 / (2 * outerR); // inches per model unit
+    var scaledArea = remainArea * scale * scale; // sq inches
+    var volume = scaledArea * 0.0625; // cubic inches (1/16" thick)
+    var cc = volume * 16.387;
+    var goldGrams = cc * 19.32; // gold density 19.32 g/cc
+    var goldPrice = goldGrams * 90;
+    document.getElementById('volumeInfo').textContent =
+      '~' + volume.toFixed(4) + ' cu in (' + cc.toFixed(2) + ' cc) — Gold: ~' + goldGrams.toFixed(1) + 'g, ~$' + goldPrice.toFixed(0) + ' (est, use CAD for exact)';
+  } catch(e) {
+    document.getElementById('canvas').innerHTML =
+      '<p style="color:#ff5252">Error: ' + e.message + '</p>';
+    document.getElementById('timing').textContent = 'Error after ' + (performance.now() - t0).toFixed(1) + ' ms';
+  }
+}
+
+sliderIds.forEach(function(id) {
+  inputs[id].addEventListener('input', render);
+});
+
+aspectCheckboxes.forEach(function(id) {
+  document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('showSegments').addEventListener('change', render);
+
+document.getElementById('randomBtn').addEventListener('click', function() {
+  generatePlanets();
+  render();
+});
+
+document.getElementById('downloadBtn').addEventListener('click', function() {
+  if (!downloadSvg) return;
+  var blob = new Blob([downloadSvg], { type: 'image/svg+xml' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'natal-aspects.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('downloadDxfBtn').addEventListener('click', function() {
+  if (!lastModel) return;
+  var dxf = m.exporter.toDXF(lastModel);
+  var blob = new Blob([dxf], { type: 'application/dxf' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'natal-aspects.dxf';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('canvas').addEventListener('click', function(e) {
+  var canvas = this;
+  if (zoomState.zoomed) {
+    zoomState.zoomed = false;
+    canvas.classList.remove('zoomed');
+  } else {
+    var rect = canvas.getBoundingClientRect();
+    zoomState.x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%';
+    zoomState.y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%';
+    zoomState.zoomed = true;
+    var svg = canvas.querySelector('svg');
+    if (svg) {
+      svg.style.setProperty('--zx', zoomState.x);
+      svg.style.setProperty('--zy', zoomState.y);
+    }
+    canvas.classList.add('zoomed');
+  }
+});
+
+render();
+</script>
+</body>
+</html>
