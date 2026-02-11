@@ -11,6 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "makerjs": "^0.19.2"
+    "makerjs": "^0.19.2",
+    "replicad": "^0.20.5",
+    "replicad-opencascadejs": "^0.20.2",
+    "three": "^0.182.0"
   }
 }

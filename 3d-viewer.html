@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>3D Pendant Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0;
+    font-family: system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  #toolbar {
+    padding: 10px 16px; background: #16213e;
+    display: flex; align-items: center; gap: 16px; flex-shrink: 0; flex-wrap: wrap;
+  }
+  #toolbar .status { font-size: 13px; color: #8899aa; }
+  #toolbar .status.ready { color: #4fc3f7; }
+  #toolbar .status.error { color: #ff5252; }
+  #toolbar label { font-size: 13px; color: #8899aa; display: flex; align-items: center; gap: 6px; }
+  #toolbar input[type="range"] { width: 80px; accent-color: #4fc3f7; }
+  .btn {
+    padding: 6px 12px; border: none; border-radius: 6px;
+    background: #4fc3f7; color: #1a1a2e; font-weight: 600;
+    cursor: pointer; font-size: 13px;
+  }
+  .btn:hover { background: #81d4fa; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  #viewport { flex: 1; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./node_modules/three/build/three.module.js",
+    "three/addons/": "./node_modules/three/examples/jsm/",
+    "replicad": "./node_modules/replicad/dist/replicad.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="status" id="status">Loading CAD engine...</span>
+  <label>Thickness: <input type="range" id="thickness" min="1" max="50" value="10"> <span id="thickVal">10</span></label>
+  <label>Fillet: <input type="range" id="fillet3d" min="0" max="20" step="0.5" value="3"> <span id="filletVal">3</span></label>
+  <label><input type="checkbox" id="showEdges"> Edges</label>
+  <button class="btn" id="exportStlBtn" disabled>Export STL</button>
+  <button class="btn" id="rebuildBtn" disabled>Rebuild</button>
+</div>
+<div id="viewport"></div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
+import { TAARenderPass } from "three/addons/postprocessing/TAARenderPass.js";
+import { VignetteShader } from "three/addons/shaders/VignetteShader.js";
+import { setOC, draw, drawCircle } from "replicad";
+
+// --- State ---
+let ocReady = false;
+let pendingData = null;
+let currentData = null;
+let currentShape = null;
+
+
+// --- Three.js setup ---
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+
+const camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.1, 10000);
+camera.position.set(0, 0, 500);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+// --- HDRI environment ---
+const rgbeLoader = new RGBELoader();
+rgbeLoader.load('./softbox.hdr', function(hdrEquirect) {
+  hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+  scene.environment = hdrEquirect;
+  console.log('HDRI environment loaded');
+});
+
+// --- Ground plane ---
+function createGroundGradientTexture(size, middleStop, endStop, intensity) {
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  var cx = size / 2, cy = size / 2, maxR = size / 2;
+  var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * endStop);
+  var w = Math.min(255, 255 * intensity);
+  var mg = Math.min(255, 153 * intensity);
+  var dg = Math.min(255, 102 * intensity);
+  grad.addColorStop(0, 'rgb(' + w + ',' + w + ',' + w + ')');
+  grad.addColorStop(middleStop, 'rgb(' + mg + ',' + mg + ',' + mg + ')');
+  grad.addColorStop(1, 'rgb(' + dg + ',' + dg + ',' + dg + ')');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
+var groundGeom = new THREE.PlaneGeometry(2000, 2000);
+var groundTex = new THREE.CanvasTexture(createGroundGradientTexture(1024, 0.2, 3.0, 0.8));
+var groundMat = new THREE.MeshStandardMaterial({
+  map: groundTex, roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0
+});
+var groundPlane = new THREE.Mesh(groundGeom, groundMat);
+groundPlane.rotation.x = -Math.PI / 2;
+groundPlane.position.y = -5;
+groundPlane.receiveShadow = true;
+groundPlane.material.color.setRGB(0.5, 0.5, 0.5);
+scene.add(groundPlane);
+
+// --- Lighting ---
+scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+
+var sideLight = new THREE.DirectionalLight(0xffffff, 3.0);
+sideLight.position.set(-200, 350, -200);
+sideLight.castShadow = true;
+sideLight.shadow.mapSize.width = 4096;
+sideLight.shadow.mapSize.height = 4096;
+sideLight.shadow.camera.near = 0.1;
+sideLight.shadow.camera.far = 2000;
+sideLight.shadow.camera.left = -600;
+sideLight.shadow.camera.right = 600;
+sideLight.shadow.camera.top = 600;
+sideLight.shadow.camera.bottom = -600;
+sideLight.shadow.bias = -0.0001;
+sideLight.shadow.normalBias = 0.02;
+scene.add(sideLight);
+
+var sideLight2 = new THREE.DirectionalLight(0xffffff, 3.0);
+sideLight2.position.set(200, 350, -200);
+sideLight2.castShadow = true;
+sideLight2.shadow.mapSize.width = 4096;
+sideLight2.shadow.mapSize.height = 4096;
+sideLight2.shadow.camera.near = 0.1;
+sideLight2.shadow.camera.far = 2000;
+sideLight2.shadow.camera.left = -600;
+sideLight2.shadow.camera.right = 600;
+sideLight2.shadow.camera.top = 600;
+sideLight2.shadow.camera.bottom = -600;
+sideLight2.shadow.bias = -0.0001;
+sideLight2.shadow.normalBias = 0.02;
+scene.add(sideLight2);
+
+var fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+fillLight.position.set(-300, 100, -100);
+scene.add(fillLight);
+
+// Point lights
+var pointLightPositions = [
+  { x: 120, y: 150, z: 120 },
+  { x: -120, y: 150, z: 120 },
+  { x: 0, y: 180, z: 0 },
+  { x: 120, y: 120, z: -120 },
+  { x: -120, y: 120, z: -120 }
+];
+pointLightPositions.forEach(function(pos) {
+  var pl = new THREE.PointLight(0xffffff, 3.0, 1000);
+  pl.position.set(pos.x, pos.y, pos.z);
+  pl.decay = 2;
+  scene.add(pl);
+});
+
+// Initial light positions for animation
+var initialLightPositions = {
+  light1: { x: -200, y: 350, z: -200 },
+  light2: { x: 200, y: 350, z: -200 }
+};
+var animationTime = 0;
+
+const pendantGroup = new THREE.Group();
+pendantGroup.rotation.x = -Math.PI / 2; // Lay flat on ground (XY model plane → XZ world plane)
+scene.add(pendantGroup);
+
+// --- Post-processing ---
+var composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+var taaPass = new TAARenderPass(scene, camera);
+taaPass.sampleLevel = 3;
+composer.addPass(taaPass);
+
+var smaaPass = new SMAAPass(
+  viewport.clientWidth * window.devicePixelRatio,
+  viewport.clientHeight * window.devicePixelRatio
+);
+smaaPass.enabled = false;
+composer.addPass(smaaPass);
+
+// Color grading shader
+var ColorGradingShader = {
+  uniforms: {
+    'tDiffuse': { value: null },
+    'saturation': { value: 0.85 },
+    'contrast': { value: 0.90 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    precision mediump float;
+    uniform sampler2D tDiffuse;
+    uniform float saturation;
+    uniform float contrast;
+    varying vec2 vUv;
+    vec3 adjustSaturation(vec3 color, float adj) {
+      vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+      return mix(gray, color, adj);
+    }
+    vec3 adjustContrast(vec3 color, float adj) {
+      return (color - 0.5) * adj + 0.5;
+    }
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      color.rgb = adjustSaturation(color.rgb, saturation);
+      color.rgb = adjustContrast(color.rgb, contrast);
+      gl_FragColor = color;
+    }
+  `
+};
+var colorGradingPass = new ShaderPass(ColorGradingShader);
+composer.addPass(colorGradingPass);
+
+var vignettePass = new ShaderPass(VignetteShader);
+vignettePass.uniforms['darkness'].value = 1.2;
+vignettePass.uniforms['offset'].value = 0.9;
+vignettePass.enabled = false;
+composer.addPass(vignettePass);
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+
+  // Subtle light animation
+  animationTime += 0.016 * 0.1;
+  var a1 = animationTime;
+  sideLight.position.x = initialLightPositions.light1.x + Math.cos(a1) * 100;
+  sideLight.position.z = initialLightPositions.light1.z + Math.sin(a1) * 100;
+  sideLight.position.y = initialLightPositions.light1.y + Math.sin(a1 * 0.5) * 50;
+  var a2 = animationTime + Math.PI / 4;
+  sideLight2.position.x = initialLightPositions.light2.x + Math.cos(a2) * 100;
+  sideLight2.position.z = initialLightPositions.light2.z + Math.sin(a2) * 100;
+  sideLight2.position.y = initialLightPositions.light2.y + Math.sin(a2 * 0.5) * 50;
+
+  composer.render();
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = viewport.clientWidth / viewport.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  composer.setSize(viewport.clientWidth, viewport.clientHeight);
+});
+
+// --- ReplicAD WASM initialization ---
+async function initOC() {
+  const statusEl = document.getElementById('status');
+  try {
+    // Load OpenCascade WASM from local node_modules
+    const ocModule = await import("./node_modules/replicad-opencascadejs/src/replicad_single.js");
+    const OC = await ocModule.default({
+      locateFile: () => "./node_modules/replicad-opencascadejs/src/replicad_single.wasm",
+    });
+
+    setOC(OC);
+    ocReady = true;
+    statusEl.textContent = 'CAD engine ready';
+    statusEl.classList.add('ready');
+    document.getElementById('rebuildBtn').disabled = false;
+
+    if (pendingData) {
+      rebuildModel(pendingData);
+      pendingData = null;
+    }
+  } catch(e) {
+    var msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : String(e));
+    statusEl.textContent = 'WASM load error: ' + (msg || String(e));
+    statusEl.classList.add('error');
+    console.error('WASM init failed:', e);
+  }
+}
+
+initOC();
+
+// --- Chain to ReplicAD drawing conversion ---
+function walkedStart(link) {
+  if (link.type === 'line') {
+    return link.reversed ? link.end : link.origin;
+  } else if (link.type === 'arc') {
+    var angle = (link.reversed ? link.endAngle : link.startAngle) * Math.PI / 180;
+    return [link.origin[0] + link.radius * Math.cos(angle),
+            link.origin[1] + link.radius * Math.sin(angle)];
+  }
+  return [0, 0];
+}
+
+function walkedEnd(link) {
+  if (link.type === 'line') {
+    return link.reversed ? link.origin : link.end;
+  } else if (link.type === 'arc') {
+    var angle = (link.reversed ? link.startAngle : link.endAngle) * Math.PI / 180;
+    return [link.origin[0] + link.radius * Math.cos(angle),
+            link.origin[1] + link.radius * Math.sin(angle)];
+  }
+  return [0, 0];
+}
+
+function arcMidpoint(link) {
+  // MakerJS arcs always go CCW from startAngle to endAngle.
+  // The physical arc midpoint is the same regardless of walk direction.
+  var sa = link.startAngle, ea = link.endAngle;
+  var span = ea - sa;
+  if (span < 0) span += 360;
+  var mid = sa + span / 2;
+  var midRad = mid * Math.PI / 180;
+  return [link.origin[0] + link.radius * Math.cos(midRad),
+          link.origin[1] + link.radius * Math.sin(midRad)];
+}
+
+function chainToDrawing(chainData) {
+  var links = chainData.links;
+  if (!links || links.length === 0) return null;
+
+  var startPt = walkedStart(links[0]);
+  console.log('    Chain start:', startPt, 'links:', links.length);
+  var pen = draw(startPt);
+
+  for (var i = 0; i < links.length; i++) {
+    var link = links[i];
+    var endPt = walkedEnd(link);
+
+    if (link.type === 'line') {
+      pen = pen.lineTo(endPt);
+    } else if (link.type === 'arc') {
+      // Tiny arcs approximate as lines
+      var sp = walkedStart(link);
+      var dx = endPt[0] - sp[0], dy = endPt[1] - sp[1];
+      var chord = Math.sqrt(dx * dx + dy * dy);
+      if (chord < 0.5) {
+        pen = pen.lineTo(endPt);
+      } else {
+        var mp = arcMidpoint(link);
+        try {
+          pen = pen.threePointsArcTo(endPt, mp);
+        } catch(arcErr) {
+          console.warn('    threePointsArcTo failed at link ' + i + ', falling back to line. endPt:', endPt, 'mp:', mp);
+          pen = pen.lineTo(endPt);
+        }
+      }
+    }
+  }
+
+  return pen.close();
+}
+
+// --- Build 3D pendant ---
+function buildPendant3D(data, thickness) {
+  var outerRadius = data.circleRadius + data.borderThickness;
+  console.log('Outer radius:', outerRadius, 'Thickness:', thickness);
+
+  // Create outer disc
+  console.log('Creating outer disc...');
+  var disc = drawCircle(outerRadius).sketchOnPlane("XY").extrude(thickness);
+  console.log('Outer disc created');
+
+  // Cut each void region
+  var cutOk = 0, cutFail = 0;
+  for (var i = 0; i < data.voidChains.length; i++) {
+    try {
+      console.log('Processing void ' + i + ' (' + data.voidChains[i].links.length + ' links)...');
+      var drawing = chainToDrawing(data.voidChains[i]);
+      if (!drawing) { cutFail++; console.warn('Void ' + i + ': drawing returned null'); continue; }
+
+      console.log('  Sketching void ' + i + '...');
+      var voidSolid = drawing
+        .sketchOnPlane("XY", -0.1)
+        .extrude(thickness + 0.2);
+
+      console.log('  Cutting void ' + i + '...');
+      disc = disc.cut(voidSolid);
+      cutOk++;
+      console.log('  Void ' + i + ' cut OK');
+    } catch(e) {
+      cutFail++;
+      var msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : String(e));
+      console.warn('Cut failed for void ' + i + ':', msg, e);
+    }
+  }
+
+  return { shape: disc, cutOk: cutOk, cutFail: cutFail, thickness: thickness };
+}
+
+// --- Update Three.js mesh ---
+function updateMesh(shape) {
+  // Clear previous
+  while (pendantGroup.children.length > 0) {
+    var child = pendantGroup.children[0];
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) child.material.dispose();
+    pendantGroup.remove(child);
+  }
+
+  // Get mesh data from replicad (returns plain JS arrays)
+  console.log('Generating mesh...');
+  var facesData = shape.mesh({ tolerance: 0.01, angularTolerance: 0.5 });
+  console.log('Mesh faces:', facesData.vertices.length / 3, 'vertices,', facesData.triangles.length / 3, 'triangles');
+  var edgesData = shape.meshEdges({ tolerance: 0.01, angularTolerance: 0.5 });
+  console.log('Mesh edges:', edgesData.lines.length / 3, 'points');
+
+  // Build face geometry — convert plain arrays to typed arrays
+  var faceGeom = new THREE.BufferGeometry();
+  faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(facesData.vertices, 3));
+  faceGeom.setAttribute('normal', new THREE.Float32BufferAttribute(facesData.normals, 3));
+  if (facesData.triangles && facesData.triangles.length > 0) {
+    faceGeom.setIndex(facesData.triangles);
+  }
+  // ReplicAD already provides smooth normals from OpenCascade — no need for computeVertexNormals()
+
+  // Build edge geometry — lines is a flat array of paired XYZ coords
+  var edgeGeom = new THREE.BufferGeometry();
+  edgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(edgesData.lines, 3));
+
+  var faceMat = new THREE.MeshStandardMaterial({
+    color: 0xFFD700,
+    metalness: 1.0,
+    roughness: 0.2,
+    envMapIntensity: 1.0,
+    polygonOffset: true,
+    polygonOffsetFactor: 2.0,
+    polygonOffsetUnits: 1.0,
+  });
+
+  var edgeMat = new THREE.LineBasicMaterial({ color: 0x8b7335 });
+
+  var mesh = new THREE.Mesh(faceGeom, faceMat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  pendantGroup.add(mesh);
+  var edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
+  edgeLines.visible = document.getElementById('showEdges').checked;
+  pendantGroup.add(edgeLines);
+
+  // Auto-fit camera
+  var box = new THREE.Box3().setFromObject(pendantGroup);
+  var center = box.getCenter(new THREE.Vector3());
+  var size = box.getSize(new THREE.Vector3());
+  var maxDim = Math.max(size.x, size.y, size.z);
+  var fov = camera.fov * (Math.PI / 180);
+  var dist = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+  // Look down from above, slightly angled
+  camera.position.set(center.x, center.y + dist, center.z + dist * 0.3);
+  controls.target.copy(center);
+  controls.update();
+
+  // Position ground plane below the model
+  groundPlane.position.y = box.min.y - 2;
+}
+
+// --- Rebuild model ---
+async function rebuildModel(data) {
+  var statusEl = document.getElementById('status');
+  statusEl.textContent = 'Building 3D model...';
+  statusEl.className = 'status';
+  currentData = data;
+
+  // Yield to let status update render
+  await new Promise(r => setTimeout(r, 50));
+
+  try {
+    var thickness = parseFloat(document.getElementById('thickness').value);
+    var filletR = parseFloat(document.getElementById('fillet3d').value);
+    console.log('Building with thickness:', thickness, 'fillet:', filletR, 'voidChains:', data.voidChains.length);
+    var result = buildPendant3D(data, thickness);
+    var shape = result.shape;
+
+    // Apply 3D fillet to top and bottom face edges
+    var filletInfo = '';
+    if (filletR > 0) {
+      // Clamp fillet to half thickness
+      var maxFillet = thickness / 2 - 0.1;
+      var actualR = Math.min(filletR, maxFillet);
+      if (actualR > 0.1) {
+        try {
+          console.log('Applying 3D fillet, radius:', actualR);
+          shape = shape.fillet(actualR, (e) => e.either([
+            (e2) => e2.inPlane("XY"),
+            (e2) => e2.inPlane("XY", [0, 0, thickness]),
+          ]));
+          filletInfo = ', filleted ' + actualR.toFixed(1);
+        } catch(fe) {
+          console.warn('Fillet failed, trying smaller...', fe);
+          // Step down fillet radius
+          var tryR = actualR * 0.7;
+          var filletOk = false;
+          for (var attempt = 0; attempt < 5 && tryR >= 0.3; attempt++) {
+            try {
+              shape = shape.fillet(tryR, (e) => e.inPlane("XY").either([
+                (e2) => e2.inPlane("XY"),
+                (e2) => e2.inPlane("XY", [0, 0, thickness]),
+              ]));
+              filletInfo = ', filleted ' + tryR.toFixed(1);
+              filletOk = true;
+              break;
+            } catch(fe2) {
+              tryR *= 0.7;
+            }
+          }
+          if (!filletOk) {
+            filletInfo = ', fillet failed';
+            console.warn('All fillet attempts failed');
+          }
+        }
+      }
+    }
+
+    currentShape = shape;
+    console.log('Build done, updating mesh...');
+    updateMesh(shape);
+
+    statusEl.textContent = 'Ready — ' + result.cutOk + ' voids cut' +
+      (result.cutFail > 0 ? ', ' + result.cutFail + ' failed' : '') + filletInfo;
+    statusEl.classList.add('ready');
+    document.getElementById('exportStlBtn').disabled = false;
+  } catch(e) {
+    var msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : JSON.stringify(e));
+    statusEl.textContent = 'Error: ' + (msg || String(e));
+    statusEl.classList.add('error');
+    console.error('Build failed:', e);
+    if (e && e.stack) console.error(e.stack);
+  }
+}
+
+// --- Message listener ---
+window.addEventListener('message', function(event) {
+  if (!event.data || event.data.type !== 'updateModel') return;
+  var data = event.data.payload;
+  if (ocReady) {
+    rebuildModel(data);
+  } else {
+    pendingData = data;
+    document.getElementById('status').textContent = 'Loading CAD engine... (model queued)';
+  }
+});
+
+// --- UI handlers ---
+document.getElementById('thickness').addEventListener('input', function() {
+  document.getElementById('thickVal').textContent = this.value;
+});
+
+document.getElementById('rebuildBtn').addEventListener('click', function() {
+  if (currentData && ocReady) rebuildModel(currentData);
+});
+
+document.getElementById('thickness').addEventListener('change', function() {
+  if (currentData && ocReady) rebuildModel(currentData);
+});
+
+document.getElementById('fillet3d').addEventListener('input', function() {
+  document.getElementById('filletVal').textContent = this.value;
+});
+
+document.getElementById('fillet3d').addEventListener('change', function() {
+  if (currentData && ocReady) rebuildModel(currentData);
+});
+
+document.getElementById('showEdges').addEventListener('change', function() {
+  var show = this.checked;
+  for (var i = 0; i < pendantGroup.children.length; i++) {
+    if (pendantGroup.children[i].isLineSegments) {
+      pendantGroup.children[i].visible = show;
+    }
+  }
+});
+
+document.getElementById('exportStlBtn').addEventListener('click', function() {
+  if (!currentShape) return;
+  try {
+    var blob = currentShape.blobSTL();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'natal-pendant.stl';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    console.error('STL export failed:', e);
+  }
+});
+</script>
+</body>
+</html>

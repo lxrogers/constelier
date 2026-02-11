@@ -63,6 +63,18 @@
   #canvas svg { max-width: 100%; max-height: 100%; transition: transform 0.2s ease; transform-origin: var(--zx, 50%) var(--zy, 50%); }
   #canvas.zoomed { cursor: zoom-out; }
   #canvas.zoomed svg { transform: scale(3); }
+  #viewer3d-frame { width: 100%; height: 100%; border: none; display: none; }
+  #main.show-3d #canvas { display: none; }
+  #main.show-3d #viewer3d-frame { display: block; }
+  #view-toggle { display: flex; gap: 0; }
+  #view-toggle .toggle-btn {
+    padding: 6px 14px; border: 1px solid #2a3a5e; background: #16213e;
+    color: #8899aa; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  #view-toggle .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+  #view-toggle .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+  #view-toggle .toggle-btn.active { background: #4fc3f7; color: #1a1a2e; border-color: #4fc3f7; }
+  #view-toggle .toggle-btn:hover:not(.active) { background: #1a2a4e; }
 </style>
 </head>
 <body>
@@ -147,6 +159,10 @@
       <button class="btn" id="randomBtn">Randomize Chart</button>
       <button class="btn" id="downloadBtn">Download SVG</button>
       <button class="btn" id="downloadDxfBtn">Download DXF</button>
+      <div id="view-toggle">
+        <button class="toggle-btn active" id="show2dBtn">2D</button>
+        <button class="toggle-btn" id="show3dBtn">3D</button>
+      </div>
 
       <div id="timing" style="font-size:11px;color:#667;font-variant-numeric:tabular-nums;"></div>
       <div id="lineCount" style="font-size:11px;color:#667;"></div>
@@ -160,6 +176,7 @@
 
 <div id="main">
   <div id="canvas"></div>
+  <iframe id="viewer3d-frame" src="about:blank"></iframe>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/makerjs@0/target/js/browser.maker.js"></script>
@@ -427,6 +444,77 @@ function pointsToSvgPath(pts, minX, maxY) {
     d += ' L ' + (pts[j][0] - minX) + ' ' + (maxY - pts[j][1]);
   }
   return d + ' Z';
+}
+
+function signedPolygonArea(pts) {
+  var n = pts.length;
+  if (n < 3) return 0;
+  var area = 0;
+  for (var i = 0; i < n; i++) {
+    var j = (i + 1) % n;
+    area += pts[i][0] * pts[j][1];
+    area -= pts[j][0] * pts[i][1];
+  }
+  return area / 2;
+}
+
+function serializeChainsFor3D(model, circleRadius, borderThickness) {
+  var chains = m.model.findChains(model);
+  var circleArea = Math.PI * circleRadius * circleRadius;
+  var data = { circleRadius: circleRadius, borderThickness: borderThickness, voidChains: [] };
+  for (var i = 0; i < chains.length; i++) {
+    var ch = chains[i];
+    if (!ch.endless) continue;
+    try {
+      var pts = m.chain.toKeyPoints(ch, 1);
+      if (pts.length < 3) continue;
+      var area = Math.abs(signedPolygonArea(pts));
+      if (area >= circleArea * 0.95) continue;
+
+      // Check winding: CW chains need to be reversed so ReplicAD
+      // interprets them as the enclosed void, not its complement
+      var needsReverse = signedPolygonArea(pts) < 0;
+
+      var chainLinks = ch.links;
+      var links = [];
+      if (needsReverse) {
+        // Walk links in reverse order, flipping each link's reversed flag
+        for (var j = chainLinks.length - 1; j >= 0; j--) {
+          var link = chainLinks[j];
+          var pc = link.walkedPath.pathContext;
+          var ld = { type: pc.type, reversed: !link.reversed };
+          if (pc.type === 'line') {
+            ld.origin = [pc.origin[0], pc.origin[1]];
+            ld.end = [pc.end[0], pc.end[1]];
+          } else if (pc.type === 'arc') {
+            ld.origin = [pc.origin[0], pc.origin[1]];
+            ld.radius = pc.radius;
+            ld.startAngle = pc.startAngle;
+            ld.endAngle = pc.endAngle;
+          }
+          links.push(ld);
+        }
+      } else {
+        for (var j = 0; j < chainLinks.length; j++) {
+          var link = chainLinks[j];
+          var pc = link.walkedPath.pathContext;
+          var ld = { type: pc.type, reversed: !!link.reversed };
+          if (pc.type === 'line') {
+            ld.origin = [pc.origin[0], pc.origin[1]];
+            ld.end = [pc.end[0], pc.end[1]];
+          } else if (pc.type === 'arc') {
+            ld.origin = [pc.origin[0], pc.origin[1]];
+            ld.radius = pc.radius;
+            ld.startAngle = pc.startAngle;
+            ld.endAngle = pc.endAngle;
+          }
+          links.push(ld);
+        }
+      }
+      data.voidChains.push({ links: links, area: area });
+    } catch(e) {}
+  }
+  return data;
 }
 
 function buildModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius) {
@@ -857,6 +945,7 @@ function render() {
     }
 
     lastModel = model;
+    if (show3d && viewer3dLoaded) sendDataTo3D();
 
     downloadSvg = m.exporter.toSVG(model, {
       stroke: '#000',
@@ -974,6 +1063,48 @@ document.getElementById('downloadDxfBtn').addEventListener('click', function() {
   a.download = 'natal-aspects.dxf';
   a.click();
   URL.revokeObjectURL(url);
+});
+
+var viewer3dLoaded = false;
+var show3d = false;
+
+function sendDataTo3D() {
+  if (!lastModel) return;
+  var data = serializeChainsFor3D(lastModel,
+    parseFloat(inputs.radius.value),
+    parseFloat(inputs.border.value));
+  var frame = document.getElementById('viewer3d-frame');
+  if (frame.contentWindow) {
+    frame.contentWindow.postMessage({ type: 'updateModel', payload: data }, '*');
+  }
+}
+
+document.getElementById('show3dBtn').addEventListener('click', function() {
+  if (show3d) return;
+  show3d = true;
+  document.getElementById('main').classList.add('show-3d');
+  document.getElementById('show3dBtn').classList.add('active');
+  document.getElementById('show2dBtn').classList.remove('active');
+
+  var frame = document.getElementById('viewer3d-frame');
+  if (!viewer3dLoaded) {
+    frame.src = '3d-viewer.html';
+    frame.addEventListener('load', function onLoad() {
+      frame.removeEventListener('load', onLoad);
+      viewer3dLoaded = true;
+      sendDataTo3D();
+    });
+  } else {
+    sendDataTo3D();
+  }
+});
+
+document.getElementById('show2dBtn').addEventListener('click', function() {
+  if (!show3d) return;
+  show3d = false;
+  document.getElementById('main').classList.remove('show-3d');
+  document.getElementById('show2dBtn').classList.add('active');
+  document.getElementById('show3dBtn').classList.remove('active');
 });
 
 document.getElementById('canvas').addEventListener('click', function(e) {
