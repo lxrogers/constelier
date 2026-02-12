@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Natal Chart Generator</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: system-ui, sans-serif;
+  background: #f5f0e6;
+  color: #2c2c2c;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+#controls {
+  width: 320px;
+  min-width: 320px;
+  background: #ede8de;
+  border-right: 1px solid #d4cfc5;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#controls h2 {
+  font-size: 16px;
+  color: #3a3630;
+  margin-bottom: 4px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+.form-group label {
+  font-size: 12px;
+  color: #7a7568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+input[type="date"], input[type="time"], input[type="text"] {
+  background: #faf7f0;
+  border: 1px solid #d4cfc5;
+  color: #2c2c2c;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+  outline: none;
+}
+input:focus { border-color: #8b7d6b; }
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #faf7f0;
+  border: 1px solid #d4cfc5;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 100;
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.dropdown.open { display: block; }
+.dropdown-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #ede8de;
+}
+.dropdown-item:hover { background: #ede8de; }
+.location-display {
+  font-size: 11px;
+  color: #7a7568;
+  margin-top: 2px;
+}
+#error {
+  color: #c0392b;
+  font-size: 13px;
+  display: none;
+}
+#results {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+}
+#results h3 {
+  font-size: 13px;
+  color: #3a3630;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#planet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#planet-table th {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid #d4cfc5;
+  color: #7a7568;
+  font-weight: normal;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+#planet-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(212, 207, 197, 0.5);
+}
+#planet-table .retrograde { color: #c0392b; font-size: 10px; margin-left: 2px; }
+.aspect-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.aspect-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #7a7568;
+}
+.aspect-legend-item .swatch {
+  width: 16px;
+  height: 3px;
+  border-radius: 1px;
+}
+#main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+#chart {
+  max-width: 100%;
+  max-height: 100%;
+}
+</style>
+</head>
+<body>
+<div id="controls">
+  <h2>Natal Chart Generator</h2>
+  <div class="form-group">
+    <label>Date of Birth</label>
+    <input type="date" id="birthdate" value="2000-01-01">
+  </div>
+  <div class="form-group">
+    <label>Time of Birth</label>
+    <input type="time" id="birthtime" value="12:00">
+  </div>
+  <div class="form-group">
+    <label>Birth Location</label>
+    <input type="text" id="location" value="Lexington, Fayette County" autocomplete="off">
+    <div id="location-dropdown" class="dropdown"></div>
+    <div id="location-info" class="location-display">38.0464°, -84.4970°</div>
+  </div>
+  <div id="error"></div>
+  <div id="results">
+    <h3>Planet Positions</h3>
+    <table id="planet-table">
+      <thead><tr><th>Planet</th><th>Sign</th><th>Degree</th></tr></thead>
+      <tbody id="planet-tbody"></tbody>
+    </table>
+    <div class="aspect-legend" id="aspect-legend"></div>
+  </div>
+</div>
+<div id="main">
+  <canvas id="chart" width="700" height="700"></canvas>
+</div>
+
+<script type="module">
+import { Horoscope, Origin } from './horoscope-bundle.js';
+
+// ── Constants ──────────────────────────────────────────────
+
+const SIGNS = [
+  { key: 'aries',       glyph: '\u2648', abbr: 'Ari', element: 'fire' },
+  { key: 'taurus',      glyph: '\u2649', abbr: 'Tau', element: 'earth' },
+  { key: 'gemini',      glyph: '\u264A', abbr: 'Gem', element: 'air' },
+  { key: 'cancer',      glyph: '\u264B', abbr: 'Can', element: 'water' },
+  { key: 'leo',         glyph: '\u264C', abbr: 'Leo', element: 'fire' },
+  { key: 'virgo',       glyph: '\u264D', abbr: 'Vir', element: 'earth' },
+  { key: 'libra',       glyph: '\u264E', abbr: 'Lib', element: 'air' },
+  { key: 'scorpio',     glyph: '\u264F', abbr: 'Sco', element: 'water' },
+  { key: 'sagittarius', glyph: '\u2650', abbr: 'Sag', element: 'fire' },
+  { key: 'capricorn',   glyph: '\u2651', abbr: 'Cap', element: 'earth' },
+  { key: 'aquarius',    glyph: '\u2652', abbr: 'Aqu', element: 'air' },
+  { key: 'pisces',      glyph: '\u2653', abbr: 'Pis', element: 'water' },
+];
+
+const PLANET_KEYS = [
+  'sun', 'moon', 'mercury', 'venus', 'mars',
+  'jupiter', 'saturn', 'uranus', 'neptune', 'pluto',
+  'chiron', 'northnode',
+];
+
+const PLANET_GLYPHS = {
+  sun: '\u2609', moon: '\u263D', mercury: '\u263F', venus: '\u2640',
+  mars: '\u2642', jupiter: '\u2643', saturn: '\u2644', uranus: '\u2645',
+  neptune: '\u2646', pluto: '\u2647', chiron: '\u26B7', northnode: '\u260A',
+  sirius: '\u2605', southnode: '\u260B', lilith: '\u26B8',
+};
+
+const PLANET_NAMES = {
+  sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus',
+  mars: 'Mars', jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus',
+  neptune: 'Neptune', pluto: 'Pluto', chiron: 'Chiron', northnode: 'N.Node',
+};
+
+const ASPECT_STYLES = {
+  conjunction: { color: '#6a9e6a', width: 1.2, dash: [] },
+  sextile:     { color: '#6a8cad', width: 0.8, dash: [4, 4] },
+  square:      { color: '#b85450', width: 1.2, dash: [] },
+  trine:       { color: '#6a8cad', width: 1.2, dash: [] },
+  opposition:  { color: '#b85450', width: 1.5, dash: [] },
+};
+
+// ── Canvas Setup ───────────────────────────────────────────
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+const SIZE = 700;
+canvas.width = SIZE * dpr;
+canvas.height = SIZE * dpr;
+canvas.style.width = SIZE + 'px';
+canvas.style.height = SIZE + 'px';
+ctx.scale(dpr, dpr);
+
+const CX = SIZE / 2;
+const CY = SIZE / 2;
+const OUTER_R = 310;
+const ZODIAC_INNER_R = 265;
+const PLANET_R = 230;
+const PLANET_INNER_R = 205;
+const INNER_R = 145;
+
+// ── State ──────────────────────────────────────────────────
+
+let selectedLat = 38.0464;
+let selectedLon = -84.4970;
+
+// Animation state
+let displayState = null;   // what's currently rendered
+let fromState = null;      // animation start snapshot
+let targetState = null;    // animation target
+let animStartTime = null;
+let animFrameId = null;
+const ANIM_DURATION = 700; // ms
+
+// ── Coordinate Helpers ─────────────────────────────────────
+
+function eclToAngle(eclDeg, ascDeg) {
+  return (180 - eclDeg + ascDeg) * Math.PI / 180;
+}
+
+function eclToXY(eclDeg, radius, ascDeg) {
+  const a = eclToAngle(eclDeg, ascDeg);
+  return { x: CX + radius * Math.cos(a), y: CY + radius * Math.sin(a) };
+}
+
+function normDeg(d) { return ((d % 360) + 360) % 360; }
+
+function lerpAngle(from, to, t) {
+  let diff = to - from;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+  return normDeg(from + diff * t);
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// ── Geocoding ──────────────────────────────────────────────
+
+let searchTimeout = null;
+const locationInput = document.getElementById('location');
+const dropdown = document.getElementById('location-dropdown');
+const locationInfo = document.getElementById('location-info');
+
+locationInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const q = locationInput.value.trim();
+  if (q.length < 2) { dropdown.classList.remove('open'); return; }
+  searchTimeout = setTimeout(() => searchLocation(q), 300);
+});
+
+locationInput.addEventListener('blur', () => {
+  setTimeout(() => dropdown.classList.remove('open'), 200);
+});
+
+async function searchLocation(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    dropdown.innerHTML = '';
+    if (!data.length) {
+      dropdown.innerHTML = '<div class="dropdown-item" style="color:#8899aa">No results</div>';
+      dropdown.classList.add('open');
+      return;
+    }
+    for (const item of data) {
+      const div = document.createElement('div');
+      div.className = 'dropdown-item';
+      div.textContent = item.display_name;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectedLat = parseFloat(item.lat);
+        selectedLon = parseFloat(item.lon);
+        const name = item.display_name.split(',').slice(0, 2).join(',');
+        locationInput.value = name;
+        locationInfo.textContent = `${selectedLat.toFixed(4)}°, ${selectedLon.toFixed(4)}°`;
+        dropdown.classList.remove('open');
+        generateChart();
+      });
+      dropdown.appendChild(div);
+    }
+    dropdown.classList.add('open');
+  } catch (err) {
+    console.error('Geocoding error:', err);
+  }
+}
+
+// ── Chart State Extraction ─────────────────────────────────
+
+function extractState(h) {
+  const ascDeg = getAscendantDeg(h);
+  const mcDeg = getMidheavenDeg(h);
+  const planets = getBodyPositions(h);
+  const cusps = getHouseCusps(h);
+  return { ascDeg, mcDeg, planets, cusps, horoscope: h };
+}
+
+function lerpState(from, to, t) {
+  return {
+    ascDeg: lerpAngle(from.ascDeg, to.ascDeg, t),
+    mcDeg: (from.mcDeg != null && to.mcDeg != null)
+      ? lerpAngle(from.mcDeg, to.mcDeg, t) : to.mcDeg,
+    planets: to.planets.map(tp => {
+      const fp = from.planets.find(p => p.key === tp.key);
+      if (!fp) return tp;
+      return { ...tp, deg: lerpAngle(fp.deg, tp.deg, t) };
+    }),
+    cusps: to.cusps.map((tc, i) => {
+      const fc = from.cusps[i];
+      if (!fc) return tc;
+      return { ...tc, deg: lerpAngle(fc.deg, tc.deg, t) };
+    }),
+    horoscope: to.horoscope,
+  };
+}
+
+// ── Chart Generation & Animation ───────────────────────────
+
+const errorEl = document.getElementById('error');
+const resultsEl = document.getElementById('results');
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = 'block';
+  setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
+}
+
+function generateChart() {
+  errorEl.style.display = 'none';
+  const dateStr = document.getElementById('birthdate').value;
+  const timeStr = document.getElementById('birthtime').value;
+  if (!dateStr || !timeStr || selectedLat === null) return;
+
+  const [year, month, date] = dateStr.split('-').map(Number);
+  const [hour, minute] = timeStr.split(':').map(Number);
+
+  let horoscope;
+  try {
+    const origin = new Origin({
+      year, month: month - 1, date, hour, minute,
+      latitude: selectedLat, longitude: selectedLon,
+    });
+    horoscope = new Horoscope({
+      origin,
+      houseSystem: 'placidus',
+      zodiac: 'tropical',
+      aspectPoints: ['all'],
+      aspectTypes: ['major'],
+      language: 'en',
+    });
+  } catch (err) {
+    console.error('Horoscope error:', err);
+    return showError('Error calculating chart. Check inputs.');
+  }
+
+  const newState = extractState(horoscope);
+  animateTo(newState);
+}
+
+function animateTo(newState) {
+  // First render — no animation
+  if (!displayState) {
+    displayState = newState;
+    drawChartState(displayState);
+    populateTable(newState.horoscope);
+    resultsEl.style.display = 'block';
+    return;
+  }
+
+  // Cancel in-progress animation
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+
+  // Animate from current display to new target
+  fromState = { ...displayState };
+  targetState = newState;
+  animStartTime = null;
+  animFrameId = requestAnimationFrame(animStep);
+}
+
+function animStep(timestamp) {
+  if (!animStartTime) animStartTime = timestamp;
+  const elapsed = timestamp - animStartTime;
+  const t = Math.min(elapsed / ANIM_DURATION, 1);
+  const eased = easeInOutCubic(t);
+
+  displayState = lerpState(fromState, targetState, eased);
+  displayState.horoscope = targetState.horoscope;
+  drawChartState(displayState);
+
+  if (t < 1) {
+    animFrameId = requestAnimationFrame(animStep);
+  } else {
+    displayState = targetState;
+    fromState = null;
+    targetState = null;
+    animFrameId = null;
+    populateTable(displayState.horoscope);
+    resultsEl.style.display = 'block';
+  }
+}
+
+// ── Input Change Listeners ─────────────────────────────────
+
+document.getElementById('birthdate').addEventListener('change', generateChart);
+document.getElementById('birthtime').addEventListener('change', generateChart);
+
+// ── Drawing from State ─────────────────────────────────────
+
+function drawChartState(state) {
+  const { ascDeg, mcDeg, planets, cusps } = state;
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#f5f0e6';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  drawZodiacRing(ascDeg);
+
+  const degMap = {};
+  for (const p of planets) degMap[p.key] = p.deg;
+  drawAspectLines(state.horoscope, degMap, ascDeg);
+  drawPlanets(planets, ascDeg);
+  drawAngles(ascDeg, mcDeg);
+}
+
+function getAscendantDeg(h) {
+  try { return h.Ascendant.ChartPosition.Ecliptic.DecimalDegrees; }
+  catch { try { return h.Houses[0].ChartPosition.StartPosition.Ecliptic.DecimalDegrees; }
+  catch { return 0; } }
+}
+
+function getMidheavenDeg(h) {
+  try { return h.Midheaven.ChartPosition.Ecliptic.DecimalDegrees; }
+  catch { return null; }
+}
+
+// ── Zodiac Ring ────────────────────────────────────────────
+
+function drawZodiacRing(ascDeg) {
+  for (let i = 0; i < 12; i++) {
+    const sign = SIGNS[i];
+    const startEcl = i * 30;
+
+    // Sector divider lines
+    const p1 = eclToXY(startEcl, ZODIAC_INNER_R, ascDeg);
+    const p2 = eclToXY(startEcl, OUTER_R, ascDeg);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = '#c4bdb0';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Sign name rotated along the arc
+    const midEcl = startEcl + 15;
+    const midR = (OUTER_R + ZODIAC_INNER_R) / 2;
+    const radialAngle = eclToAngle(midEcl, ascDeg);
+    const x = CX + midR * Math.cos(radialAngle);
+    const y = CY + midR * Math.sin(radialAngle);
+
+    // Tangent direction (counterclockwise), flipped if upside-down
+    let textAngle = radialAngle + Math.PI / 2;
+    const norm = ((textAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    if (norm > Math.PI / 2 && norm < 3 * Math.PI / 2) {
+      textAngle += Math.PI;
+    }
+
+    const name = sign.key.charAt(0).toUpperCase() + sign.key.slice(1);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(textAngle);
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillStyle = '#6a6358';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, 0, 0);
+    ctx.restore();
+  }
+
+  // Outer circle
+  ctx.beginPath();
+  ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#a89f92';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Inner zodiac circle
+  ctx.beginPath();
+  ctx.arc(CX, CY, ZODIAC_INNER_R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#b8b0a2';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+}
+
+// ── Houses ─────────────────────────────────────────────────
+
+function getHouseCusps(h) {
+  const cusps = [];
+  try {
+    for (let i = 0; i < h.Houses.length; i++) {
+      const house = h.Houses[i];
+      let deg;
+      if (house.ChartPosition && house.ChartPosition.StartPosition) {
+        deg = house.ChartPosition.StartPosition.Ecliptic.DecimalDegrees;
+      } else if (house.ChartPosition && house.ChartPosition.Ecliptic) {
+        deg = house.ChartPosition.Ecliptic.DecimalDegrees;
+      }
+      cusps.push({ id: house.id || (i + 1), deg: normDeg(deg) });
+    }
+  } catch (err) { console.error('Error reading house cusps:', err); }
+  return cusps;
+}
+
+// ── Planets ────────────────────────────────────────────────
+
+function getBodyPositions(h) {
+  const positions = [];
+  const addBody = (body, key) => {
+    if (!body || !body.ChartPosition) return;
+    const ecl = body.ChartPosition.Ecliptic;
+    if (!ecl) return;
+    positions.push({
+      key,
+      deg: normDeg(ecl.DecimalDegrees),
+      sign: body.Sign ? body.Sign.key : null,
+      signLabel: body.Sign ? body.Sign.label : '',
+      house: body.House ? (body.House.id || '') : '',
+      retrograde: !!body.isRetrograde,
+      arcDeg: ecl.ArcDegrees || null,
+      formatted30: ecl.ArcDegreesFormatted30 || '',
+    });
+  };
+  for (const key of PLANET_KEYS) {
+    const body = h.CelestialBodies[key] || (h.CelestialPoints && h.CelestialPoints[key]);
+    addBody(body, key);
+  }
+  return positions;
+}
+
+function spreadPositions(positions, minGap) {
+  const items = positions.map(p => ({ ...p, displayDeg: p.deg }));
+  items.sort((a, b) => a.deg - b.deg);
+  for (let pass = 0; pass < 20; pass++) {
+    let moved = false;
+    for (let i = 0; i < items.length; i++) {
+      const j = (i + 1) % items.length;
+      let diff = normDeg(items[j].displayDeg - items[i].displayDeg);
+      if (diff < minGap && diff > 0) {
+        const push = (minGap - diff) / 2 + 0.1;
+        items[i].displayDeg = normDeg(items[i].displayDeg - push);
+        items[j].displayDeg = normDeg(items[j].displayDeg + push);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return items;
+}
+
+function drawPlanets(bodyPositions, ascDeg) {
+  const spread = spreadPositions(bodyPositions, 8);
+
+  for (const p of spread) {
+    // Tick mark on zodiac ring
+    const tick1 = eclToXY(p.deg, ZODIAC_INNER_R, ascDeg);
+    const tick2 = eclToXY(p.deg, ZODIAC_INNER_R - 8, ascDeg);
+    ctx.beginPath();
+    ctx.moveTo(tick1.x, tick1.y);
+    ctx.lineTo(tick2.x, tick2.y);
+    ctx.strokeStyle = '#8b8078';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Leader line if spread shifted the glyph
+    if (Math.abs(normDeg(p.displayDeg - p.deg)) > 1) {
+      const from = eclToXY(p.deg, ZODIAC_INNER_R - 8, ascDeg);
+      const to = eclToXY(p.displayDeg, PLANET_R, ascDeg);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.strokeStyle = 'rgba(139,128,120,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Planet glyph
+    const glyphP = eclToXY(p.displayDeg, PLANET_R, ascDeg);
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.fillStyle = '#2c2c2c';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(PLANET_GLYPHS[p.key] || p.key[0].toUpperCase(), glyphP.x, glyphP.y);
+
+    // Retrograde marker
+    if (p.retrograde) {
+      const rP = eclToXY(p.displayDeg, PLANET_R + 12, ascDeg);
+      ctx.font = '9px system-ui, sans-serif';
+      ctx.fillStyle = '#c0392b';
+      ctx.fillText('R', rP.x, rP.y);
+    }
+  }
+}
+
+function formatDeg(p) {
+  if (p.formatted30 && p.formatted30 !== "NaN° NaN' NaN''") return p.formatted30.split("'")[0] + "'";
+  if (p.arcDeg) return p.arcDeg.degrees + '°' + p.arcDeg.minutes + "'";
+  const inSign = p.deg % 30;
+  return Math.floor(inSign) + '°';
+}
+
+// ── Aspects ────────────────────────────────────────────────
+
+function drawAspectLines(h, degMap, ascDeg) {
+  let aspects = [];
+  try {
+    if (h && h.Aspects && h.Aspects.all) aspects = h.Aspects.all;
+    else if (Array.isArray(h?.Aspects)) aspects = h.Aspects;
+  } catch { return; }
+
+  for (const asp of aspects) {
+    const key = asp.aspectKey || asp.key || '';
+    const style = ASPECT_STYLES[key];
+    if (!style) continue;
+
+    const d1 = degMap[asp.point1Key];
+    const d2 = degMap[asp.point2Key];
+    if (d1 === undefined || d2 === undefined) continue;
+
+    const p1 = eclToXY(d1, PLANET_R, ascDeg);
+    const p2 = eclToXY(d2, PLANET_R, ascDeg);
+
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.width;
+    ctx.setLineDash(style.dash);
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+  }
+}
+
+// ── Angles (AC, MC) ───────────────────────────────────────
+
+function drawAngles(ascDeg, mcDeg) {
+  // AC
+  const acP = eclToXY(ascDeg, OUTER_R + 5, ascDeg);
+  const acI = eclToXY(ascDeg, ZODIAC_INNER_R - 2, ascDeg);
+  ctx.beginPath(); ctx.moveTo(acP.x, acP.y); ctx.lineTo(acI.x, acI.y);
+  ctx.strokeStyle = '#5a524a'; ctx.lineWidth = 1.5; ctx.stroke();
+  const acL = eclToXY(ascDeg, OUTER_R + 18, ascDeg);
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillStyle = '#3a3630'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('AC', acL.x, acL.y);
+
+  // DC
+  const dcDeg = normDeg(ascDeg + 180);
+  const dcP = eclToXY(dcDeg, OUTER_R + 5, ascDeg);
+  const dcI = eclToXY(dcDeg, ZODIAC_INNER_R - 2, ascDeg);
+  ctx.beginPath(); ctx.moveTo(dcP.x, dcP.y); ctx.lineTo(dcI.x, dcI.y);
+  ctx.strokeStyle = '#5a524a'; ctx.lineWidth = 1.5; ctx.stroke();
+  const dcL = eclToXY(dcDeg, OUTER_R + 18, ascDeg);
+  ctx.fillStyle = '#3a3630';
+  ctx.fillText('DC', dcL.x, dcL.y);
+
+  // MC
+  if (mcDeg != null) {
+    const mcP = eclToXY(mcDeg, OUTER_R + 5, ascDeg);
+    const mcI = eclToXY(mcDeg, ZODIAC_INNER_R - 2, ascDeg);
+    ctx.beginPath(); ctx.moveTo(mcP.x, mcP.y); ctx.lineTo(mcI.x, mcI.y);
+    ctx.strokeStyle = '#7a7268'; ctx.lineWidth = 1.5; ctx.stroke();
+    const mcL = eclToXY(mcDeg, OUTER_R + 18, ascDeg);
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.fillStyle = '#5a524a';
+    ctx.fillText('MC', mcL.x, mcL.y);
+
+    // IC
+    const icDeg = normDeg(mcDeg + 180);
+    const icP = eclToXY(icDeg, OUTER_R + 5, ascDeg);
+    const icI = eclToXY(icDeg, ZODIAC_INNER_R - 2, ascDeg);
+    ctx.beginPath(); ctx.moveTo(icP.x, icP.y); ctx.lineTo(icI.x, icI.y);
+    ctx.strokeStyle = '#7a7268'; ctx.lineWidth = 1.5; ctx.stroke();
+    const icL = eclToXY(icDeg, OUTER_R + 18, ascDeg);
+    ctx.fillText('IC', icL.x, icL.y);
+  }
+}
+
+// ── Results Table ──────────────────────────────────────────
+
+function populateTable(h) {
+  const tbody = document.getElementById('planet-tbody');
+  tbody.innerHTML = '';
+  const positions = getBodyPositions(h);
+
+  for (const p of positions) {
+    const sign = SIGNS.find(s => s.key === p.sign) || SIGNS.find(s => p.sign && s.key.startsWith(p.sign.toLowerCase()));
+    const signName = p.signLabel || (sign ? sign.abbr : '');
+    const degStr = formatDegFull(p);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${PLANET_NAMES[p.key] || p.key}${p.retrograde ? '<span class="retrograde">\u212E</span>' : ''}</td>
+      <td>${signName}</td>
+      <td>${degStr}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  const legend = document.getElementById('aspect-legend');
+  legend.innerHTML = '<div style="font-size:11px;color:#7a7568;width:100%;margin-top:8px;">Aspects:</div>';
+  for (const [key, style] of Object.entries(ASPECT_STYLES)) {
+    const div = document.createElement('div');
+    div.className = 'aspect-legend-item';
+    div.innerHTML = `<span class="swatch" style="background:${style.color}"></span>${key}`;
+    legend.appendChild(div);
+  }
+}
+
+function formatDegFull(p) {
+  if (p.formatted30 && p.formatted30 !== "NaN° NaN' NaN''") return p.formatted30;
+  if (p.arcDeg) return p.arcDeg.degrees + '° ' + p.arcDeg.minutes + "' " + (p.arcDeg.seconds || 0) + "''";
+  const inSign = p.deg % 30;
+  const d = Math.floor(inSign);
+  const m = Math.floor((inSign - d) * 60);
+  return d + '° ' + m + "'";
+}
+
+// ── Boot ───────────────────────────────────────────────────
+
+generateChart();
+
+</script>
+</body>
+</html>

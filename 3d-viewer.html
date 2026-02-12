@@ -60,7 +60,7 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { TAARenderPass } from "three/addons/postprocessing/TAARenderPass.js";
 import { VignetteShader } from "three/addons/shaders/VignetteShader.js";
-import { setOC, draw, drawCircle } from "replicad";
+import { setOC, draw, drawCircle, makeCompound } from "replicad";
 
 // --- State ---
 let ocReady = false;
@@ -347,12 +347,16 @@ function chainToDrawing(chainData) {
   if (!links || links.length === 0) return null;
 
   var startPt = walkedStart(links[0]);
-  console.log('    Chain start:', startPt, 'links:', links.length);
   var pen = draw(startPt);
 
   for (var i = 0; i < links.length; i++) {
     var link = links[i];
     var endPt = walkedEnd(link);
+
+    // Skip degenerate segments (near-zero length)
+    var prevPt = i === 0 ? startPt : walkedEnd(links[i - 1]);
+    var segDx = endPt[0] - prevPt[0], segDy = endPt[1] - prevPt[1];
+    if (Math.sqrt(segDx * segDx + segDy * segDy) < 0.01) continue;
 
     if (link.type === 'line') {
       pen = pen.lineTo(endPt);
@@ -368,7 +372,6 @@ function chainToDrawing(chainData) {
         try {
           pen = pen.threePointsArcTo(endPt, mp);
         } catch(arcErr) {
-          console.warn('    threePointsArcTo failed at link ' + i + ', falling back to line. endPt:', endPt, 'mp:', mp);
           pen = pen.lineTo(endPt);
         }
       }
@@ -381,38 +384,71 @@ function chainToDrawing(chainData) {
 // --- Build 3D pendant ---
 function buildPendant3D(data, thickness) {
   var outerRadius = data.circleRadius + data.borderThickness;
-  console.log('Outer radius:', outerRadius, 'Thickness:', thickness);
+  var timings = { disc: 0, drawVoids: 0, voidExtrudes: 0, booleanCuts: 0 };
 
-  // Create outer disc
-  console.log('Creating outer disc...');
+  // Extrude outer disc
+  var tDisc = performance.now();
   var disc = drawCircle(outerRadius).sketchOnPlane("XY").extrude(thickness);
-  console.log('Outer disc created');
+  timings.disc = performance.now() - tDisc;
 
-  // Cut each void region
-  var cutOk = 0, cutFail = 0;
+  // Draw void chains
+  var tDraw = performance.now();
+  var voidDrawings = [];
+  var drawFail = 0;
   for (var i = 0; i < data.voidChains.length; i++) {
     try {
-      console.log('Processing void ' + i + ' (' + data.voidChains[i].links.length + ' links)...');
       var drawing = chainToDrawing(data.voidChains[i]);
-      if (!drawing) { cutFail++; console.warn('Void ' + i + ': drawing returned null'); continue; }
-
-      console.log('  Sketching void ' + i + '...');
-      var voidSolid = drawing
-        .sketchOnPlane("XY", -0.1)
-        .extrude(thickness + 0.2);
-
-      console.log('  Cutting void ' + i + '...');
-      disc = disc.cut(voidSolid);
-      cutOk++;
-      console.log('  Void ' + i + ' cut OK');
+      if (!drawing) { drawFail++; continue; }
+      voidDrawings.push(drawing);
     } catch(e) {
-      cutFail++;
-      var msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : String(e));
-      console.warn('Cut failed for void ' + i + ':', msg, e);
+      drawFail++;
+      console.warn('Void drawing ' + i + ' failed:', e.message || e);
     }
   }
+  timings.drawVoids = performance.now() - tDraw;
 
-  return { shape: disc, cutOk: cutOk, cutFail: cutFail, thickness: thickness };
+  // Extrude voids (slightly oversized to ensure clean cuts)
+  var tVoids = performance.now();
+  var voidSolids = [];
+  for (var i = 0; i < voidDrawings.length; i++) {
+    try {
+      var solid = voidDrawings[i].sketchOnPlane("XY", -0.1).extrude(thickness + 0.2);
+      voidSolids.push(solid);
+    } catch(e) {
+      drawFail++;
+      console.warn('Void extrude ' + i + ' failed:', e.message || e);
+    }
+  }
+  timings.voidExtrudes = performance.now() - tVoids;
+
+  // Boolean cut: combine all voids into one compound, then single cut
+  var tCuts = performance.now();
+  var cutOk = 0, cutFail = 0;
+  if (voidSolids.length > 0) {
+    try {
+      var voidCompound = makeCompound(voidSolids);
+      disc = disc.cut(voidCompound);
+      cutOk = voidSolids.length;
+    } catch(e) {
+      console.warn('Compound cut failed, falling back to sequential:', e.message || e);
+      // Re-extrude and cut sequentially as fallback
+      for (var i = 0; i < voidDrawings.length; i++) {
+        try {
+          var vs = voidDrawings[i].sketchOnPlane("XY", -0.1).extrude(thickness + 0.2);
+          disc = disc.cut(vs);
+          cutOk++;
+        } catch(e2) {
+          cutFail++;
+          console.warn('Sequential cut ' + i + ' failed:', e2.message || e2);
+        }
+      }
+    }
+  }
+  timings.booleanCuts = performance.now() - tCuts;
+
+  console.log('Disc: ' + timings.disc.toFixed(1) + 'ms, Draw: ' + timings.drawVoids.toFixed(1) + 'ms, Extrudes: ' + timings.voidExtrudes.toFixed(1) + 'ms, Cuts: ' + timings.booleanCuts.toFixed(1) + 'ms');
+
+  return { shape: disc, cutOk: cutOk, cutFail: cutFail + drawFail, thickness: thickness, timings: timings };
 }
 
 // --- Update Three.js mesh ---
@@ -427,9 +463,9 @@ function updateMesh(shape) {
 
   // Get mesh data from replicad (returns plain JS arrays)
   console.log('Generating mesh...');
-  var facesData = shape.mesh({ tolerance: 0.01, angularTolerance: 0.5 });
+  var facesData = shape.mesh({ tolerance: 0.1, angularTolerance: 2 });
   console.log('Mesh faces:', facesData.vertices.length / 3, 'vertices,', facesData.triangles.length / 3, 'triangles');
-  var edgesData = shape.meshEdges({ tolerance: 0.01, angularTolerance: 0.5 });
+  var edgesData = shape.meshEdges({ tolerance: 0.1, angularTolerance: 2 });
   console.log('Mesh edges:', edgesData.lines.length / 3, 'points');
 
   // Build face geometry — convert plain arrays to typed arrays
@@ -495,55 +531,72 @@ async function rebuildModel(data) {
     var thickness = parseFloat(document.getElementById('thickness').value);
     var filletR = parseFloat(document.getElementById('fillet3d').value);
     console.log('Building with thickness:', thickness, 'fillet:', filletR, 'voidChains:', data.voidChains.length);
+
+    var tTotal = performance.now();
+
+    var tBuild = performance.now();
     var result = buildPendant3D(data, thickness);
+    var buildMs = performance.now() - tBuild;
     var shape = result.shape;
+    var timings = result.timings;
 
     // Apply 3D fillet to top and bottom face edges
     var filletInfo = '';
+    var filletMs = 0;
+    var outerRadius = data.circleRadius + data.borderThickness;
     if (filletR > 0) {
       // Clamp fillet to half thickness
       var maxFillet = thickness / 2 - 0.1;
       var actualR = Math.min(filletR, maxFillet);
       if (actualR > 0.1) {
-        try {
-          console.log('Applying 3D fillet, radius:', actualR);
-          shape = shape.fillet(actualR, (e) => e.either([
-            (e2) => e2.inPlane("XY"),
-            (e2) => e2.inPlane("XY", [0, 0, thickness]),
-          ]));
-          filletInfo = ', filleted ' + actualR.toFixed(1);
-        } catch(fe) {
-          console.warn('Fillet failed, trying smaller...', fe);
-          // Step down fillet radius
-          var tryR = actualR * 0.7;
-          var filletOk = false;
-          for (var attempt = 0; attempt < 5 && tryR >= 0.3; attempt++) {
-            try {
-              shape = shape.fillet(tryR, (e) => e.inPlane("XY").either([
-                (e2) => e2.inPlane("XY"),
-                (e2) => e2.inPlane("XY", [0, 0, thickness]),
-              ]));
-              filletInfo = ', filleted ' + tryR.toFixed(1);
-              filletOk = true;
-              break;
-            } catch(fe2) {
-              tryR *= 0.7;
-            }
+        var tFillet = performance.now();
+        var filletOk = false;
+        var tryR = actualR;
+        for (var attempt = 0; attempt < 8 && tryR >= 0.3 && !filletOk; attempt++) {
+          try {
+            shape = shape.fillet(tryR, (e) => e.either([
+              (e2) => e2.inPlane("XY"),
+              (e2) => e2.inPlane("XY", [0, 0, thickness]),
+            ]));
+            filletMs = performance.now() - tFillet;
+            filletInfo = ', filleted ' + tryR.toFixed(1);
+            filletOk = true;
+          } catch(fe) {
+            console.warn('Fillet r=' + tryR.toFixed(1) + ' failed, stepping down');
+            tryR *= 0.65;
           }
-          if (!filletOk) {
-            filletInfo = ', fillet failed';
-            console.warn('All fillet attempts failed');
-          }
+        }
+        if (!filletOk) {
+          filletMs = performance.now() - tFillet;
+          filletInfo = ', fillet failed';
+          console.warn('All fillet attempts failed');
         }
       }
     }
 
     currentShape = shape;
-    console.log('Build done, updating mesh...');
+
+    var tRender = performance.now();
     updateMesh(shape);
+    var renderMs = performance.now() - tRender;
+
+    var totalMs = performance.now() - tTotal;
+
+    // Log profiling summary
+    console.log('%c── Profiling ──────────────────────────', 'color: #4fc3f7; font-weight: bold');
+    console.log('Disc extrude:       ' + timings.disc.toFixed(1) + 'ms');
+    console.log('Draw void sketches: ' + timings.drawVoids.toFixed(1) + 'ms');
+    console.log('Void extrudes:      ' + timings.voidExtrudes.toFixed(1) + 'ms');
+    console.log('Boolean cuts:       ' + timings.booleanCuts.toFixed(1) + 'ms (' + result.cutOk + ' voids)');
+    console.log('Build subtotal:     ' + buildMs.toFixed(1) + 'ms');
+    console.log('Fillet:             ' + filletMs.toFixed(1) + 'ms');
+    console.log('Mesh + render:      ' + renderMs.toFixed(1) + 'ms');
+    console.log('%cTotal:              ' + totalMs.toFixed(1) + 'ms', 'font-weight: bold');
+    console.log('──────────────────────────────────────');
 
     statusEl.textContent = 'Ready — ' + result.cutOk + ' voids cut' +
-      (result.cutFail > 0 ? ', ' + result.cutFail + ' failed' : '') + filletInfo;
+      (result.cutFail > 0 ? ', ' + result.cutFail + ' failed' : '') + filletInfo +
+      ' [' + totalMs.toFixed(0) + 'ms]';
     statusEl.classList.add('ready');
     document.getElementById('exportStlBtn').disabled = false;
   } catch(e) {
