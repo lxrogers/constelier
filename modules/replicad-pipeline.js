@@ -146,6 +146,18 @@ export function buildPendant3D(data, thickness) {
   return { shape: disc, cutOk: cutOk, cutFail: cutFail + drawFail, thickness: thickness };
 }
 
+export function buildRing3D(circleRadius, borderThickness, thickness) {
+  var outerRadius = circleRadius + borderThickness;
+  var disc = drawCircle(outerRadius)
+    .sketchOnPlane("XY")
+    .extrude(thickness);
+  var hole = drawCircle(circleRadius)
+    .sketchOnPlane("XY", -0.1)
+    .extrude(thickness + 0.2);
+  disc = disc.cut(hole);
+  return { shape: disc, thickness: thickness };
+}
+
 export function filletShape(shape, thickness, filletR) {
   var maxFillet = thickness / 2 - 0.1;
   var actualR = Math.min(filletR, maxFillet);

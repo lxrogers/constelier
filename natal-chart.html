@@ -219,8 +219,8 @@ input[type="range"]::-moz-range-thumb {
   height: 700px;
   opacity: 0;
   transition: opacity 0.8s ease;
-  pointer-events: auto;
-  clip-path: circle(255px at center);
+  pointer-events: none;
+  clip-path: circle(310px at center);
 }
 #chart {
   max-width: 100%;
@@ -312,7 +312,7 @@ input[type="range"]::-moz-range-thumb {
 import { Horoscope, Origin } from './horoscope-bundle.js';
 import { easeInOutCubic, easeOutQuartic } from './modules/easing.js';
 import { polygonArea, buildPendantModel } from './modules/pendant-geometry.js';
-import { preloadWASM, buildPendant3DFromModel } from './modules/pendant-builder.js';
+import { preloadWASM, buildPendant3DFromModel, buildRing3DShape } from './modules/pendant-builder.js';
 import { PendantViewer } from './modules/three-pendant-viewer.js';
 const m = window.makerjs;
 
@@ -407,7 +407,7 @@ const ASPECT_R = 265;
 const PLANET_R = (OUTER_R + ASPECT_R) / 2;
 const PLANET_INNER_R = 205;
 const INNER_R = 145;
-const PENDANT_R = 100 * (ASPECT_R - 10) / 105; // canvas radius matching pendant's inner circle
+const PENDANT_R = 100 * (ASPECT_R - 10) / 108; // canvas radius matching pendant's inner circle (r=100, border=8)
 
 // ── State ──────────────────────────────────────────────────
 
@@ -640,8 +640,12 @@ function animateTo(newState) {
   if (aspectAnimId) { cancelAnimationFrame(aspectAnimId); aspectAnimId = null; }
   if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
   if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
-  // Fade out 3D overlay
-  document.getElementById('chart-3d').style.opacity = '0';
+  // Cross-fade 3D back to ring
+  if (pendantViewer && chart3dCanvas.style.opacity === '1') {
+    buildRing3DShape(100, 8, { thickness: 5, filletR: 2 }).then(ring => {
+      if (pendantViewer) pendantViewer.crossFadeMesh(ring.shape, 'high', 400);
+    }).catch(() => {});
+  }
   spreadT = 0;
   aspectAnimLines = [];
   aspectAnimDone = false;
@@ -861,7 +865,7 @@ document.getElementById('fillet-radius').addEventListener('input', () => {
   if (displayState && pendantChords) {
     const r = 100;
     const exp = pendantExpansion || EXPANSION_TARGET;
-    const model = buildPendantModel(pendantChords, exp, r, 5, 185, 5, filletRadius);
+    const model = buildPendantModel(pendantChords, exp, r, 8, 185, 5, filletRadius);
     pendantModelData = { model, r, chords: pendantChords };
     pendantAlpha = 1;
     drawChartState(displayState);
@@ -1408,7 +1412,7 @@ function buildPendantFromChart(horoscope, ascDeg, expansion) {
   if (chords.length === 0) return null;
 
   const r = 100;
-  const model = buildPendantModel(chords, expansion, r, 5, 185, 5, filletRadius);
+  const model = buildPendantModel(chords, expansion, r, 8, 185, 5, filletRadius);
   return { model, r, chords };
 }
 
@@ -1458,7 +1462,7 @@ function expansionStep(timestamp) {
     pendantExpansion = quantized;
     try {
       const r = 100;
-      const model = buildPendantModel(pendantChords, pendantExpansion, r, 5, 185, 5, filletRadius);
+      const model = buildPendantModel(pendantChords, pendantExpansion, r, 8, 185, 5, filletRadius);
       pendantModelData = { model, r, chords: pendantChords };
       drawChartState(displayState);
     } catch {}
@@ -1494,7 +1498,7 @@ function pendantFadeStep(timestamp) {
 function drawPendant() {
   if (!pendantModelData || pendantAlpha <= 0) return;
   const { model, r } = pendantModelData;
-  const b = 5; // borderThickness used in buildPendantModel
+  const b = 8; // borderThickness used in buildPendantModel
   const outerR = r + b;
 
   // Fit the model inside the inner circle
@@ -1563,7 +1567,7 @@ try { wasmPromise = preloadWASM(); } catch(e) { console.warn('WASM preload faile
 
 // Compute orthographic half-size so 3D model matches 2D canvas sizing
 function compute3DHalf() {
-  const outerR = (pendantModelData?.r || 100) + 5;
+  const outerR = (pendantModelData?.r || 100) + 8;
   const drawR = ASPECT_R - 10; // 255 canvas pixels for the pendant
   const canvasHalf = SIZE / 2;  // 350 canvas pixels for the half-width
   return (canvasHalf / drawR) * outerR;
@@ -1571,64 +1575,63 @@ function compute3DHalf() {
 
 function update3DCamera() {
   if (!pendantViewer || !pendantModelData) return;
-  const outerR = pendantModelData.r + 5;
+  const outerR = pendantModelData.r + 8;
   pendantViewer.fitToRegionExact(compute3DHalf(), outerR);
   // Scale model instead of camera so lighting stays consistent
   pendantViewer.pendantGroup.scale.setScalar(scale3d);
   pendantViewer.setShadowPlaneY(-7);
 }
 
+async function ensureViewer() {
+  if (pendantViewer) return;
+  const THREE = await import("three");
+  pendantViewer = new PendantViewer(chart3dCanvas, {
+    enableControls: false,
+    enableEdges: false,
+    enableGroundPlane: false,
+    enableHDRI: true,
+    hdriPath: './softbox.hdr',
+    enablePostProcessing: true,
+    background: null,
+    roughness: 0,
+  });
+  pendantViewer.scene.background = null;
+
+  // Rotate lights and HDRI to match the angle found at (106.6, 296.3, 16.7)
+  const fromDir = new THREE.Vector3(-106.6, -301.3, -16.7).normalize();
+  const toDir = new THREE.Vector3(0, -1, 0);
+  const q = new THREE.Quaternion().setFromUnitVectors(fromDir, toDir);
+  pendantViewer.scene.traverse(obj => {
+    if (obj.isLight) obj.position.applyQuaternion(q);
+  });
+  if (pendantViewer.scene.environmentRotation !== undefined) {
+    pendantViewer.scene.environmentRotation = new THREE.Euler().setFromQuaternion(q);
+  }
+
+  pendantViewer.addShadowPlane(-7);
+  pendantViewer.start();
+}
+
 async function start3DTransition() {
   if (!pendantModelData?.model) return;
   try {
-    // Ensure WASM is ready
     if (wasmPromise) await wasmPromise;
+    await ensureViewer();
 
-    // Build 3D shape from the current pendant model
-    const result = await buildPendant3DFromModel(
-      pendantModelData.model,
-      pendantModelData.r,
-      5, // borderThickness
-      { thickness: 5, filletR: 2 }
-    );
+    const r = pendantModelData.r;
+    const opts = { thickness: 5, filletR: 2 };
 
-    // Create or reuse the PendantViewer
-    if (!pendantViewer) {
-      const THREE = await import("three");
-      pendantViewer = new PendantViewer(chart3dCanvas, {
-        enableControls: false,
-        enableGroundPlane: false,
-        enableHDRI: true,
-        hdriPath: './softbox.hdr',
-        enablePostProcessing: true,
-        background: null,
-        roughness: 0,
-      });
-      pendantViewer.scene.background = null;
-
-      // Rotate lights and HDRI to match the angle found at (106.6, 296.3, 16.7)
-      // This gives the same highlights as that camera angle but from straight above
-      const fromDir = new THREE.Vector3(-106.6, -301.3, -16.7).normalize();
-      const toDir = new THREE.Vector3(0, -1, 0);
-      const q = new THREE.Quaternion().setFromUnitVectors(fromDir, toDir);
-      pendantViewer.scene.traverse(obj => {
-        if (obj.isLight) obj.position.applyQuaternion(q);
-      });
-      // Rotate HDRI environment to match
-      if (pendantViewer.scene.environmentRotation !== undefined) {
-        pendantViewer.scene.environmentRotation = new THREE.Euler().setFromQuaternion(q);
-      }
-
-      // Add transparent shadow-catching plane below pendant
-      pendantViewer.addShadowPlane(-7);
-      pendantViewer.start();
+    if (chart3dCanvas.style.opacity !== '1') {
+      // First load — show ring instantly, then cross-fade to full
+      const ring = await buildRing3DShape(r, 8, opts);
+      pendantViewer.updateMesh(ring.shape, 'high');
+      update3DCamera();
+      chart3dCanvas.style.opacity = '1';
     }
 
-    pendantViewer.updateMesh(result.shape, 'medium');
-    update3DCamera();
-
-    // Fade in the 3D canvas
-    chart3dCanvas.style.opacity = '1';
+    // Build full pendant, then cross-fade from whatever is showing (ring)
+    const full = await buildPendant3DFromModel(pendantModelData.model, r, 8, opts);
+    pendantViewer.crossFadeMesh(full.shape, 'high', 800);
   } catch (err) {
     console.error('3D transition error:', err);
   }
