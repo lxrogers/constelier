@@ -44,7 +44,16 @@
   <span class="status" id="status">Loading CAD engine...</span>
   <label>Thickness: <input type="range" id="thickness" min="1" max="50" value="10"> <span id="thickVal">10</span></label>
   <label>Fillet: <input type="range" id="fillet3d" min="0" max="20" step="0.5" value="3"> <span id="filletVal">3</span></label>
+  <label>Roughness: <input type="range" id="roughness" min="0" max="1" step="0.05" value="0.2"> <span id="roughVal">0.2</span></label>
+  <label>Mesh quality:
+    <select id="meshQuality" style="background:#1a1a2e;color:#e0e0e0;border:1px solid #2a3a5e;border-radius:4px;padding:2px 4px;font-size:13px;">
+      <option value="draft">Draft</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+  </label>
   <label><input type="checkbox" id="showEdges"> Edges</label>
+  <label><input type="checkbox" id="toggleHdri" checked> HDRI</label>
   <button class="btn" id="exportStlBtn" disabled>Export STL</button>
   <button class="btn" id="rebuildBtn" disabled>Rebuild</button>
 </div>
@@ -92,9 +101,11 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
 // --- HDRI environment ---
+let hdrTexture = null;
 const rgbeLoader = new RGBELoader();
 rgbeLoader.load('./softbox.hdr', function(hdrEquirect) {
   hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+  hdrTexture = hdrEquirect;
   scene.environment = hdrEquirect;
   console.log('HDRI environment loaded');
 });
@@ -451,6 +462,13 @@ function buildPendant3D(data, thickness) {
   return { shape: disc, cutOk: cutOk, cutFail: cutFail + drawFail, thickness: thickness, timings: timings };
 }
 
+// --- Mesh quality presets ---
+var meshQualityPresets = {
+  draft:  { tolerance: 0.5, angularTolerance: 10 },
+  medium: { tolerance: 0.1, angularTolerance: 2 },
+  high:   { tolerance: 0.02, angularTolerance: 0.5 },
+};
+
 // --- Update Three.js mesh ---
 function updateMesh(shape) {
   // Clear previous
@@ -462,10 +480,11 @@ function updateMesh(shape) {
   }
 
   // Get mesh data from replicad (returns plain JS arrays)
-  console.log('Generating mesh...');
-  var facesData = shape.mesh({ tolerance: 0.1, angularTolerance: 2 });
+  var quality = meshQualityPresets[document.getElementById('meshQuality').value] || meshQualityPresets.medium;
+  console.log('Generating mesh (' + document.getElementById('meshQuality').value + ')...');
+  var facesData = shape.mesh(quality);
   console.log('Mesh faces:', facesData.vertices.length / 3, 'vertices,', facesData.triangles.length / 3, 'triangles');
-  var edgesData = shape.meshEdges({ tolerance: 0.1, angularTolerance: 2 });
+  var edgesData = shape.meshEdges(quality);
   console.log('Mesh edges:', edgesData.lines.length / 3, 'points');
 
   // Build face geometry — convert plain arrays to typed arrays
@@ -484,7 +503,7 @@ function updateMesh(shape) {
   var faceMat = new THREE.MeshStandardMaterial({
     color: 0xFFD700,
     metalness: 1.0,
-    roughness: 0.2,
+    roughness: parseFloat(document.getElementById('roughness').value),
     envMapIntensity: 1.0,
     polygonOffset: true,
     polygonOffsetFactor: 2.0,
@@ -641,6 +660,19 @@ document.getElementById('fillet3d').addEventListener('change', function() {
   if (currentData && ocReady) rebuildModel(currentData);
 });
 
+document.getElementById('roughness').addEventListener('input', function() {
+  document.getElementById('roughVal').textContent = this.value;
+  for (var i = 0; i < pendantGroup.children.length; i++) {
+    if (pendantGroup.children[i].isMesh) {
+      pendantGroup.children[i].material.roughness = parseFloat(this.value);
+    }
+  }
+});
+
+document.getElementById('meshQuality').addEventListener('change', function() {
+  if (currentShape) updateMesh(currentShape);
+});
+
 document.getElementById('showEdges').addEventListener('change', function() {
   var show = this.checked;
   for (var i = 0; i < pendantGroup.children.length; i++) {
@@ -648,6 +680,10 @@ document.getElementById('showEdges').addEventListener('change', function() {
       pendantGroup.children[i].visible = show;
     }
   }
+});
+
+document.getElementById('toggleHdri').addEventListener('change', function() {
+  scene.environment = this.checked ? hdrTexture : null;
 });
 
 document.getElementById('exportStlBtn').addEventListener('click', function() {

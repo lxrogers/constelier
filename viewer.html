@@ -517,7 +517,62 @@ function serializeChainsFor3D(model, circleRadius, borderThickness) {
   return data;
 }
 
+function deepCloneModel(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(deepCloneModel);
+  var clone = {};
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key) && key !== '_areas' && key !== '_timings') {
+      clone[key] = deepCloneModel(obj[key]);
+    }
+  }
+  return clone;
+}
+
+function applyFillet(result, filletRadius) {
+  if (filletRadius <= 0) return;
+  var fChains = m.model.findChains(result);
+  var filletsModel = { paths: {} };
+  var fi = 0;
+  for (var i = 0; i < fChains.length; i++) {
+    var chain = fChains[i];
+    var links = chain.links;
+    if (!links || links.length < 2) continue;
+    var count = chain.endless ? links.length : links.length - 1;
+    for (var j = 0; j < count; j++) {
+      var k = (j + 1) % links.length;
+      var pathA = links[j].walkedPath.pathContext;
+      var pathB = links[k].walkedPath.pathContext;
+      var interior = cornerAngle(links[j], links[k]);
+      var span = Math.max(15, 180 - interior);
+      var startR = filletRadius * Math.pow(90 / span, 1.5);
+      var arc = null;
+      var tryR = startR;
+      for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
+        try {
+          arc = m.path.fillet(pathA, pathB, tryR);
+        } catch(e) { arc = null; }
+        if (arc) break;
+        tryR *= 0.65;
+      }
+      if (!arc) {
+        tryR = startR;
+        for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
+          arc = manualLineFillet(links[j], links[k], tryR);
+          if (arc) break;
+          tryR *= 0.65;
+        }
+      }
+      if (arc) {
+        filletsModel.paths['f' + (fi++)] = arc;
+      }
+    }
+  }
+  result.models.fillets = filletsModel;
+}
+
 function buildModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius) {
+  var _t = {}, _t0;
   var lineModel = { paths: {} };
 
   for (var i = 0; i < chords.length; i++) {
@@ -538,14 +593,20 @@ function buildModel(chords, expansion, circleRadius, borderThickness, minArea, m
     );
   }
 
+  _t0 = performance.now();
   var expanded = m.model.expandPaths(lineModel, expansion);
+  _t.expandPaths = performance.now() - _t0;
+
   var circle = { paths: { circle: new m.paths.Circle([0, 0], circleRadius) } };
+  _t0 = performance.now();
   m.model.combine(expanded, circle, true, false, false, true);
+  _t.combine = performance.now() - _t0;
 
   var result = { models: { expanded: expanded, circle: circle } };
 
   // Pre-pass: collapse short segments (tiny arcs AND short lines) into a point,
   // joining adjacent paths at the segment midpoint so filters see true angles
+  _t0 = performance.now();
   if (expansion > 0) {
     var threshold = expansion * 1.5;
     var preChains = m.model.findChains(result);
@@ -690,8 +751,10 @@ function buildModel(chords, expansion, circleRadius, borderThickness, minArea, m
       if (changed) preChains = m.model.findChains(result);
     }
   }
+  _t.collapse = performance.now() - _t0;
 
   // Filter small closed regions (by area and by min corner angle)
+  _t0 = performance.now();
   var areas = [];
   if (minArea > 0 || minAngle > 0) {
     var chains = m.model.findChains(result);
@@ -718,6 +781,7 @@ function buildModel(chords, expansion, circleRadius, borderThickness, minArea, m
       } catch(e) {}
     }
   }
+  _t.filter = performance.now() - _t0;
 
   // Border
   if (borderThickness > 0) {
@@ -726,50 +790,10 @@ function buildModel(chords, expansion, circleRadius, borderThickness, minArea, m
     };
   }
 
-  // Fillet — try the full radius, step down until it fits
-  if (filletRadius > 0) {
-    var fChains = m.model.findChains(result);
-    var filletsModel = { paths: {} };
-    var fi = 0;
-    for (var i = 0; i < fChains.length; i++) {
-      var chain = fChains[i];
-      var links = chain.links;
-      if (!links || links.length < 2) continue;
-      var count = chain.endless ? links.length : links.length - 1;
-      for (var j = 0; j < count; j++) {
-        var k = (j + 1) % links.length;
-        var pathA = links[j].walkedPath.pathContext;
-        var pathB = links[k].walkedPath.pathContext;
-        // Adaptive start: scale up for obtuse corners so fillets are visible
-        var interior = cornerAngle(links[j], links[k]);
-        var span = Math.max(15, 180 - interior);
-        var startR = filletRadius * Math.pow(90 / span, 1.5);
-        // Step down from adaptive radius until it fits
-        var arc = null;
-        var tryR = startR;
-        for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
-          try {
-            arc = m.path.fillet(pathA, pathB, tryR);
-          } catch(e) { arc = null; }
-          if (arc) break;
-          tryR *= 0.65;
-        }
-        if (!arc) {
-          // Manual fallback for line-line corners, also stepping down
-          tryR = startR;
-          for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
-            arc = manualLineFillet(links[j], links[k], tryR);
-            if (arc) break;
-            tryR *= 0.65;
-          }
-        }
-        if (arc) {
-          filletsModel.paths['f' + (fi++)] = arc;
-        }
-      }
-    }
-    result.models.fillets = filletsModel;
-  }
+  // Fillet
+  _t0 = performance.now();
+  applyFillet(result, filletRadius);
+  _t.fillet = performance.now() - _t0;
 
   // Compute areas if we didn't filter
   if (minArea <= 0) {
@@ -783,7 +807,19 @@ function buildModel(chords, expansion, circleRadius, borderThickness, minArea, m
     }
   }
 
+  // Log profiling
+  console.log('%c── MakerJS Profiling ──────────────────', 'color: #6a9e6a; font-weight: bold');
+  console.log('expandPaths:   ' + _t.expandPaths.toFixed(1) + 'ms');
+  console.log('combine:       ' + _t.combine.toFixed(1) + 'ms');
+  console.log('collapse:      ' + _t.collapse.toFixed(1) + 'ms');
+  console.log('filter:        ' + _t.filter.toFixed(1) + 'ms');
+  console.log('fillet:        ' + _t.fillet.toFixed(1) + 'ms');
+  var total = _t.expandPaths + _t.combine + _t.collapse + _t.filter + _t.fillet;
+  console.log('%cTotal:         ' + total.toFixed(1) + 'ms', 'font-weight: bold');
+  console.log('───────────────────────────────────────');
+
   result._areas = areas;
+  result._timings = _t;
   return result;
 }
 
@@ -844,7 +880,88 @@ function highlightRegion(idx) {
   svgEl.querySelector('g').appendChild(path);
 }
 
+// --- Display a model on the 2D canvas, returning fill data ---
+function displayModelOnCanvas(displayModel, circleRadius, borderThickness, chords) {
+  var ext = m.measure.modelExtents(displayModel);
+  svgMinX = ext.low[0];
+  svgMaxY = ext.high[1];
+  var r = circleRadius, b = borderThickness;
+
+  var fillChains = m.model.findChains(displayModel);
+  var fillCandidates = [];
+  for (var i = 0; i < fillChains.length; i++) {
+    var ch = fillChains[i];
+    if (!ch.endless) continue;
+    try {
+      var pts = m.chain.toKeyPoints(ch, 1);
+      if (pts.length < 3) continue;
+      var area = polygonArea(pts);
+      fillCandidates.push({ area: area, d: pointsToSvgPath(pts, svgMinX, svgMaxY) });
+    } catch(e) {}
+  }
+  var circleArea = Math.PI * r * r;
+  var fills = [];
+  var skippedLarge = 0;
+  var skippedDetails = [];
+  for (var i = 0; i < fillCandidates.length; i++) {
+    if (fillCandidates[i].area < circleArea * 0.95) {
+      fills.push(fillCandidates[i].d);
+    } else {
+      skippedLarge++;
+      skippedDetails.push(Math.round(fillCandidates[i].area));
+    }
+  }
+
+  var beige = '#e8dcc8';
+  var darkBeige = '#c4b49a';
+  var savedCircle = displayModel.models.circle;
+  delete displayModel.models.circle;
+  var svg = m.exporter.toSVG(displayModel, {
+    stroke: darkBeige, strokeWidth: '1px', fill: 'none', useSvgPathOnly: false,
+  });
+  displayModel.models.circle = savedCircle;
+
+  var outerR = r + b;
+  var bgCircle = '<circle cx="' + (0 - svgMinX) + '" cy="' + (svgMaxY - 0) + '" r="' + outerR + '" fill="' + beige + '" stroke="none"/>';
+  var fillSvg = bgCircle;
+  for (var i = 0; i < fills.length; i++) {
+    fillSvg += '<path d="' + fills[i] + '" fill="#000" stroke="none"/>';
+  }
+  svg = svg.replace(/(<g[^>]*>)/, '$1' + fillSvg);
+
+  if (document.getElementById('showSegments').checked) {
+    var segSvg = '';
+    for (var i = 0; i < chords.length; i++) {
+      var c = chords[i];
+      var sx1 = Math.cos(c.a1) * r - svgMinX;
+      var sy1 = svgMaxY - Math.sin(c.a1) * r;
+      var sx2 = Math.cos(c.a2) * r - svgMinX;
+      var sy2 = svgMaxY - Math.sin(c.a2) * r;
+      segSvg += '<line x1="' + sx1 + '" y1="' + sy1 + '" x2="' + sx2 + '" y2="' + sy2 + '" stroke="red" stroke-width="0.5" opacity="0.7"/>';
+    }
+    svg = svg.replace(/<\/svg>/, segSvg + '</svg>');
+  }
+
+  var canvas = document.getElementById('canvas');
+  canvas.innerHTML = svg;
+  if (zoomState.zoomed) {
+    canvas.classList.add('zoomed');
+    var svgEl = canvas.querySelector('svg');
+    if (svgEl) {
+      svgEl.style.setProperty('--zx', zoomState.x);
+      svgEl.style.setProperty('--zy', zoomState.y);
+    }
+  }
+
+  document.getElementById('skippedInfo').textContent = skippedLarge + ' large skipped (' + skippedDetails.join(', ') + '), ' + fills.length + ' filled';
+  return fillCandidates;
+}
+
+var filletAnimId = null;
+
 function render() {
+  if (filletAnimId) { cancelAnimationFrame(filletAnimId); filletAnimId = null; }
+
   var orb = parseFloat(inputs.orb.value);
   var exp = parseFloat(inputs.expansion.value);
   var r   = parseFloat(inputs.radius.value);
@@ -872,12 +989,10 @@ function render() {
   var t0 = performance.now();
 
   try {
-    var model = buildModel(chords, exp, r, b, ma, mAng, f);
+    // Build model without fillet (fillet will be animated)
+    var model = buildModel(chords, exp, r, b, ma, mAng, 0);
 
-    var ext = m.measure.modelExtents(model);
-    svgMinX = ext.low[0];
-    svgMaxY = ext.high[1];
-
+    // Areas panel (computed from pre-fillet model)
     var areas = model._areas || [];
     areas.sort(function(a, b) { return a.area - b.area; });
     currentAreas = areas;
@@ -917,110 +1032,71 @@ function render() {
       });
     });
 
-    // Build filled polygons, skip the single largest (outer boundary)
-    var fillChains = m.model.findChains(model);
-    var fillCandidates = [];
-    for (var i = 0; i < fillChains.length; i++) {
-      var ch = fillChains[i];
-      if (!ch.endless) continue;
-      try {
-        var pts = m.chain.toKeyPoints(ch, 1);
-        if (pts.length < 3) continue;
-        var area = polygonArea(pts);
-        fillCandidates.push({ area: area, d: pointsToSvgPath(pts, svgMinX, svgMaxY) });
-      } catch(e) {}
-    }
-    // Skip any region >= 95% of full circle area (outer boundary or degenerate full-circle arcs)
-    var circleArea = Math.PI * r * r;
-    var fills = [];
-    var skippedLarge = 0;
-    var skippedDetails = [];
-    for (var i = 0; i < fillCandidates.length; i++) {
-      if (fillCandidates[i].area < circleArea * 0.95) {
-        fills.push(fillCandidates[i].d);
-      } else {
-        skippedLarge++;
-        skippedDetails.push(Math.round(fillCandidates[i].area));
+    // Finalize: download SVG, 3D sync, volume estimate
+    function finalizeModel(finalModel, fillCandidates) {
+      lastModel = finalModel;
+      if (show3d && viewer3dLoaded) sendDataTo3D();
+
+      downloadSvg = m.exporter.toSVG(finalModel, {
+        stroke: '#000', strokeWidth: '0.25mm', fill: 'none', useSvgPathOnly: true,
+      });
+      downloadSvg = downloadSvg
+        .replace(/\s*data-route="[^"]*"/g, '')
+        .replace(/\s*vector-effect="[^"]*"/g, '');
+
+      var circleArea = Math.PI * r * r;
+      var outerR = r + b;
+      var outerArea = Math.PI * outerR * outerR;
+      var cutArea = 0;
+      for (var i = 0; i < fillCandidates.length; i++) {
+        if (fillCandidates[i].area < circleArea * 0.95) cutArea += fillCandidates[i].area;
       }
+      var remainArea = outerArea - cutArea;
+      var scale = 1.5 / (2 * outerR);
+      var scaledArea = remainArea * scale * scale;
+      var volume = scaledArea * 0.0625;
+      var cc = volume * 16.387;
+      var goldGrams = cc * 19.32;
+      var goldPrice = goldGrams * 90;
+      document.getElementById('volumeInfo').textContent =
+        '~' + volume.toFixed(4) + ' cu in (' + cc.toFixed(2) + ' cc) — Gold: ~' + goldGrams.toFixed(1) + 'g, ~$' + goldPrice.toFixed(0) + ' (est, use CAD for exact)';
     }
 
-    lastModel = model;
-    if (show3d && viewer3dLoaded) sendDataTo3D();
+    if (f > 0) {
+      // Animate fillet from 0 to target over 2 seconds with ease-in-out
+      var preFillet = deepCloneModel(model);
+      var animStart = null;
+      var duration = 2000;
 
-    downloadSvg = m.exporter.toSVG(model, {
-      stroke: '#000',
-      strokeWidth: '0.25mm',
-      fill: 'none',
-      useSvgPathOnly: true,
-    });
-    downloadSvg = downloadSvg
-      .replace(/\s*data-route="[^"]*"/g, '')
-      .replace(/\s*vector-effect="[^"]*"/g, '');
+      displayModelOnCanvas(deepCloneModel(preFillet), r, b, chords);
 
-    var beige = '#e8dcc8';
-    var darkBeige = '#c4b49a';
-    // Hide circle arcs from display — they cause a dark ring against the beige background
-    var savedCircle = model.models.circle;
-    delete model.models.circle;
-    var svg = m.exporter.toSVG(model, {
-      stroke: darkBeige,
-      strokeWidth: '1px',
-      fill: 'none',
-      useSvgPathOnly: false,
-    });
-    model.models.circle = savedCircle;
+      function animFrame(ts) {
+        if (!animStart) animStart = ts;
+        var t = Math.min((ts - animStart) / duration, 1);
+        // Ease-in-out cubic
+        var eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        var curR = f * eased;
 
-    var outerR = r + b;
-    var bgCircle = '<circle cx="' + (0 - svgMinX) + '" cy="' + (svgMaxY - 0) + '" r="' + outerR + '" fill="' + beige + '" stroke="none"/>';
-    var fillSvg = bgCircle;
-    for (var i = 0; i < fills.length; i++) {
-      fillSvg += '<path d="' + fills[i] + '" fill="#000" stroke="none"/>';
-    }
-    svg = svg.replace(/(<g[^>]*>)/, '$1' + fillSvg);
+        var clone = deepCloneModel(preFillet);
+        applyFillet(clone, curR);
+        var fc = displayModelOnCanvas(clone, r, b, chords);
 
-    // Overlay initial segments in red if toggled
-    if (document.getElementById('showSegments').checked) {
-      var segSvg = '';
-      for (var i = 0; i < chords.length; i++) {
-        var c = chords[i];
-        var sx1 = Math.cos(c.a1) * r - svgMinX;
-        var sy1 = svgMaxY - Math.sin(c.a1) * r;
-        var sx2 = Math.cos(c.a2) * r - svgMinX;
-        var sy2 = svgMaxY - Math.sin(c.a2) * r;
-        segSvg += '<line x1="' + sx1 + '" y1="' + sy1 + '" x2="' + sx2 + '" y2="' + sy2 + '" stroke="red" stroke-width="0.5" opacity="0.7"/>';
+        if (t < 1) {
+          document.getElementById('timing').textContent = 'Animating fillet... ' + Math.round(t * 100) + '%';
+          filletAnimId = requestAnimationFrame(animFrame);
+        } else {
+          filletAnimId = null;
+          finalizeModel(clone, fc);
+          document.getElementById('timing').textContent = 'Built in ' + (performance.now() - t0).toFixed(1) + ' ms';
+        }
       }
-      svg = svg.replace(/<\/svg>/, segSvg + '</svg>');
-    }
 
-    var canvas = document.getElementById('canvas');
-    canvas.innerHTML = svg;
-    if (zoomState.zoomed) {
-      canvas.classList.add('zoomed');
-      var svgEl = canvas.querySelector('svg');
-      if (svgEl) {
-        svgEl.style.setProperty('--zx', zoomState.x);
-        svgEl.style.setProperty('--zy', zoomState.y);
-      }
+      filletAnimId = requestAnimationFrame(animFrame);
+    } else {
+      var fc = displayModelOnCanvas(model, r, b, chords);
+      finalizeModel(model, fc);
+      document.getElementById('timing').textContent = 'Built in ' + (performance.now() - t0).toFixed(1) + ' ms';
     }
-    document.getElementById('timing').textContent = 'Built in ' + (performance.now() - t0).toFixed(1) + ' ms';
-    document.getElementById('skippedInfo').textContent = skippedLarge + ' large skipped (' + skippedDetails.join(', ') + '), ' + fills.length + ' filled';
-
-    // Volume estimate: outer disc minus cut-out regions, scaled to 1.5" diameter, 1/8" thick
-    var outerR = r + b;
-    var outerArea = Math.PI * outerR * outerR;
-    var cutArea = 0;
-    for (var i = 0; i < fillCandidates.length; i++) {
-      if (fillCandidates[i].area < circleArea * 0.95) cutArea += fillCandidates[i].area;
-    }
-    var remainArea = outerArea - cutArea;
-    var scale = 1.5 / (2 * outerR); // inches per model unit
-    var scaledArea = remainArea * scale * scale; // sq inches
-    var volume = scaledArea * 0.0625; // cubic inches (1/16" thick)
-    var cc = volume * 16.387;
-    var goldGrams = cc * 19.32; // gold density 19.32 g/cc
-    var goldPrice = goldGrams * 90;
-    document.getElementById('volumeInfo').textContent =
-      '~' + volume.toFixed(4) + ' cu in (' + cc.toFixed(2) + ' cc) — Gold: ~' + goldGrams.toFixed(1) + 'g, ~$' + goldPrice.toFixed(0) + ' (est, use CAD for exact)';
   } catch(e) {
     document.getElementById('canvas').innerHTML =
       '<p style="color:#ff5252">Error: ' + e.message + '</p>';
