@@ -8,7 +8,17 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: system-ui, sans-serif;
-  background: #f5f0e6;
+  background-color: #f5f0e6;
+  background-image:
+    linear-gradient(rgba(170,162,148,0.18) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(170,162,148,0.18) 0.5px, transparent 0.5px),
+    linear-gradient(rgba(180,172,158,0.10) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(180,172,158,0.10) 0.5px, transparent 0.5px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
   color: #2c2c2c;
   display: flex;
   height: 100vh;
@@ -17,7 +27,7 @@ body {
 #controls {
   width: 320px;
   min-width: 320px;
-  background: #ede8de;
+  background: rgba(237,232,222,0.85);
   border-right: 1px solid #d4cfc5;
   padding: 20px;
   overflow-y: auto;
@@ -42,7 +52,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-input[type="date"], input[type="time"], input[type="text"] {
+input[type="text"] {
   background: #faf7f0;
   border: 1px solid #d4cfc5;
   color: #2c2c2c;
@@ -52,7 +62,61 @@ input[type="date"], input[type="time"], input[type="text"] {
   font-family: system-ui, sans-serif;
   outline: none;
 }
-input:focus { border-color: #8b7d6b; }
+input[type="text"]:focus { border-color: #8b7d6b; }
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #d4cfc5;
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #8b7d6b;
+  border-radius: 50%;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #8b7d6b;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.slider-row input[type="range"] { flex: 1; }
+.slider-value {
+  font-size: 13px;
+  color: #3a3630;
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.time-row {
+  display: flex;
+  gap: 8px;
+}
+.time-row select {
+  flex: 1;
+  background: #faf7f0;
+  border: 1px solid #d4cfc5;
+  color: #2c2c2c;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+  outline: none;
+}
+.time-row select:focus { border-color: #8b7d6b; }
 .dropdown {
   position: absolute;
   top: 100%;
@@ -117,20 +181,22 @@ input:focus { border-color: #8b7d6b; }
   border-bottom: 1px solid rgba(212, 207, 197, 0.5);
 }
 #planet-table .retrograde { color: #c0392b; font-size: 10px; margin-left: 2px; }
-.aspect-legend {
+.aspect-filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
 }
-.aspect-legend-item {
+.aspect-filter {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #7a7568;
+  gap: 6px;
+  font-size: 12px;
+  color: #5a5348;
+  cursor: pointer;
 }
-.aspect-legend-item .swatch {
+.aspect-filter input { margin: 0; accent-color: #8b7d6b; }
+.aspect-filter .swatch {
   width: 16px;
   height: 3px;
   border-radius: 1px;
@@ -153,12 +219,32 @@ input:focus { border-color: #8b7d6b; }
 <div id="controls">
   <h2>Natal Chart Generator</h2>
   <div class="form-group">
-    <label>Date of Birth</label>
-    <input type="date" id="birthdate" value="2000-01-01">
+    <label>Year</label>
+    <div class="slider-row">
+      <input type="range" id="birth-year" min="1925" max="2026" value="2000">
+      <span class="slider-value" id="birth-year-val">2000</span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Month</label>
+    <div class="slider-row">
+      <input type="range" id="birth-month" min="1" max="12" value="1">
+      <span class="slider-value" id="birth-month-val">Jan</span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Day</label>
+    <div class="slider-row">
+      <input type="range" id="birth-day" min="1" max="31" value="1">
+      <span class="slider-value" id="birth-day-val">1</span>
+    </div>
   </div>
   <div class="form-group">
     <label>Time of Birth</label>
-    <input type="time" id="birthtime" value="12:00">
+    <div class="time-row">
+      <select id="birth-hour"></select>
+      <select id="birth-minute"></select>
+    </div>
   </div>
   <div class="form-group">
     <label>Birth Location</label>
@@ -167,13 +253,16 @@ input:focus { border-color: #8b7d6b; }
     <div id="location-info" class="location-display">38.0464°, -84.4970°</div>
   </div>
   <div id="error"></div>
+  <div class="form-group">
+    <label>Aspects</label>
+    <div class="aspect-filters" id="aspect-filters"></div>
+  </div>
   <div id="results">
     <h3>Planet Positions</h3>
     <table id="planet-table">
       <thead><tr><th>Planet</th><th>Sign</th><th>Degree</th></tr></thead>
       <tbody id="planet-tbody"></tbody>
     </table>
-    <div class="aspect-legend" id="aspect-legend"></div>
   </div>
 </div>
 <div id="main">
@@ -203,7 +292,6 @@ const SIGNS = [
 const PLANET_KEYS = [
   'sun', 'moon', 'mercury', 'venus', 'mars',
   'jupiter', 'saturn', 'uranus', 'neptune', 'pluto',
-  'chiron', 'northnode',
 ];
 
 const PLANET_GLYPHS = {
@@ -216,7 +304,7 @@ const PLANET_GLYPHS = {
 const PLANET_NAMES = {
   sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus',
   mars: 'Mars', jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus',
-  neptune: 'Neptune', pluto: 'Pluto', chiron: 'Chiron', northnode: 'N.Node',
+  neptune: 'Neptune', pluto: 'Pluto',
 };
 
 const ASPECT_STYLES = {
@@ -226,6 +314,33 @@ const ASPECT_STYLES = {
   trine:       { color: '#6a8cad', width: 1.2, dash: [] },
   opposition:  { color: '#b85450', width: 1.5, dash: [] },
 };
+
+// ── Aspect Filter Checkboxes ────────────────────────────────
+
+const enabledAspects = new Set(Object.keys(ASPECT_STYLES));
+
+{
+  const container = document.getElementById('aspect-filters');
+  for (const [key, style] of Object.entries(ASPECT_STYLES)) {
+    const label = document.createElement('label');
+    label.className = 'aspect-filter';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.dataset.aspect = key;
+    cb.addEventListener('change', () => {
+      if (cb.checked) enabledAspects.add(key);
+      else enabledAspects.delete(key);
+      if (displayState) drawChartState(displayState);
+    });
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = style.color;
+    const name = key.charAt(0).toUpperCase() + key.slice(1);
+    label.append(cb, swatch, document.createTextNode(name));
+    container.appendChild(label);
+  }
+}
 
 // ── Canvas Setup ───────────────────────────────────────────
 
@@ -243,7 +358,8 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const OUTER_R = 310;
 const ZODIAC_INNER_R = 265;
-const PLANET_R = 230;
+const ASPECT_R = 265;
+const PLANET_R = (OUTER_R + ASPECT_R) / 2;
 const PLANET_INNER_R = 205;
 const INNER_R = 145;
 
@@ -259,6 +375,68 @@ let targetState = null;    // animation target
 let animStartTime = null;
 let animFrameId = null;
 const ANIM_DURATION = 700; // ms
+
+// Stage 2: spread + aspect fade state
+let spreadT = 1;              // 0 = exact positions, 1 = fully spread
+let spreadAnimId = null;
+let spreadAnimStart = null;
+const SPREAD_DURATION = 350;  // ms
+
+let aspectAlpha = 1;
+let aspectFadeId = null;
+let aspectFadeStart = null;
+const ASPECT_FADE_DURATION = 400; // ms
+
+// Hover state
+let hoveredAspect = null;    // { point1Key, point2Key, aspectKey, tooltipX, tooltipY } or null
+let drawnAspects = [];       // cached for hit-testing
+const HOVER_THRESHOLD = 6;   // px distance to detect hover
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  if (aspectAlpha < 1 || !drawnAspects.length) {
+    if (hoveredAspect) { hoveredAspect = null; canvas.style.cursor = ''; drawChartState(displayState); }
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (SIZE / rect.width);
+  const my = (e.clientY - rect.top) * (SIZE / rect.height);
+
+  let closest = null, closestDist = Infinity;
+  for (const a of drawnAspects) {
+    const d = distToSegment(mx, my, a.x1, a.y1, a.x2, a.y2);
+    if (d < closestDist) { closestDist = d; closest = a; }
+  }
+
+  const prev = hoveredAspect;
+  if (closest && closestDist < HOVER_THRESHOLD) {
+    hoveredAspect = { ...closest, tooltipX: mx, tooltipY: my };
+    canvas.style.cursor = 'pointer';
+  } else {
+    hoveredAspect = null;
+    canvas.style.cursor = '';
+  }
+
+  const changed = (prev?.point1Key !== hoveredAspect?.point1Key ||
+                   prev?.point2Key !== hoveredAspect?.point2Key);
+  if (changed && displayState) drawChartState(displayState);
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (hoveredAspect) {
+    hoveredAspect = null;
+    canvas.style.cursor = '';
+    if (displayState) drawChartState(displayState);
+  }
+});
 
 // ── Coordinate Helpers ─────────────────────────────────────
 
@@ -377,12 +555,13 @@ function showError(msg) {
 
 function generateChart() {
   errorEl.style.display = 'none';
-  const dateStr = document.getElementById('birthdate').value;
-  const timeStr = document.getElementById('birthtime').value;
-  if (!dateStr || !timeStr || selectedLat === null) return;
+  if (selectedLat === null) return;
 
-  const [year, month, date] = dateStr.split('-').map(Number);
-  const [hour, minute] = timeStr.split(':').map(Number);
+  const year = parseInt(document.getElementById('birth-year').value);
+  const month = parseInt(document.getElementById('birth-month').value);
+  const date = parseInt(document.getElementById('birth-day').value);
+  const hour = parseInt(document.getElementById('birth-hour').value);
+  const minute = parseInt(document.getElementById('birth-minute').value);
 
   let horoscope;
   try {
@@ -408,19 +587,26 @@ function generateChart() {
 }
 
 function animateTo(newState) {
-  // First render — no animation
+  // Cancel any in-progress stage 2 animations
+  if (spreadAnimId) { cancelAnimationFrame(spreadAnimId); spreadAnimId = null; }
+  if (aspectFadeId) { cancelAnimationFrame(aspectFadeId); aspectFadeId = null; }
+  spreadT = 0;
+  aspectAlpha = 0;
+
+  // First render — skip stage 1, go straight to stage 2
   if (!displayState) {
     displayState = newState;
     drawChartState(displayState);
     populateTable(newState.horoscope);
     resultsEl.style.display = 'block';
+    startStage2();
     return;
   }
 
-  // Cancel in-progress animation
+  // Cancel in-progress position animation
   if (animFrameId) cancelAnimationFrame(animFrameId);
 
-  // Animate from current display to new target
+  // Stage 1: animate positions (no spread)
   fromState = { ...displayState };
   targetState = newState;
   animStartTime = null;
@@ -446,21 +632,131 @@ function animStep(timestamp) {
     animFrameId = null;
     populateTable(displayState.horoscope);
     resultsEl.style.display = 'block';
+    startStage2();
   }
 }
 
-// ── Input Change Listeners ─────────────────────────────────
+// ── Stage 2: Spread then Aspect Fade ────────────────────────
 
-document.getElementById('birthdate').addEventListener('change', generateChart);
-document.getElementById('birthtime').addEventListener('change', generateChart);
+function startStage2() {
+  spreadT = 0;
+  spreadAnimStart = null;
+  spreadAnimId = requestAnimationFrame(spreadStep);
+}
+
+function spreadStep(timestamp) {
+  if (!spreadAnimStart) spreadAnimStart = timestamp;
+  const elapsed = timestamp - spreadAnimStart;
+  spreadT = Math.min(elapsed / SPREAD_DURATION, 1);
+  spreadT = easeInOutCubic(spreadT);
+  drawChartState(displayState);
+  if (spreadT < 1) {
+    spreadAnimId = requestAnimationFrame(spreadStep);
+  } else {
+    spreadAnimId = null;
+    startAspectFade();
+  }
+}
+
+function startAspectFade() {
+  if (aspectFadeId) cancelAnimationFrame(aspectFadeId);
+  aspectAlpha = 0;
+  aspectFadeStart = null;
+  aspectFadeId = requestAnimationFrame(aspectFadeStep);
+}
+
+function aspectFadeStep(timestamp) {
+  if (!aspectFadeStart) aspectFadeStart = timestamp;
+  const elapsed = timestamp - aspectFadeStart;
+  aspectAlpha = Math.min(elapsed / ASPECT_FADE_DURATION, 1);
+  drawChartState(displayState);
+  if (aspectAlpha < 1) {
+    aspectFadeId = requestAnimationFrame(aspectFadeStep);
+  } else {
+    aspectFadeId = null;
+  }
+}
+
+// ── Input Setup & Listeners ─────────────────────────────────
+
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function updateDayMax() {
+  const year = parseInt(document.getElementById('birth-year').value);
+  const month = parseInt(document.getElementById('birth-month').value);
+  const max = daysInMonth(year, month);
+  const daySlider = document.getElementById('birth-day');
+  daySlider.max = max;
+  if (parseInt(daySlider.value) > max) daySlider.value = max;
+  document.getElementById('birth-day-val').textContent = daySlider.value;
+}
+
+// Populate hour dropdown (12:00 AM – 11:00 PM)
+{
+  const hourSel = document.getElementById('birth-hour');
+  for (let h = 0; h < 24; h++) {
+    const opt = document.createElement('option');
+    opt.value = h;
+    const display = h === 0 ? '12 AM' : h < 12 ? h + ' AM' : h === 12 ? '12 PM' : (h - 12) + ' PM';
+    opt.textContent = display;
+    hourSel.appendChild(opt);
+  }
+  hourSel.value = '12';
+}
+
+// Populate minute dropdown (00–59)
+{
+  const minSel = document.getElementById('birth-minute');
+  for (let m = 0; m < 60; m++) {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = String(m).padStart(2, '0');
+    minSel.appendChild(opt);
+  }
+  minSel.value = '0';
+}
+
+document.getElementById('birth-year').addEventListener('input', () => {
+  document.getElementById('birth-year-val').textContent = document.getElementById('birth-year').value;
+  updateDayMax();
+  generateChart();
+});
+document.getElementById('birth-month').addEventListener('input', () => {
+  const v = parseInt(document.getElementById('birth-month').value);
+  document.getElementById('birth-month-val').textContent = MONTH_ABBR[v - 1];
+  updateDayMax();
+  generateChart();
+});
+document.getElementById('birth-day').addEventListener('input', () => {
+  document.getElementById('birth-day-val').textContent = document.getElementById('birth-day').value;
+  generateChart();
+});
+document.getElementById('birth-hour').addEventListener('change', generateChart);
+document.getElementById('birth-minute').addEventListener('change', generateChart);
 
 // ── Drawing from State ─────────────────────────────────────
 
 function drawChartState(state) {
   const { ascDeg, mcDeg, planets, cusps } = state;
   ctx.clearRect(0, 0, SIZE, SIZE);
+
+  // Fill band between outer ring and inner circle
+  ctx.beginPath();
+  ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
+  ctx.arc(CX, CY, ASPECT_R, 0, Math.PI * 2, true);
   ctx.fillStyle = '#f5f0e6';
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fill();
+
+  // Inner aspect circle
+  ctx.beginPath();
+  ctx.arc(CX, CY, ASPECT_R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#b8b0a2';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
 
   drawZodiacRing(ascDeg);
 
@@ -468,7 +764,6 @@ function drawChartState(state) {
   for (const p of planets) degMap[p.key] = p.deg;
   drawAspectLines(state.horoscope, degMap, ascDeg);
   drawPlanets(planets, ascDeg);
-  drawAngles(ascDeg, mcDeg);
 }
 
 function getAscendantDeg(h) {
@@ -485,60 +780,36 @@ function getMidheavenDeg(h) {
 // ── Zodiac Ring ────────────────────────────────────────────
 
 function drawZodiacRing(ascDeg) {
-  for (let i = 0; i < 12; i++) {
-    const sign = SIGNS[i];
-    const startEcl = i * 30;
-
-    // Sector divider lines
-    const p1 = eclToXY(startEcl, ZODIAC_INNER_R, ascDeg);
-    const p2 = eclToXY(startEcl, OUTER_R, ascDeg);
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = '#c4bdb0';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // Sign name rotated along the arc
-    const midEcl = startEcl + 15;
-    const midR = (OUTER_R + ZODIAC_INNER_R) / 2;
-    const radialAngle = eclToAngle(midEcl, ascDeg);
-    const x = CX + midR * Math.cos(radialAngle);
-    const y = CY + midR * Math.sin(radialAngle);
-
-    // Tangent direction (counterclockwise), flipped if upside-down
-    let textAngle = radialAngle + Math.PI / 2;
-    const norm = ((textAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    if (norm > Math.PI / 2 && norm < 3 * Math.PI / 2) {
-      textAngle += Math.PI;
-    }
-
-    const name = sign.key.charAt(0).toUpperCase() + sign.key.slice(1);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(textAngle);
-    ctx.font = '10px system-ui, sans-serif';
-    ctx.fillStyle = '#6a6358';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(name, 0, 0);
-    ctx.restore();
-  }
-
-  // Outer circle
+  // Zodiac circle
   ctx.beginPath();
   ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
   ctx.strokeStyle = '#a89f92';
   ctx.lineWidth = 1.2;
   ctx.stroke();
 
-  // Inner zodiac circle
-  ctx.beginPath();
-  ctx.arc(CX, CY, ZODIAC_INNER_R, 0, Math.PI * 2);
-  ctx.strokeStyle = '#b8b0a2';
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
+  for (let i = 0; i < 12; i++) {
+    const sign = SIGNS[i];
+    const startEcl = i * 30;
 
+    // Segment divider line spanning the band
+    const p1 = eclToXY(startEcl, OUTER_R, ascDeg);
+    const p2 = eclToXY(startEcl, ASPECT_R, ascDeg);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = '#a89f92';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Sign abbreviation on the outside
+    const midEcl = startEcl + 15;
+    const glyphPos = eclToXY(midEcl, OUTER_R + 16, ascDeg);
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillStyle = '#8a8078';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(sign.abbr, glyphPos.x, glyphPos.y);
+  }
 }
 
 // ── Houses ─────────────────────────────────────────────────
@@ -587,32 +858,109 @@ function getBodyPositions(h) {
 }
 
 function spreadPositions(positions, minGap) {
-  const items = positions.map(p => ({ ...p, displayDeg: p.deg }));
+  // Build items: planets (movable) + sign boundaries (fixed)
+  const items = positions.map(p => ({ ...p, displayDeg: p.deg, fixed: false }));
+  for (let i = 0; i < 12; i++) {
+    items.push({ deg: normDeg(i * 30), displayDeg: normDeg(i * 30), fixed: true, key: '_sign_' + i });
+  }
+
+  const n = items.length;
   items.sort((a, b) => a.deg - b.deg);
-  for (let pass = 0; pass < 20; pass++) {
-    let moved = false;
-    for (let i = 0; i < items.length; i++) {
-      const j = (i + 1) % items.length;
-      let diff = normDeg(items[j].displayDeg - items[i].displayDeg);
-      if (diff < minGap && diff > 0) {
-        const push = (minGap - diff) / 2 + 0.1;
-        items[i].displayDeg = normDeg(items[i].displayDeg - push);
-        items[j].displayDeg = normDeg(items[j].displayDeg + push);
-        moved = true;
+
+  // Linearize the circle by breaking at the largest gap
+  let maxGap = -1, breakAfter = n - 1;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const gap = normDeg(items[j].deg - items[i].deg);
+    if (gap > maxGap) { maxGap = gap; breakAfter = i; }
+  }
+  const order = [];
+  for (let i = 0; i < n; i++) order.push((breakAfter + 1 + i) % n);
+
+  const baseDeg = items[order[0]].deg;
+  const truePos = order.map(idx => {
+    let d = items[idx].deg - baseDeg;
+    if (d < 0) d += 360;
+    return d;
+  });
+  const isFixed = order.map(idx => items[idx].fixed);
+
+  // Layout a group: fixed items stay put, movable items fill around them
+  function layoutGroup(g) {
+    if (g.count === 1) return [g.truePositions[0]];
+    if (!g.fixedFlags.some(f => f)) {
+      // All movable: center on mean
+      const mean = g.truePositions.reduce((a, b) => a + b) / g.count;
+      const start = mean - (g.count - 1) * minGap / 2;
+      return g.truePositions.map((_, i) => start + i * minGap);
+    }
+    // Mixed: two-pass sweep
+    const d = g.truePositions.slice();
+    // Left-to-right: push movable items right if too close
+    for (let i = 1; i < g.count; i++) {
+      if (!g.fixedFlags[i]) {
+        d[i] = Math.max(d[i], d[i - 1] + minGap);
       }
     }
-    if (!moved) break;
+    // Right-to-left: pull movable items back toward true position
+    for (let i = g.count - 2; i >= 0; i--) {
+      if (!g.fixedFlags[i]) {
+        d[i] = Math.min(d[i], d[i + 1] - minGap);
+        if (i > 0) d[i] = Math.max(d[i], d[i - 1] + minGap);
+      }
+    }
+    return d;
   }
-  return items;
+
+  // Iterative group merging
+  let groups = truePos.map((p, i) => ({
+    count: 1, truePositions: [p], fixedFlags: [isFixed[i]],
+  }));
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const merged = [groups[0]];
+    for (let i = 1; i < groups.length; i++) {
+      const prev = merged[merged.length - 1];
+      const curr = groups[i];
+      const prevLayout = layoutGroup(prev);
+      const currLayout = layoutGroup(curr);
+      if (currLayout[0] - prevLayout[prevLayout.length - 1] < minGap) {
+        prev.truePositions = prev.truePositions.concat(curr.truePositions);
+        prev.fixedFlags = prev.fixedFlags.concat(curr.fixedFlags);
+        prev.count += curr.count;
+        changed = true;
+      } else {
+        merged.push(curr);
+      }
+    }
+    groups = merged;
+  }
+
+  // Assign display positions
+  let itemIdx = 0;
+  for (const g of groups) {
+    const layout = layoutGroup(g);
+    for (let i = 0; i < g.count; i++) {
+      items[order[itemIdx]].displayDeg = normDeg(layout[i] + baseDeg);
+      itemIdx++;
+    }
+  }
+
+  return items.filter(p => !p.fixed);
 }
 
 function drawPlanets(bodyPositions, ascDeg) {
-  const spread = spreadPositions(bodyPositions, 8);
+  const spread = spreadPositions(bodyPositions, 5);
 
   for (const p of spread) {
-    // Tick mark on zodiac ring
-    const tick1 = eclToXY(p.deg, ZODIAC_INNER_R, ascDeg);
-    const tick2 = eclToXY(p.deg, ZODIAC_INNER_R - 8, ascDeg);
+    // Interpolate between exact and spread position
+    const renderDeg = lerpAngle(p.deg, p.displayDeg, spreadT);
+
+    // Tick mark on inner aspect circle
+    const tick1 = eclToXY(p.deg, ASPECT_R + 4, ascDeg);
+    const tick2 = eclToXY(p.deg, ASPECT_R - 4, ascDeg);
     ctx.beginPath();
     ctx.moveTo(tick1.x, tick1.y);
     ctx.lineTo(tick2.x, tick2.y);
@@ -621,32 +969,25 @@ function drawPlanets(bodyPositions, ascDeg) {
     ctx.stroke();
 
     // Leader line if spread shifted the glyph
-    if (Math.abs(normDeg(p.displayDeg - p.deg)) > 1) {
-      const from = eclToXY(p.deg, ZODIAC_INNER_R - 8, ascDeg);
-      const to = eclToXY(p.displayDeg, PLANET_R, ascDeg);
+    const offset = Math.abs(normDeg(renderDeg - p.deg));
+    if (offset > 1) {
+      const from = eclToXY(p.deg, ASPECT_R + 4, ascDeg);
+      const to = eclToXY(renderDeg, PLANET_R, ascDeg);
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
-      ctx.strokeStyle = 'rgba(139,128,120,0.3)';
+      ctx.strokeStyle = `rgba(139,128,120,${0.3 * spreadT})`;
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
 
     // Planet glyph
-    const glyphP = eclToXY(p.displayDeg, PLANET_R, ascDeg);
-    ctx.font = '14px system-ui, sans-serif';
+    const glyphP = eclToXY(renderDeg, PLANET_R, ascDeg);
+    ctx.font = '22px system-ui, sans-serif';
     ctx.fillStyle = '#2c2c2c';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(PLANET_GLYPHS[p.key] || p.key[0].toUpperCase(), glyphP.x, glyphP.y);
-
-    // Retrograde marker
-    if (p.retrograde) {
-      const rP = eclToXY(p.displayDeg, PLANET_R + 12, ascDeg);
-      ctx.font = '9px system-ui, sans-serif';
-      ctx.fillStyle = '#c0392b';
-      ctx.fillText('R', rP.x, rP.y);
-    }
   }
 }
 
@@ -660,6 +1001,9 @@ function formatDeg(p) {
 // ── Aspects ────────────────────────────────────────────────
 
 function drawAspectLines(h, degMap, ascDeg) {
+  drawnAspects = [];
+  if (aspectAlpha <= 0) return;
+
   let aspects = [];
   try {
     if (h && h.Aspects && h.Aspects.all) aspects = h.Aspects.all;
@@ -668,6 +1012,7 @@ function drawAspectLines(h, degMap, ascDeg) {
 
   for (const asp of aspects) {
     const key = asp.aspectKey || asp.key || '';
+    if (!enabledAspects.has(key)) continue;
     const style = ASPECT_STYLES[key];
     if (!style) continue;
 
@@ -675,19 +1020,54 @@ function drawAspectLines(h, degMap, ascDeg) {
     const d2 = degMap[asp.point2Key];
     if (d1 === undefined || d2 === undefined) continue;
 
-    const p1 = eclToXY(d1, PLANET_R, ascDeg);
-    const p2 = eclToXY(d2, PLANET_R, ascDeg);
+    const p1 = eclToXY(d1, ASPECT_R, ascDeg);
+    const p2 = eclToXY(d2, ASPECT_R, ascDeg);
+
+    const isHovered = hoveredAspect &&
+      hoveredAspect.point1Key === asp.point1Key &&
+      hoveredAspect.point2Key === asp.point2Key;
 
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
     ctx.strokeStyle = style.color;
-    ctx.lineWidth = style.width;
+    ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
     ctx.setLineDash(style.dash);
-    ctx.globalAlpha = 0.6;
+    ctx.globalAlpha = isHovered ? 0.95 * aspectAlpha : 0.6 * aspectAlpha;
     ctx.stroke();
     ctx.globalAlpha = 1;
     ctx.setLineDash([]);
+
+    drawnAspects.push({
+      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+      point1Key: asp.point1Key, point2Key: asp.point2Key,
+      aspectKey: key,
+    });
+  }
+
+  // Draw tooltip for hovered aspect
+  if (hoveredAspect && aspectAlpha >= 1) {
+    const ha = hoveredAspect;
+    const name1 = PLANET_NAMES[ha.point1Key] || ha.point1Key;
+    const name2 = PLANET_NAMES[ha.point2Key] || ha.point2Key;
+    const label = `Your ${name1} and ${name2} are in ${ha.aspectKey}`;
+
+    ctx.font = '12px system-ui, sans-serif';
+    const metrics = ctx.measureText(label);
+    const tw = metrics.width + 16;
+    const th = 26;
+    const tx = ha.tooltipX - tw / 2;
+    const ty = ha.tooltipY - th - 10;
+
+    ctx.fillStyle = 'rgba(58,54,48,0.9)';
+    ctx.beginPath();
+    ctx.roundRect(tx, ty, tw, th, 4);
+    ctx.fill();
+
+    ctx.fillStyle = '#f5f0e6';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, ha.tooltipX, ty + th / 2);
   }
 }
 
@@ -749,20 +1129,12 @@ function populateTable(h) {
     const degStr = formatDegFull(p);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${PLANET_NAMES[p.key] || p.key}${p.retrograde ? '<span class="retrograde">\u212E</span>' : ''}</td>
+      <td>${PLANET_NAMES[p.key] || p.key}</td>
       <td>${signName}</td>
       <td>${degStr}</td>`;
     tbody.appendChild(tr);
   }
 
-  const legend = document.getElementById('aspect-legend');
-  legend.innerHTML = '<div style="font-size:11px;color:#7a7568;width:100%;margin-top:8px;">Aspects:</div>';
-  for (const [key, style] of Object.entries(ASPECT_STYLES)) {
-    const div = document.createElement('div');
-    div.className = 'aspect-legend-item';
-    div.innerHTML = `<span class="swatch" style="background:${style.color}"></span>${key}`;
-    legend.appendChild(div);
-  }
 }
 
 function formatDegFull(p) {
