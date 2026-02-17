@@ -208,6 +208,19 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
   padding: 20px;
   overflow: hidden;
+  position: relative;
+}
+#chart-3d {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 700px;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: auto;
+  clip-path: circle(255px at center);
 }
 #chart {
   max-width: 100%;
@@ -271,15 +284,36 @@ input[type="range"]::-moz-range-thumb {
       <span class="slider-value" id="fillet-radius-val">5</span>
     </div>
   </div>
+  <div class="form-group">
+    <label>3D Scale</label>
+    <div class="slider-row">
+      <input type="range" id="scale-3d" min="50" max="150" step="1" value="100">
+      <span class="slider-value" id="scale-3d-val">100%</span>
+    </div>
+  </div>
 </div>
 <div id="main">
   <canvas id="chart" width="700" height="700"></canvas>
+  <canvas id="chart-3d" width="700" height="700"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/makerjs@0/target/js/browser.maker.js"></script>
 <script>window.makerjs = require('makerjs');</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./node_modules/three/build/three.module.js",
+    "three/addons/": "./node_modules/three/examples/jsm/",
+    "replicad": "./node_modules/replicad/dist/replicad.js"
+  }
+}
+</script>
 <script type="module">
 import { Horoscope, Origin } from './horoscope-bundle.js';
+import { easeInOutCubic, easeOutQuartic } from './modules/easing.js';
+import { polygonArea, buildPendantModel } from './modules/pendant-geometry.js';
+import { preloadWASM, buildPendant3DFromModel } from './modules/pendant-builder.js';
+import { PendantViewer } from './modules/three-pendant-viewer.js';
 const m = window.makerjs;
 
 // ── Constants ──────────────────────────────────────────────
@@ -318,16 +352,17 @@ const PLANET_NAMES = {
 };
 
 const ASPECT_STYLES = {
-  conjunction: { color: '#6a9e6a', width: 1.2, dash: [] },
-  sextile:     { color: '#6a8cad', width: 0.8, dash: [4, 4] },
-  square:      { color: '#b85450', width: 1.2, dash: [] },
-  trine:       { color: '#6a8cad', width: 1.2, dash: [] },
-  opposition:  { color: '#b85450', width: 1.5, dash: [] },
+  conjunction: { color: '#2c2c2c', width: 1.2, dash: [],     opacity: 0.5 },
+  sextile:     { color: '#2c2c2c', width: 0.8, dash: [4, 4], opacity: 0.5 },
+  square:      { color: '#2c2c2c', width: 1.2, dash: [],     opacity: 0.35 },
+  trine:       { color: '#2c2c2c', width: 1.2, dash: [],     opacity: 0.5 },
+  opposition:  { color: '#2c2c2c', width: 1.5, dash: [],     opacity: 0.35 },
 };
 
 // ── Aspect Filter Checkboxes ────────────────────────────────
 
 const enabledAspects = new Set(Object.keys(ASPECT_STYLES));
+enabledAspects.delete('conjunction');
 
 {
   const container = document.getElementById('aspect-filters');
@@ -336,7 +371,7 @@ const enabledAspects = new Set(Object.keys(ASPECT_STYLES));
     label.className = 'aspect-filter';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = true;
+    cb.checked = enabledAspects.has(key);
     cb.dataset.aspect = key;
     cb.addEventListener('change', () => {
       if (cb.checked) enabledAspects.add(key);
@@ -380,6 +415,7 @@ let selectedLat = 38.0464;
 let selectedLon = -84.4970;
 let chartOpacity = 0.4;
 let filletRadius = 5;
+let scale3d = 1.0;
 
 // Animation state
 let displayState = null;   // what's currently rendered
@@ -395,10 +431,14 @@ let spreadAnimId = null;
 let spreadAnimStart = null;
 const SPREAD_DURATION = 350;  // ms
 
-let aspectAlpha = 1;
-let aspectFadeId = null;
-let aspectFadeStart = null;
-const ASPECT_FADE_DURATION = 400; // ms
+let aspectAnimId = null;
+let aspectAnimStart = null;
+let aspectAnimLines = [];   // { d1, d2, style, aspectKey, point1Key, point2Key, delay, duration }
+let aspectAnimDone = false;
+let showPendantRing = false; // show outer/inner ring from aspect anim onward
+const ASPECT_LINE_DURATION = 500; // ms per line
+const ASPECT_STAGGER_INITIAL = 100; // ms for first line
+const ASPECT_STAGGER_MIN = 25;      // ms minimum stagger at end
 
 // Hover state
 let hoveredAspect = null;    // { point1Key, point2Key, aspectKey, tooltipX, tooltipY } or null
@@ -415,7 +455,7 @@ function distToSegment(px, py, x1, y1, x2, y2) {
 }
 
 canvas.addEventListener('mousemove', (e) => {
-  if (aspectAlpha < 1 || !drawnAspects.length) {
+  if (!aspectAnimDone || !drawnAspects.length) {
     if (hoveredAspect) { hoveredAspect = null; canvas.style.cursor = ''; drawChartState(displayState); }
     return;
   }
@@ -469,10 +509,6 @@ function lerpAngle(from, to, t) {
   while (diff > 180) diff -= 360;
   while (diff < -180) diff += 360;
   return normDeg(from + diff * t);
-}
-
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 // ── Geocoding ──────────────────────────────────────────────
@@ -601,10 +637,14 @@ function generateChart() {
 function animateTo(newState) {
   // Cancel any in-progress stage 2 animations
   if (spreadAnimId) { cancelAnimationFrame(spreadAnimId); spreadAnimId = null; }
-  if (aspectFadeId) { cancelAnimationFrame(aspectFadeId); aspectFadeId = null; }
+  if (aspectAnimId) { cancelAnimationFrame(aspectAnimId); aspectAnimId = null; }
   if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
+  if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
+  // Fade out 3D overlay
+  document.getElementById('chart-3d').style.opacity = '0';
   spreadT = 0;
-  aspectAlpha = 0;
+  aspectAnimLines = [];
+  aspectAnimDone = false;
   pendantAlpha = 0;
   pendantModelData = null;
 
@@ -665,26 +705,85 @@ function spreadStep(timestamp) {
     spreadAnimId = requestAnimationFrame(spreadStep);
   } else {
     spreadAnimId = null;
-    startAspectFade();
+    startAspectAnim();
   }
 }
 
-function startAspectFade() {
-  if (aspectFadeId) cancelAnimationFrame(aspectFadeId);
-  aspectAlpha = 0;
-  aspectFadeStart = null;
-  aspectFadeId = requestAnimationFrame(aspectFadeStep);
+function startAspectAnim() {
+  if (aspectAnimId) cancelAnimationFrame(aspectAnimId);
+  aspectAnimDone = false;
+  aspectAnimStart = null;
+  showPendantRing = true;
+
+  // Collect all enabled aspect lines with accelerating stagger
+  aspectAnimLines = [];
+  if (!displayState?.horoscope) { aspectAnimDone = true; showPendantRing = false; renderPendantOnCanvas(); return; }
+
+  const h = displayState.horoscope;
+  const ascDeg = displayState.ascDeg;
+  const degMap = {};
+  for (const p of displayState.planets) degMap[p.key] = p.deg;
+
+  let aspects = [];
+  try {
+    if (h.Aspects?.all) aspects = h.Aspects.all;
+    else if (Array.isArray(h?.Aspects)) aspects = h.Aspects;
+  } catch {}
+
+  // First pass: collect all valid lines
+  const collected = [];
+  for (const asp of aspects) {
+    const key = asp.aspectKey || asp.key || '';
+    if (!enabledAspects.has(key)) continue;
+    const style = ASPECT_STYLES[key];
+    if (!style) continue;
+    const d1 = degMap[asp.point1Key];
+    const d2 = degMap[asp.point2Key];
+    if (d1 === undefined || d2 === undefined) continue;
+    collected.push({ d1, d2, style, aspectKey: key, point1Key: asp.point1Key, point2Key: asp.point2Key });
+  }
+
+  // Second pass: compute accelerating delays
+  let cumDelay = 0;
+  const n = collected.length;
+  for (let i = 0; i < n; i++) {
+    const t = n > 1 ? i / (n - 1) : 0; // 0..1
+    const stagger = ASPECT_STAGGER_INITIAL + (ASPECT_STAGGER_MIN - ASPECT_STAGGER_INITIAL) * t;
+    aspectAnimLines.push({
+      ...collected[i],
+      delay: cumDelay,
+      duration: ASPECT_LINE_DURATION,
+    });
+    cumDelay += stagger;
+  }
+
+  if (aspectAnimLines.length === 0) {
+    aspectAnimDone = true;
+    showPendantRing = false;
+    renderPendantOnCanvas();
+    return;
+  }
+
+  aspectAnimId = requestAnimationFrame(aspectAnimStep);
 }
 
-function aspectFadeStep(timestamp) {
-  if (!aspectFadeStart) aspectFadeStart = timestamp;
-  const elapsed = timestamp - aspectFadeStart;
-  aspectAlpha = Math.min(elapsed / ASPECT_FADE_DURATION, 1);
+function aspectAnimStep(timestamp) {
+  if (!aspectAnimStart) aspectAnimStart = timestamp;
+  const elapsed = timestamp - aspectAnimStart;
+
+  // Total duration = last line's delay + its duration
+  const lastLine = aspectAnimLines[aspectAnimLines.length - 1];
+  const totalDuration = lastLine.delay + lastLine.duration;
+  const allDone = elapsed >= totalDuration;
+
   drawChartState(displayState);
-  if (aspectAlpha < 1) {
-    aspectFadeId = requestAnimationFrame(aspectFadeStep);
+
+  if (!allDone) {
+    aspectAnimId = requestAnimationFrame(aspectAnimStep);
   } else {
-    aspectFadeId = null;
+    aspectAnimId = null;
+    aspectAnimDone = true;
+    drawChartState(displayState);
     renderPendantOnCanvas();
   }
 }
@@ -759,10 +858,21 @@ document.getElementById('fillet-radius').addEventListener('input', () => {
   const v = parseFloat(document.getElementById('fillet-radius').value);
   document.getElementById('fillet-radius-val').textContent = v;
   filletRadius = v;
-  if (displayState) {
-    pendantModelData = buildPendantFromChart(displayState.horoscope, displayState.ascDeg);
+  if (displayState && pendantChords) {
+    const r = 100;
+    const exp = pendantExpansion || EXPANSION_TARGET;
+    const model = buildPendantModel(pendantChords, exp, r, 5, 185, 5, filletRadius);
+    pendantModelData = { model, r, chords: pendantChords };
     pendantAlpha = 1;
     drawChartState(displayState);
+  }
+});
+document.getElementById('scale-3d').addEventListener('input', () => {
+  const v = parseInt(document.getElementById('scale-3d').value);
+  document.getElementById('scale-3d-val').textContent = v + '%';
+  scale3d = v / 100;
+  if (pendantViewer && pendantModelData) {
+    update3DCamera();
   }
 });
 
@@ -771,6 +881,27 @@ document.getElementById('fillet-radius').addEventListener('input', () => {
 function drawChartState(state) {
   const { ascDeg, mcDeg, planets, cusps } = state;
   ctx.clearRect(0, 0, SIZE, SIZE);
+
+  // Show pendant ring (outer + inner border with beige fill between)
+  if (showPendantRing) {
+    const outerR = ASPECT_R - 10;   // 255
+    const innerR = PENDANT_R;        // ~242.86
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
+    ctx.arc(CX, CY, innerR, 0, Math.PI * 2, true);
+    ctx.fillStyle = '#f5f0e6';
+    ctx.fill('evenodd');
+    ctx.strokeStyle = '#5a524a';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(CX, CY, innerR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   drawPendant();
 
@@ -1037,51 +1168,89 @@ function formatDeg(p) {
 
 function drawAspectLines(h, degMap, ascDeg) {
   drawnAspects = [];
-  if (aspectAlpha <= 0) return;
+  if (aspectAnimLines.length === 0 && !aspectAnimDone) return;
 
-  let aspects = [];
-  try {
-    if (h && h.Aspects && h.Aspects.all) aspects = h.Aspects.all;
-    else if (Array.isArray(h?.Aspects)) aspects = h.Aspects;
-  } catch { return; }
+  const elapsed = aspectAnimStart ? performance.now() - aspectAnimStart : Infinity;
 
-  for (const asp of aspects) {
-    const key = asp.aspectKey || asp.key || '';
-    if (!enabledAspects.has(key)) continue;
-    const style = ASPECT_STYLES[key];
-    if (!style) continue;
+  if (aspectAnimDone) {
+    // Draw from horoscope data at full length
+    let aspects = [];
+    try {
+      if (h && h.Aspects && h.Aspects.all) aspects = h.Aspects.all;
+      else if (Array.isArray(h?.Aspects)) aspects = h.Aspects;
+    } catch { return; }
 
-    const d1 = degMap[asp.point1Key];
-    const d2 = degMap[asp.point2Key];
-    if (d1 === undefined || d2 === undefined) continue;
+    for (const asp of aspects) {
+      const key = asp.aspectKey || asp.key || '';
+      if (!enabledAspects.has(key)) continue;
+      const style = ASPECT_STYLES[key];
+      if (!style) continue;
+      const d1 = degMap[asp.point1Key];
+      const d2 = degMap[asp.point2Key];
+      if (d1 === undefined || d2 === undefined) continue;
 
-    const p1 = eclToXY(d1, PENDANT_R, ascDeg);
-    const p2 = eclToXY(d2, PENDANT_R, ascDeg);
+      const p1 = eclToXY(d1, PENDANT_R, ascDeg);
+      const p2 = eclToXY(d2, PENDANT_R, ascDeg);
 
-    const isHovered = hoveredAspect &&
-      hoveredAspect.point1Key === asp.point1Key &&
-      hoveredAspect.point2Key === asp.point2Key;
+      const isHovered = hoveredAspect &&
+        hoveredAspect.point1Key === asp.point1Key &&
+        hoveredAspect.point2Key === asp.point2Key;
 
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = style.color;
-    ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
-    ctx.setLineDash(style.dash);
-    ctx.globalAlpha = isHovered ? 0.95 * aspectAlpha : 0.6 * aspectAlpha;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = style.color;
+      ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
+      ctx.setLineDash(style.dash);
+      ctx.globalAlpha = isHovered ? 0.95 : style.opacity * chartOpacity;
+      ctx.stroke();
+      ctx.globalAlpha = chartOpacity;
+      ctx.setLineDash([]);
 
-    drawnAspects.push({
-      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
-      point1Key: asp.point1Key, point2Key: asp.point2Key,
-      aspectKey: key,
-    });
+      drawnAspects.push({
+        x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+        point1Key: asp.point1Key, point2Key: asp.point2Key,
+        aspectKey: key,
+      });
+    }
+  } else {
+    // Animating: draw each line with its own progress
+    for (const line of aspectAnimLines) {
+      const lineElapsed = elapsed - line.delay;
+      if (lineElapsed <= 0) continue; // hasn't started yet
+      const progress = Math.min(lineElapsed / line.duration, 1);
+      const eased = easeOutQuartic(progress);
+
+      const p1 = eclToXY(line.d1, PENDANT_R, ascDeg);
+      const p2 = eclToXY(line.d2, PENDANT_R, ascDeg);
+
+      // Draw from p1 toward p2 based on eased progress
+      const ex = p1.x + (p2.x - p1.x) * eased;
+      const ey = p1.y + (p2.y - p1.y) * eased;
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(ex, ey);
+      ctx.strokeStyle = line.style.color;
+      ctx.lineWidth = line.style.width;
+      ctx.setLineDash(line.style.dash);
+      ctx.globalAlpha = line.style.opacity * chartOpacity;
+      ctx.stroke();
+      ctx.globalAlpha = chartOpacity;
+      ctx.setLineDash([]);
+
+      if (progress >= 1) {
+        drawnAspects.push({
+          x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+          point1Key: line.point1Key, point2Key: line.point2Key,
+          aspectKey: line.aspectKey,
+        });
+      }
+    }
   }
 
   // Draw tooltip for hovered aspect
-  if (hoveredAspect && aspectAlpha >= 1) {
+  if (hoveredAspect && aspectAnimDone) {
     const ha = hoveredAspect;
     const name1 = PLANET_NAMES[ha.point1Key] || ha.point1Key;
     const name2 = PLANET_NAMES[ha.point2Key] || ha.point2Key;
@@ -1209,364 +1378,7 @@ function computeChords(planetAngles, aspectAngles, orb) {
   return lines;
 }
 
-function polygonArea(pts) {
-  var n = pts.length;
-  if (n < 3) return 0;
-  var area = 0;
-  for (var i = 0; i < n; i++) {
-    var j = (i + 1) % n;
-    area += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
-  }
-  return Math.abs(area) / 2;
-}
-
-function cornerAngle(linkA, linkB) {
-  var pcA = linkA.walkedPath.pathContext;
-  var pcB = linkB.walkedPath.pathContext;
-  var dax, day;
-  if (pcA.type === 'line') {
-    dax = pcA.end[0] - pcA.origin[0]; day = pcA.end[1] - pcA.origin[1];
-    if (linkA.reversed) { dax = -dax; day = -day; }
-  } else if (pcA.type === 'arc') {
-    var a = (linkA.reversed ? pcA.startAngle : pcA.endAngle) * Math.PI / 180;
-    if (linkA.reversed) { dax = Math.sin(a); day = -Math.cos(a); }
-    else { dax = -Math.sin(a); day = Math.cos(a); }
-  } else return 90;
-  var dbx, dby;
-  if (pcB.type === 'line') {
-    dbx = pcB.end[0] - pcB.origin[0]; dby = pcB.end[1] - pcB.origin[1];
-    if (linkB.reversed) { dbx = -dbx; dby = -dby; }
-  } else if (pcB.type === 'arc') {
-    var a = (linkB.reversed ? pcB.endAngle : pcB.startAngle) * Math.PI / 180;
-    if (linkB.reversed) { dbx = Math.sin(a); dby = -Math.cos(a); }
-    else { dbx = -Math.sin(a); dby = Math.cos(a); }
-  } else return 90;
-  var lenA = Math.hypot(dax, day), lenB = Math.hypot(dbx, dby);
-  if (lenA < 1e-10 || lenB < 1e-10) return 90;
-  var dot = Math.max(-1, Math.min(1, (dax * dbx + day * dby) / (lenA * lenB)));
-  return 180 - Math.acos(dot) * 180 / Math.PI;
-}
-
-function chainMinAngle(chain) {
-  var links = chain.links;
-  if (!links || links.length < 2) return 180;
-  var minAng = 180;
-  var count = chain.endless ? links.length : links.length - 1;
-  for (var i = 0; i < count; i++) {
-    var k = (i + 1) % links.length;
-    var interior = cornerAngle(links[i], links[k]);
-    if (interior < minAng) minAng = interior;
-  }
-  return minAng;
-}
-
-function manualLineFillet(linkA, linkB, radius) {
-  var pcA = linkA.walkedPath.pathContext;
-  var pcB = linkB.walkedPath.pathContext;
-  if (pcA.type !== 'line' || pcB.type !== 'line') return null;
-
-  var endA = linkA.reversed ? pcA.origin : pcA.end;
-  var startB = linkB.reversed ? pcB.end : pcB.origin;
-  var px = (endA[0] + startB[0]) / 2, py = (endA[1] + startB[1]) / 2;
-
-  var farA = linkA.reversed ? pcA.end : pcA.origin;
-  var farB = linkB.reversed ? pcB.origin : pcB.end;
-
-  var dax = px - farA[0], day = py - farA[1];
-  var la = Math.hypot(dax, day);
-  if (la < 1e-10) return null;
-  dax /= la; day /= la;
-
-  var dbx = farB[0] - px, dby = farB[1] - py;
-  var lb = Math.hypot(dbx, dby);
-  if (lb < 1e-10) return null;
-  dbx /= lb; dby /= lb;
-
-  var cross = dax * dby - day * dbx;
-  if (Math.abs(cross) < 1e-10) return null;
-
-  var side = cross < 0 ? -1 : 1;
-  var nax = side * (-day), nay = side * dax;
-  var nbx = side * (-dby), nby = side * dbx;
-
-  var oax = px + radius * nax, oay = py + radius * nay;
-  var obx = px + radius * nbx, oby = py + radius * nby;
-
-  var det = dbx * day - dby * dax;
-  if (Math.abs(det) < 1e-10) return null;
-  var ddx = obx - oax, ddy = oby - oay;
-  var s = (ddy * dax - ddx * day) / det;
-  var cx = obx + s * dbx, cy = oby + s * dby;
-
-  var tA = (cx - farA[0]) * dax + (cy - farA[1]) * day;
-  var tpAx = farA[0] + tA * dax, tpAy = farA[1] + tA * day;
-
-  var tB = (cx - px) * dbx + (cy - py) * dby;
-  var tpBx = px + tB * dbx, tpBy = py + tB * dby;
-
-  if (tA < 0 || tA > la) return null;
-  if (tB < 0 || tB > lb) return null;
-
-  var angA = Math.atan2(tpAy - cy, tpAx - cx) * 180 / Math.PI;
-  var angB = Math.atan2(tpBy - cy, tpBx - cx) * 180 / Math.PI;
-  if (angA < 0) angA += 360;
-  if (angB < 0) angB += 360;
-
-  var span = angB - angA;
-  if (span < 0) span += 360;
-  var startAng, endAng;
-  if (span <= 180) { startAng = angA; endAng = angB; }
-  else { startAng = angB; endAng = angA; }
-
-  if (linkA.reversed) pcA.origin = [tpAx, tpAy];
-  else pcA.end = [tpAx, tpAy];
-  if (linkB.reversed) pcB.end = [tpBx, tpBy];
-  else pcB.origin = [tpBx, tpBy];
-
-  return { type: 'arc', origin: [cx, cy], radius: radius, startAngle: startAng, endAngle: endAng };
-}
-
-function applyFillet(result, fr) {
-  if (fr <= 0) return;
-  var fChains = m.model.findChains(result);
-  var filletsModel = { paths: {} };
-  var fi = 0;
-  for (var i = 0; i < fChains.length; i++) {
-    var chain = fChains[i];
-    var links = chain.links;
-    if (!links || links.length < 2) continue;
-    var count = chain.endless ? links.length : links.length - 1;
-    for (var j = 0; j < count; j++) {
-      var k = (j + 1) % links.length;
-      var pathA = links[j].walkedPath.pathContext;
-      var pathB = links[k].walkedPath.pathContext;
-      var interior = cornerAngle(links[j], links[k]);
-      var span = Math.max(15, 180 - interior);
-      var startR = fr * Math.pow(90 / span, 1.5);
-      var arc = null;
-      var tryR = startR;
-      for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
-        try { arc = m.path.fillet(pathA, pathB, tryR); } catch { arc = null; }
-        if (arc) break;
-        tryR *= 0.65;
-      }
-      if (!arc) {
-        tryR = startR;
-        for (var attempt = 0; attempt < 12 && tryR >= 0.3; attempt++) {
-          arc = manualLineFillet(links[j], links[k], tryR);
-          if (arc) break;
-          tryR *= 0.65;
-        }
-      }
-      if (arc) filletsModel.paths['f' + (fi++)] = arc;
-    }
-  }
-  result.models.fillets = filletsModel;
-}
-
-function deepCloneModel(obj) {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(deepCloneModel);
-  var clone = {};
-  for (var key in obj) {
-    if (obj.hasOwnProperty(key)) clone[key] = deepCloneModel(obj[key]);
-  }
-  return clone;
-}
-
-function buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, fr) {
-  var lineModel = { paths: {} };
-  for (var i = 0; i < chords.length; i++) {
-    var c = chords[i];
-    var x1 = Math.cos(c.a1) * circleRadius, y1 = Math.sin(c.a1) * circleRadius;
-    var x2 = Math.cos(c.a2) * circleRadius, y2 = Math.sin(c.a2) * circleRadius;
-    var dx = x2 - x1, dy = y2 - y1;
-    var len = Math.hypot(dx, dy);
-    if (len < 1e-10) continue;
-    var ext = expansion * 3 / len;
-    lineModel.paths['line' + i] = new m.paths.Line(
-      [x1 - dx * ext, y1 - dy * ext],
-      [x2 + dx * ext, y2 + dy * ext]
-    );
-  }
-
-  var expanded = m.model.expandPaths(lineModel, expansion);
-  var circle = { paths: { circle: new m.paths.Circle([0, 0], circleRadius) } };
-  m.model.combine(expanded, circle, true, false, false, true);
-  var result = { models: { expanded: expanded, circle: circle } };
-
-  // Pre-pass: collapse short segments
-  if (expansion > 0) {
-    var threshold = expansion * 1.5;
-    var preChains = m.model.findChains(result);
-    var changed = true;
-    while (changed) {
-      changed = false;
-      for (var i = 0; i < preChains.length; i++) {
-        var chain = preChains[i];
-        var links = chain.links;
-        if (!links || links.length < 3) continue;
-        for (var j = 0; j < links.length; j++) {
-          var pc = links[j].walkedPath.pathContext;
-          var segLen = 0;
-          if (pc.type === 'arc') {
-            var sp = pc.endAngle - pc.startAngle;
-            if (sp < 0) sp += 360;
-            if (sp > 360) sp -= 360;
-            segLen = (sp / 360) * 2 * Math.PI * pc.radius;
-          } else if (pc.type === 'line') {
-            segLen = Math.hypot(pc.end[0] - pc.origin[0], pc.end[1] - pc.origin[1]);
-          } else continue;
-          if (segLen >= threshold) continue;
-
-          var prevIdx = (j - 1 + links.length) % links.length;
-          var nextIdx = (j + 1) % links.length;
-          var prevPc = links[prevIdx].walkedPath.pathContext;
-          var nextPc = links[nextIdx].walkedPath.pathContext;
-          if (prevPc.type !== 'line' && nextPc.type !== 'line') continue;
-
-          if (prevPc.type === 'line' && nextPc.type === 'line') {
-            var ax1 = prevPc.origin[0], ay1 = prevPc.origin[1];
-            var ax2 = prevPc.end[0], ay2 = prevPc.end[1];
-            var cx1 = nextPc.origin[0], cy1 = nextPc.origin[1];
-            var cx2 = nextPc.end[0], cy2 = nextPc.end[1];
-            var dax = ax2 - ax1, day = ay2 - ay1;
-            var dcx = cx2 - cx1, dcy = cy2 - cy1;
-            var det = dax * dcy - day * dcx;
-            var meet;
-            if (Math.abs(det) < 1e-10) {
-              if (pc.type === 'arc') {
-                var sp2 = pc.endAngle - pc.startAngle;
-                if (sp2 < 0) sp2 += 360;
-                var midAngle = (pc.startAngle + sp2 / 2) * Math.PI / 180;
-                meet = [pc.origin[0] + pc.radius * Math.cos(midAngle),
-                        pc.origin[1] + pc.radius * Math.sin(midAngle)];
-              } else {
-                meet = [(pc.origin[0] + pc.end[0]) / 2, (pc.origin[1] + pc.end[1]) / 2];
-              }
-            } else {
-              var t = ((cx1 - ax1) * dcy - (cy1 - ay1) * dcx) / det;
-              meet = [ax1 + t * dax, ay1 + t * day];
-            }
-            if (links[prevIdx].reversed) prevPc.origin = meet;
-            else prevPc.end = meet;
-            if (links[nextIdx].reversed) nextPc.end = meet;
-            else nextPc.origin = meet;
-          } else if (prevPc.type === 'line' && nextPc.type === 'arc') {
-            var lx1 = prevPc.origin[0], ly1 = prevPc.origin[1];
-            var ldx = prevPc.end[0] - lx1, ldy = prevPc.end[1] - ly1;
-            var ccx = nextPc.origin[0], ccy = nextPc.origin[1], cr = nextPc.radius;
-            var exx = lx1 - ccx, eyy = ly1 - ccy;
-            var qa = ldx * ldx + ldy * ldy;
-            var qb = 2 * (exx * ldx + eyy * ldy);
-            var qc = exx * exx + eyy * eyy - cr * cr;
-            var disc = qb * qb - 4 * qa * qc;
-            if (disc >= 0 && qa > 1e-10) {
-              var sq = Math.sqrt(disc);
-              var t1 = (-qb + sq) / (2 * qa), t2 = (-qb - sq) / (2 * qa);
-              var p1 = [lx1 + t1 * ldx, ly1 + t1 * ldy];
-              var p2 = [lx1 + t2 * ldx, ly1 + t2 * ldy];
-              var rAng = (links[nextIdx].reversed ? nextPc.endAngle : nextPc.startAngle) * Math.PI / 180;
-              var rPt = [ccx + cr * Math.cos(rAng), ccy + cr * Math.sin(rAng)];
-              var d1 = (p1[0]-rPt[0])*(p1[0]-rPt[0]) + (p1[1]-rPt[1])*(p1[1]-rPt[1]);
-              var d2 = (p2[0]-rPt[0])*(p2[0]-rPt[0]) + (p2[1]-rPt[1])*(p2[1]-rPt[1]);
-              var meet = d1 < d2 ? p1 : p2;
-              if (links[prevIdx].reversed) prevPc.origin = meet;
-              else prevPc.end = meet;
-              var nAng = Math.atan2(meet[1] - ccy, meet[0] - ccx) * 180 / Math.PI;
-              if (nAng < 0) nAng += 360;
-              if (links[nextIdx].reversed) nextPc.endAngle = nAng;
-              else nextPc.startAngle = nAng;
-            } else {
-              var arcAng = (links[nextIdx].reversed ? nextPc.endAngle : nextPc.startAngle) * Math.PI / 180;
-              var arcPt = [ccx + cr * Math.cos(arcAng), ccy + cr * Math.sin(arcAng)];
-              if (links[prevIdx].reversed) prevPc.origin = arcPt;
-              else prevPc.end = arcPt;
-            }
-          } else {
-            var lx1 = nextPc.origin[0], ly1 = nextPc.origin[1];
-            var ldx = nextPc.end[0] - lx1, ldy = nextPc.end[1] - ly1;
-            var ccx = prevPc.origin[0], ccy = prevPc.origin[1], cr = prevPc.radius;
-            var exx = lx1 - ccx, eyy = ly1 - ccy;
-            var qa = ldx * ldx + ldy * ldy;
-            var qb = 2 * (exx * ldx + eyy * ldy);
-            var qc = exx * exx + eyy * eyy - cr * cr;
-            var disc = qb * qb - 4 * qa * qc;
-            if (disc >= 0 && qa > 1e-10) {
-              var sq = Math.sqrt(disc);
-              var t1 = (-qb + sq) / (2 * qa), t2 = (-qb - sq) / (2 * qa);
-              var p1 = [lx1 + t1 * ldx, ly1 + t1 * ldy];
-              var p2 = [lx1 + t2 * ldx, ly1 + t2 * ldy];
-              var rAng = (links[prevIdx].reversed ? prevPc.startAngle : prevPc.endAngle) * Math.PI / 180;
-              var rPt = [ccx + cr * Math.cos(rAng), ccy + cr * Math.sin(rAng)];
-              var d1 = (p1[0]-rPt[0])*(p1[0]-rPt[0]) + (p1[1]-rPt[1])*(p1[1]-rPt[1]);
-              var d2 = (p2[0]-rPt[0])*(p2[0]-rPt[0]) + (p2[1]-rPt[1])*(p2[1]-rPt[1]);
-              var meet = d1 < d2 ? p1 : p2;
-              if (links[nextIdx].reversed) nextPc.end = meet;
-              else nextPc.origin = meet;
-              var nAng = Math.atan2(meet[1] - ccy, meet[0] - ccx) * 180 / Math.PI;
-              if (nAng < 0) nAng += 360;
-              if (links[prevIdx].reversed) prevPc.startAngle = nAng;
-              else prevPc.endAngle = nAng;
-            } else {
-              var arcAng = (links[prevIdx].reversed ? prevPc.startAngle : prevPc.endAngle) * Math.PI / 180;
-              var arcPt = [ccx + cr * Math.cos(arcAng), ccy + cr * Math.sin(arcAng)];
-              if (links[nextIdx].reversed) nextPc.end = arcPt;
-              else nextPc.origin = arcPt;
-            }
-          }
-
-          var wp = links[j].walkedPath;
-          if (wp.modelContext && wp.modelContext.paths) {
-            delete wp.modelContext.paths[wp.pathId];
-          }
-          changed = true;
-          break;
-        }
-        if (changed) break;
-      }
-      if (changed) preChains = m.model.findChains(result);
-    }
-  }
-
-  // Filter small closed regions (by area and min corner angle)
-  if (minArea > 0 || minAngle > 0) {
-    var chains = m.model.findChains(result);
-    for (var i = 0; i < chains.length; i++) {
-      var chain = chains[i];
-      if (!chain.endless) continue;
-      try {
-        var pts = m.chain.toKeyPoints(chain, 1);
-        var area = polygonArea(pts);
-        var angle = chainMinAngle(chain);
-        var tooSmall = minArea > 0 && area < minArea;
-        var tooNarrow = minAngle > 0 && angle < minAngle;
-        if (tooSmall || tooNarrow) {
-          for (var j = 0; j < chain.links.length; j++) {
-            var wp = chain.links[j].walkedPath;
-            if (wp && wp.modelContext && wp.modelContext.paths) {
-              delete wp.modelContext.paths[wp.pathId];
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  // Border
-  if (borderThickness > 0) {
-    result.models.border = {
-      paths: { outer: new m.paths.Circle([0, 0], circleRadius + borderThickness) }
-    };
-  }
-
-  // Fillet
-  if (fr > 0) applyFillet(result, fr);
-
-  return result;
-}
-
-function buildPendantFromChart(horoscope, ascDeg) {
+function buildPendantFromChart(horoscope, ascDeg, expansion) {
   // Build planet angle lookup (chart-rotated)
   const planetAngles = {};
   for (const key of PLANET_KEYS) {
@@ -1596,21 +1408,68 @@ function buildPendantFromChart(horoscope, ascDeg) {
   if (chords.length === 0) return null;
 
   const r = 100;
-  const model = buildPendantModel(chords, 3, r, 5, 185, 5, filletRadius);
-  return { model, r };
+  const model = buildPendantModel(chords, expansion, r, 5, 185, 5, filletRadius);
+  return { model, r, chords };
 }
+
+let pendantChords = null;  // cached chords for thickness animation
+let pendantExpansion = 0;
+const EXPANSION_TARGET = 3;
+const EXPANSION_STEP = 0.3;
+const EXPANSION_DURATION = 2000; // ms
+let expansionAnimId = null;
+let expansionAnimStart = null;
 
 function renderPendantOnCanvas() {
   if (!displayState?.horoscope) return;
   try {
-    pendantModelData = buildPendantFromChart(displayState.horoscope, displayState.ascDeg);
+    // Build once at target expansion to extract chords, then animate from 0
+    const result = buildPendantFromChart(displayState.horoscope, displayState.ascDeg, EXPANSION_TARGET);
+    if (!result) { pendantModelData = null; return; }
+    pendantChords = result.chords;
+    pendantExpansion = 0;
+    pendantAlpha = 1;
+    startExpansionAnim();
   } catch (err) {
     console.error('Pendant build error:', err);
     pendantModelData = null;
-    return;
   }
-  if (!pendantModelData) return;
-  startPendantFade();
+}
+
+function startExpansionAnim() {
+  if (expansionAnimId) cancelAnimationFrame(expansionAnimId);
+  expansionAnimStart = null;
+  expansionAnimId = requestAnimationFrame(expansionStep);
+}
+
+function expansionStep(timestamp) {
+  if (!pendantChords || !displayState) return;
+  if (!expansionAnimStart) expansionAnimStart = timestamp;
+  const elapsed = timestamp - expansionAnimStart;
+  const t = Math.min(elapsed / EXPANSION_DURATION, 1);
+  const eased = easeOutQuartic(t);
+
+  // Quantize to step grid
+  const rawExp = EXPANSION_STEP + eased * (EXPANSION_TARGET - EXPANSION_STEP);
+  const quantized = Math.min(Math.round(rawExp / EXPANSION_STEP) * EXPANSION_STEP, EXPANSION_TARGET);
+
+  // Only rebuild if expansion changed
+  if (quantized !== pendantExpansion) {
+    pendantExpansion = quantized;
+    try {
+      const r = 100;
+      const model = buildPendantModel(pendantChords, pendantExpansion, r, 5, 185, 5, filletRadius);
+      pendantModelData = { model, r, chords: pendantChords };
+      drawChartState(displayState);
+    } catch {}
+  }
+
+  if (t < 1) {
+    expansionAnimId = requestAnimationFrame(expansionStep);
+  } else {
+    expansionAnimId = null;
+    start3DTransition();
+  }
 }
 
 function startPendantFade() {
@@ -1678,7 +1537,7 @@ function drawPendant() {
 
   // Stroke the outer border and cutout outlines
   ctx.strokeStyle = '#5a524a';
-  ctx.lineWidth = 0.5 / scale;
+  ctx.lineWidth = 1.0 / scale;
   ctx.beginPath();
   ctx.arc(0, 0, outerR, 0, Math.PI * 2);
   ctx.stroke();
@@ -1691,6 +1550,88 @@ function drawPendant() {
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+}
+
+// ── 3D Transition ──────────────────────────────────────────
+
+const chart3dCanvas = document.getElementById('chart-3d');
+let pendantViewer = null;
+let wasmPromise = null;
+
+// Start WASM download early — runs concurrently with 2D animations
+try { wasmPromise = preloadWASM(); } catch(e) { console.warn('WASM preload failed:', e); }
+
+// Compute orthographic half-size so 3D model matches 2D canvas sizing
+function compute3DHalf() {
+  const outerR = (pendantModelData?.r || 100) + 5;
+  const drawR = ASPECT_R - 10; // 255 canvas pixels for the pendant
+  const canvasHalf = SIZE / 2;  // 350 canvas pixels for the half-width
+  return (canvasHalf / drawR) * outerR;
+}
+
+function update3DCamera() {
+  if (!pendantViewer || !pendantModelData) return;
+  const outerR = pendantModelData.r + 5;
+  pendantViewer.fitToRegionExact(compute3DHalf(), outerR);
+  // Scale model instead of camera so lighting stays consistent
+  pendantViewer.pendantGroup.scale.setScalar(scale3d);
+  pendantViewer.setShadowPlaneY(-7);
+}
+
+async function start3DTransition() {
+  if (!pendantModelData?.model) return;
+  try {
+    // Ensure WASM is ready
+    if (wasmPromise) await wasmPromise;
+
+    // Build 3D shape from the current pendant model
+    const result = await buildPendant3DFromModel(
+      pendantModelData.model,
+      pendantModelData.r,
+      5, // borderThickness
+      { thickness: 5, filletR: 2 }
+    );
+
+    // Create or reuse the PendantViewer
+    if (!pendantViewer) {
+      const THREE = await import("three");
+      pendantViewer = new PendantViewer(chart3dCanvas, {
+        enableControls: false,
+        enableGroundPlane: false,
+        enableHDRI: true,
+        hdriPath: './softbox.hdr',
+        enablePostProcessing: true,
+        background: null,
+        roughness: 0,
+      });
+      pendantViewer.scene.background = null;
+
+      // Rotate lights and HDRI to match the angle found at (106.6, 296.3, 16.7)
+      // This gives the same highlights as that camera angle but from straight above
+      const fromDir = new THREE.Vector3(-106.6, -301.3, -16.7).normalize();
+      const toDir = new THREE.Vector3(0, -1, 0);
+      const q = new THREE.Quaternion().setFromUnitVectors(fromDir, toDir);
+      pendantViewer.scene.traverse(obj => {
+        if (obj.isLight) obj.position.applyQuaternion(q);
+      });
+      // Rotate HDRI environment to match
+      if (pendantViewer.scene.environmentRotation !== undefined) {
+        pendantViewer.scene.environmentRotation = new THREE.Euler().setFromQuaternion(q);
+      }
+
+      // Add transparent shadow-catching plane below pendant
+      pendantViewer.addShadowPlane(-7);
+      pendantViewer.start();
+    }
+
+    pendantViewer.updateMesh(result.shape, 'medium');
+    update3DCamera();
+
+    // Fade in the 3D canvas
+    chart3dCanvas.style.opacity = '1';
+  } catch (err) {
+    console.error('3D transition error:', err);
+  }
 }
 
 // ── Boot ───────────────────────────────────────────────────
