@@ -146,8 +146,8 @@ export class PendantViewer {
   _initLighting() {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.1));
 
-    this._sideLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    this._sideLight.position.set(-200, 350, -200);
+    this._sideLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    this._sideLight.position.set(-250, 400, -100);
     this._sideLight.castShadow = true;
     this._sideLight.shadow.mapSize.width = 4096;
     this._sideLight.shadow.mapSize.height = 4096;
@@ -159,10 +159,11 @@ export class PendantViewer {
     this._sideLight.shadow.camera.bottom = -600;
     this._sideLight.shadow.bias = -0.0001;
     this._sideLight.shadow.normalBias = 0.02;
+    this._sideLight.shadow.radius = 4;
     this.scene.add(this._sideLight);
 
-    this._sideLight2 = new THREE.DirectionalLight(0xffffff, 3.0);
-    this._sideLight2.position.set(200, 350, -200);
+    this._sideLight2 = new THREE.DirectionalLight(0xffffff, 1.8);
+    this._sideLight2.position.set(250, 400, 100);
     this._sideLight2.castShadow = true;
     this._sideLight2.shadow.mapSize.width = 4096;
     this._sideLight2.shadow.mapSize.height = 4096;
@@ -174,11 +175,12 @@ export class PendantViewer {
     this._sideLight2.shadow.camera.bottom = -600;
     this._sideLight2.shadow.bias = -0.0001;
     this._sideLight2.shadow.normalBias = 0.02;
+    this._sideLight2.shadow.radius = 4;
     this.scene.add(this._sideLight2);
 
     this._initialLightPositions = {
-      light1: { x: -200, y: 350, z: -200 },
-      light2: { x: 200, y: 350, z: -200 },
+      light1: { x: -250, y: 400, z: -100 },
+      light2: { x: 250, y: 400, z: 100 },
     };
 
     var fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
@@ -284,6 +286,7 @@ export class PendantViewer {
     }
 
     this._fitCamera();
+    this.renderOnce();
   }
 
   _buildMeshFromShape(shape, quality) {
@@ -351,6 +354,8 @@ export class PendantViewer {
         }
       }
 
+      self.renderOnce();
+
       if (t < 1) {
         self._crossFadeId = requestAnimationFrame(fadeStep);
       } else {
@@ -367,6 +372,7 @@ export class PendantViewer {
         newMesh.material.transparent = false;
         newMesh.material.opacity = 1;
         newMesh.renderOrder = 0;
+        self.renderOnce();
       }
     }
 
@@ -400,17 +406,21 @@ export class PendantViewer {
   }
 
   fitToRegionExact(half, modelRadius) {
-    var needsNew = !this.camera || !this.camera.isOrthographicCamera;
-    if (needsNew) {
-      this.camera = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, 2000);
+    // Use perspective camera far above with narrow FOV for HDRI reflection variation
+    var dist = 2000;
+    var fov = 2 * Math.atan(half / dist) * (180 / Math.PI);
+    var w = this.container.clientWidth || this.container.width || 700;
+    var h = this.container.clientHeight || this.container.height || 700;
+    if (!this.camera || !this.camera.isPerspectiveCamera) {
+      this.camera = new THREE.PerspectiveCamera(fov, w / h, 1, dist + 500);
     } else {
-      this.camera.left = -half;
-      this.camera.right = half;
-      this.camera.top = half;
-      this.camera.bottom = -half;
+      this.camera.fov = fov;
+      this.camera.aspect = w / h;
+      this.camera.near = 1;
+      this.camera.far = dist + 500;
       this.camera.updateProjectionMatrix();
     }
-    this.camera.position.set(0, (modelRadius || half) * 3, 0);
+    this.camera.position.set(0, dist, 0);
     this.camera.lookAt(0, 0, 0);
     // Reconnect controls to current camera
     if (this.controls) {
@@ -427,6 +437,7 @@ export class PendantViewer {
       var colorGradingPass = new ShaderPass(ColorGradingShader);
       this.composer.addPass(colorGradingPass);
     }
+    this.renderOnce();
   }
 
   addShadowPlane(yOffset) {
@@ -436,7 +447,7 @@ export class PendantViewer {
       this._shadowPlane.material.dispose();
     }
     var geom = new THREE.PlaneGeometry(2000, 2000);
-    var mat = new THREE.ShadowMaterial({ opacity: 0.3 });
+    var mat = new THREE.ShadowMaterial({ opacity: 0.2 });
     this._shadowPlane = new THREE.Mesh(geom, mat);
     this._shadowPlane.rotation.x = -Math.PI / 2;
     this._shadowPlane.position.y = yOffset != null ? yOffset : -5;
@@ -469,31 +480,17 @@ export class PendantViewer {
   }
 
   start() {
-    if (this.running) return;
     this.running = true;
-    this._animate();
+    this.renderOnce();
   }
 
   stop() {
     this.running = false;
   }
 
-  _animate() {
-    if (!this.running) return;
-    requestAnimationFrame(() => this._animate());
+  // Render a single frame on demand
+  renderOnce() {
     if (this.controls) this.controls.update();
-
-    this.animationTime += 0.016 * 0.1;
-    var a1 = this.animationTime;
-    var ip = this._initialLightPositions;
-    this._sideLight.position.x = ip.light1.x + Math.cos(a1) * 100;
-    this._sideLight.position.z = ip.light1.z + Math.sin(a1) * 100;
-    this._sideLight.position.y = ip.light1.y + Math.sin(a1 * 0.5) * 50;
-    var a2 = this.animationTime + Math.PI / 4;
-    this._sideLight2.position.x = ip.light2.x + Math.cos(a2) * 100;
-    this._sideLight2.position.z = ip.light2.z + Math.sin(a2) * 100;
-    this._sideLight2.position.y = ip.light2.y + Math.sin(a2 * 0.5) * 50;
-
     if (this.composer) {
       this.composer.render();
     } else {

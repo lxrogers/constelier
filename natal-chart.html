@@ -290,6 +290,16 @@ input[type="range"]::-moz-range-thumb {
       <input type="range" id="scale-3d" min="50" max="150" step="1" value="100">
       <span class="slider-value" id="scale-3d-val">100%</span>
     </div>
+    <label>HDRI ROT X</label>
+    <div class="slider-row">
+      <input type="range" id="hdri-rx" min="0" max="360" step="1" value="0">
+      <span class="slider-value" id="hdri-rx-val">0°</span>
+    </div>
+    <label>HDRI ROT Y</label>
+    <div class="slider-row">
+      <input type="range" id="hdri-ry" min="0" max="360" step="1" value="0">
+      <span class="slider-value" id="hdri-ry-val">0°</span>
+    </div>
   </div>
 </div>
 <div id="main">
@@ -880,9 +890,49 @@ document.getElementById('scale-3d').addEventListener('input', () => {
   }
 });
 
+function updateHdriRotation() {
+  if (!pendantViewer) return;
+  const rx = parseInt(document.getElementById('hdri-rx').value) * Math.PI / 180;
+  const ry = parseInt(document.getElementById('hdri-ry').value) * Math.PI / 180;
+  document.getElementById('hdri-rx-val').textContent = document.getElementById('hdri-rx').value + '°';
+  document.getElementById('hdri-ry-val').textContent = document.getElementById('hdri-ry').value + '°';
+  if (pendantViewer.scene.environmentRotation !== undefined) {
+    pendantViewer.scene.environmentRotation.set(rx, ry, 0);
+  }
+  pendantViewer.renderOnce();
+  console.log(`hdri rotation: { x: ${rx.toFixed(3)}, y: ${ry.toFixed(3)} }`);
+}
+document.getElementById('hdri-rx').addEventListener('input', updateHdriRotation);
+document.getElementById('hdri-ry').addEventListener('input', updateHdriRotation);
+
+// ── FPS Counter ───────────────────────────────────────────
+let _fpsFrames = 0;
+let _fpsLastTime = performance.now();
+let _fpsDisplay = 0;
+
+function _updateFps() {
+  _fpsFrames++;
+  const now = performance.now();
+  if (now - _fpsLastTime >= 1000) {
+    _fpsDisplay = _fpsFrames;
+    _fpsFrames = 0;
+    _fpsLastTime = now;
+  }
+}
+
+function _drawFps() {
+  ctx.save();
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#888';
+  ctx.textAlign = 'right';
+  ctx.fillText(_fpsDisplay + ' fps', SIZE - 8, 16);
+  ctx.restore();
+}
+
 // ── Drawing from State ─────────────────────────────────────
 
 function drawChartState(state) {
+  _updateFps();
   const { ascDeg, mcDeg, planets, cusps } = state;
   ctx.clearRect(0, 0, SIZE, SIZE);
 
@@ -934,6 +984,7 @@ function drawChartState(state) {
   drawPlanets(planets, ascDeg);
 
   ctx.globalAlpha = 1;
+  _drawFps();
 }
 
 function getAscendantDeg(h) {
@@ -1495,13 +1546,31 @@ function pendantFadeStep(timestamp) {
   }
 }
 
+let _dotAnimTime = 0;
+let _dotAnimId = null;
+
+function _startDotAnim() {
+  if (_dotAnimId) return;
+  function tick() {
+    _dotAnimTime = performance.now() / 1000;
+    if (displayState && pendantModelData && pendantAlpha > 0) {
+      drawChartState(displayState);
+    }
+    _dotAnimId = requestAnimationFrame(tick);
+  }
+  _dotAnimId = requestAnimationFrame(tick);
+}
+
+function _stopDotAnim() {
+  if (_dotAnimId) { cancelAnimationFrame(_dotAnimId); _dotAnimId = null; }
+}
+
 function drawPendant() {
-  if (!pendantModelData || pendantAlpha <= 0) return;
+  if (!pendantModelData || pendantAlpha <= 0) { _stopDotAnim(); return; }
   const { model, r } = pendantModelData;
-  const b = 8; // borderThickness used in buildPendantModel
+  const b = 8;
   const outerR = r + b;
 
-  // Fit the model inside the inner circle
   const drawR = ASPECT_R - 10;
   const scale = drawR / outerR;
 
@@ -1528,7 +1597,8 @@ function drawPendant() {
     } catch {}
   }
 
-  // Fill pendant material with beige, cutouts left transparent (grid shows through)
+  // Clip to pendant positive area (disc minus cutouts)
+  ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, outerR, 0, Math.PI * 2);
   for (const pts of cutouts) {
@@ -1536,10 +1606,35 @@ function drawPendant() {
     for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
     ctx.closePath();
   }
-  ctx.fillStyle = '#f5f0e6';
-  ctx.fill('evenodd');
+  ctx.clip('evenodd');
+
+  // Draw animated dot grid inside clipped region
+  const dotSpacing = 4 / scale; // ~4 screen pixels between dots
+  const dotSize = 0.5 / scale;  // ~0.5 screen pixel dots
+  const t = _dotAnimTime;
+  const waveSpeed = 4.0;
+  const waveFreq = 0.04;
+  const waveWidth = 4.0; // higher = wider wave peak
+
+  for (let gx = -outerR; gx <= outerR; gx += dotSpacing) {
+    for (let gy = -outerR; gy <= outerR; gy += dotSpacing) {
+      if (gx * gx + gy * gy > outerR * outerR) continue;
+
+      // Diagonal wave sweeping across
+      const phase = (gx + gy) * waveFreq - t * waveSpeed;
+      const wave = Math.sin(phase);
+      const alpha = Math.pow(Math.max(0, wave), waveWidth);
+      if (alpha < 0.01) continue;
+
+      ctx.globalAlpha = pendantAlpha * alpha;
+      ctx.fillStyle = '#8a7e70';
+      ctx.fillRect(gx - dotSize / 2, gy - dotSize / 2, dotSize, dotSize);
+    }
+  }
+  ctx.restore();
 
   // Stroke the outer border and cutout outlines
+  ctx.globalAlpha = pendantAlpha;
   ctx.strokeStyle = '#5a524a';
   ctx.lineWidth = 1.0 / scale;
   ctx.beginPath();
@@ -1554,6 +1649,8 @@ function drawPendant() {
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+
+  _startDotAnim();
 }
 
 // ── 3D Transition ──────────────────────────────────────────
@@ -1597,15 +1694,9 @@ async function ensureViewer() {
   });
   pendantViewer.scene.background = null;
 
-  // Rotate lights and HDRI to match the angle found at (106.6, 296.3, 16.7)
-  const fromDir = new THREE.Vector3(-106.6, -301.3, -16.7).normalize();
-  const toDir = new THREE.Vector3(0, -1, 0);
-  const q = new THREE.Quaternion().setFromUnitVectors(fromDir, toDir);
-  pendantViewer.scene.traverse(obj => {
-    if (obj.isLight) obj.position.applyQuaternion(q);
-  });
+  // HDRI rotation dialed in via sliders: x=344°, y=308°
   if (pendantViewer.scene.environmentRotation !== undefined) {
-    pendantViewer.scene.environmentRotation = new THREE.Euler().setFromQuaternion(q);
+    pendantViewer.scene.environmentRotation.set(344 * Math.PI / 180, 308 * Math.PI / 180, 0);
   }
 
   pendantViewer.addShadowPlane(-7);
