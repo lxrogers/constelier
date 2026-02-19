@@ -872,7 +872,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     drawPlanets(planets, ascDeg);
 
     ctx.globalAlpha = 1;
-    _drawFps();
   }
 
   function getAscendantDeg(h) {
