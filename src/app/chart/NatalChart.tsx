@@ -30,11 +30,16 @@ const ASPECT_INFO: Record<string, { label: string; degrees: number; description:
 export default function NatalChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<(() => void) | null>(null);
   const [step, setStep] = useState<'birth' | 'aspects' | 'waitlist'>('birth');
   const [aspects, setAspects] = useState<AspectData[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    controlsRef.current?.scrollTo(0, 0);
+  }, [step]);
 
   useEffect(() => {
     if (!canvasRef.current || !canvas3dRef.current) return;
@@ -92,7 +97,7 @@ export default function NatalChart() {
 
   return (
     <div className="chart-page">
-      <div id="controls">
+      <div id="controls" ref={controlsRef}>
         <h2>Aspect Pendant</h2>
         {step !== 'birth' && (
           <button className="controls-back-btn" onClick={() => setStep(step === 'aspects' ? 'birth' : 'aspects')}>

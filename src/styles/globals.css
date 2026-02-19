@@ -70,3 +70,17 @@ nav.site-nav .logo-icon {
   width: 34px;
   height: 34px;
 }
+
+@media (max-width: 768px) {
+  nav.site-nav {
+    padding: 12px 12px 0 12px;
+    min-height: 44px;
+  }
+  nav.site-nav .logo {
+    font-size: 24px;
+  }
+  nav.site-nav .logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
