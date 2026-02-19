@@ -245,11 +245,17 @@ export class PendantViewer {
   }
 
   _loadHDRI(path) {
-    var rgbeLoader = new RGBELoader();
-    rgbeLoader.load(path, (hdrEquirect) => {
-      hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
-      this._hdrTexture = hdrEquirect;
-      this.scene.environment = hdrEquirect;
+    this.hdriReady = new Promise((resolve, reject) => {
+      var rgbeLoader = new RGBELoader();
+      rgbeLoader.load(path, (hdrEquirect) => {
+        hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+        this._hdrTexture = hdrEquirect;
+        this.scene.environment = hdrEquirect;
+        resolve();
+      }, undefined, (err) => {
+        console.error('HDRI load error:', err);
+        reject(err);
+      });
     });
   }
 

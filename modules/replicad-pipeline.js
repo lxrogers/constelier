@@ -6,12 +6,12 @@ let ocPromise = null;
 
 export function isOCReady() { return ocReady; }
 
-export function initOpenCascade() {
+export function initOpenCascade(wasmUrl = '/wasm/replicad_single.wasm') {
   if (ocPromise) return ocPromise;
   ocPromise = (async () => {
-    const ocModule = await import("../node_modules/replicad-opencascadejs/src/replicad_single.js");
+    const ocModule = await import("replicad-opencascadejs/src/replicad_single.js");
     const OC = await ocModule.default({
-      locateFile: () => "../node_modules/replicad-opencascadejs/src/replicad_single.wasm",
+      locateFile: () => wasmUrl,
     });
     setOC(OC);
     ocReady = true;

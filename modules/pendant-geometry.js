@@ -1,7 +1,8 @@
 // pendant-geometry.js
 // Consolidated MakerJS pendant geometry functions (ES module)
 
-const m = window.makerjs;
+import makerjs from 'makerjs';
+const m = makerjs;
 
 export function polygonArea(pts) {
   var n = pts.length;
