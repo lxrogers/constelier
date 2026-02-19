@@ -31,9 +31,10 @@ export default function NatalChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<(() => void) | null>(null);
-  const [step, setStep] = useState<'birth' | 'aspects'>('birth');
+  const [step, setStep] = useState<'birth' | 'aspects' | 'waitlist'>('birth');
   const [aspects, setAspects] = useState<AspectData[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || !canvas3dRef.current) return;
@@ -93,9 +94,16 @@ export default function NatalChart() {
     <div className="chart-page">
       <div id="controls">
         <h2>Aspect Pendant</h2>
-        <h3 className="controls-subheading">
-          {step === 'birth' ? 'Birth Details' : 'Your Aspects'}
-        </h3>
+        {step !== 'birth' && (
+          <button className="controls-back-btn" onClick={() => setStep(step === 'aspects' ? 'birth' : 'aspects')}>
+            &larr; {step === 'aspects' ? 'Birth Details' : 'Your Aspects'}
+          </button>
+        )}
+        {step !== 'aspects' && (
+          <h3 className="controls-subheading">
+            {step === 'birth' ? 'Birth Details' : 'Join the Waitlist'}
+          </h3>
+        )}
 
         <div style={{ display: step === 'birth' ? undefined : 'none' }}>
           <div className="form-group">
@@ -174,9 +182,19 @@ export default function NatalChart() {
             ))}
           </div>
 
-          <button className="controls-back-btn" onClick={() => setStep('birth')}>
-            &larr; Birth Details
+          <button className="controls-step-btn" onClick={() => setStep('waitlist')}>
+            Next &rarr;
           </button>
+        </div>
+
+        <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
+          {submitted ? (
+            <div className="waitlist-thanks">
+              <p>Thank you for signing up! We&apos;ll be in touch.</p>
+            </div>
+          ) : (
+            <WaitlistForm onSubmitted={() => setSubmitted(true)} />
+          )}
         </div>
       </div>
       <div id="main">
@@ -186,6 +204,82 @@ export default function NatalChart() {
         </div>
         <SettingsPanel />
       </div>
+    </div>
+  );
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Replace with your Formspree form ID from https://formspree.io
+const FORMSPREE_ID = 'xjgeozgv';
+
+function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+
+  function getBirthMeta() {
+    const year = (document.getElementById('birth-year') as HTMLInputElement)?.value || '';
+    const month = (document.getElementById('birth-month') as HTMLInputElement)?.value || '';
+    const day = (document.getElementById('birth-day') as HTMLInputElement)?.value || '';
+    const hour = (document.getElementById('birth-hour') as HTMLSelectElement)?.value || '';
+    const minute = (document.getElementById('birth-minute') as HTMLSelectElement)?.value || '';
+    const location = (document.getElementById('location') as HTMLInputElement)?.value || '';
+    const monthName = MONTHS[parseInt(month) - 1] || month;
+    return {
+      birthdate: `${monthName} ${day}, ${year}`,
+      birthtime: `${hour}:${minute}`,
+      location,
+    };
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || sending) return;
+    setSending(true);
+    const meta = getBirthMeta();
+    try {
+      await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          birthdate: meta.birthdate,
+          birthtime: meta.birthtime,
+          location: meta.location,
+        }),
+      });
+      onSubmitted();
+    } catch {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="waitlist-form">
+      <p className="waitlist-intro">
+        Constelier is a work in progress. Sign up to be notified when we launch
+        and to receive your personalized pendant design.
+      </p>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="controls-step-btn" disabled={sending}>
+          {sending ? 'Submitting...' : 'Join Waitlist'}
+        </button>
+      </form>
+      <p className="waitlist-disclosure">
+        Your birth date, time, and location will be shared with Constelier
+        so we can generate your pendant. We won&apos;t share your data with
+        anyone else.
+      </p>
     </div>
   );
 }

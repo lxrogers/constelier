@@ -30,8 +30,8 @@
 }
 .controls-subheading {
   font-size: 13px;
-  font-weight: 500;
-  color: #7a7568;
+  font-weight: 600;
+  color: #3a3630;
   margin: 0;
 }
 .form-group {
@@ -241,8 +241,9 @@ input[type="range"]::-moz-range-thumb {
   background: #1a1a1a;
 }
 .controls-back-btn {
-  margin-top: 16px;
+  margin: 0;
   padding: 0;
+  align-self: flex-start;
   background: none;
   border: none;
   color: #7a7568;
@@ -253,6 +254,53 @@ input[type="range"]::-moz-range-thumb {
 }
 .controls-back-btn:hover {
   color: #3a3630;
+}
+.waitlist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.waitlist-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.waitlist-intro {
+  font-size: 14px;
+  color: #3a3630;
+  line-height: 1.5;
+  margin: 0;
+}
+.waitlist-form input[type="email"] {
+  background: #faf7f0;
+  border: 1px solid #d4cfc5;
+  color: #2c2c2c;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.waitlist-form input[type="email"]:focus {
+  border-color: #8b7d6b;
+}
+.waitlist-disclosure {
+  font-size: 11px;
+  color: #9a9084;
+  line-height: 1.4;
+  margin: 0;
+}
+.waitlist-thanks p {
+  font-size: 14px;
+  color: #3a3630;
+  line-height: 1.5;
+  margin: 0;
+}
+.controls-step-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 #main {
   flex: 1;
