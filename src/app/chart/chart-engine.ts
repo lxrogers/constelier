@@ -751,13 +751,21 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const model = buildPendantModel(pendantChords, lineThickness, r, borderThickness, 185, 5, filletRadius);
       pendantModelData = { model, r, chords: pendantChords };
       pendantAlpha = 1;
+      _3dModelReady = false;
+      _startDotAnim();
+
+      // Fade out 3D model immediately
+      chart3dCanvas.style.transition = 'opacity 0.2s ease';
+      chart3dCanvas.style.opacity = '0';
+
       drawChartState(displayState);
 
       if (settings3dTimer) clearTimeout(settings3dTimer);
       settings3dTimer = setTimeout(() => {
         settings3dTimer = null;
+        chart3dCanvas.style.transition = 'opacity 0.8s ease';
         start3DTransition();
-      }, 400);
+      }, 500);
     }
   }
 

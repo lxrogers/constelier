@@ -62,4 +62,11 @@ nav.site-nav .logo {
   font-size: 30px;
   color: #3a3630;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+nav.site-nav .logo-icon {
+  width: 34px;
+  height: 34px;
 }

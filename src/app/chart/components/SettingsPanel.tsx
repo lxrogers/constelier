@@ -51,15 +51,8 @@ export default function SettingsPanel() {
         onClick={() => setOpen(!open)}
         aria-label="Settings"
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M8.325 2.317a1.5 1.5 0 0 1 3.35 0l.09.54a1 1 0 0 0 1.46.67l.46-.27a1.5 1.5 0 0 1 1.675 2.49l-.37.37a1 1 0 0 0 .06 1.59l.46.27a1.5 1.5 0 0 1-.815 2.76h-.54a1 1 0 0 0-.96 1.28l.17.51a1.5 1.5 0 0 1-2.49 1.675l-.37-.37a1 1 0 0 0-1.59.06l-.27.46a1.5 1.5 0 0 1-2.76-.815v-.54a1 1 0 0 0-1.28-.96l-.51.17a1.5 1.5 0 0 1-1.675-2.49l.37-.37a1 1 0 0 0-.06-1.59l-.46-.27a1.5 1.5 0 0 1 .815-2.76h.54a1 1 0 0 0 .96-1.28l-.17-.51A1.5 1.5 0 0 1 6.5 2.59l.37.37a1 1 0 0 0 1.59-.06l.27-.46z"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+        <svg width="20" height="20" viewBox="0 -960 960 960" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M450-130v-220h60v80h320v60H510v80h-60Zm-320-80v-60h220v60H130Zm160-160v-80H130v-60h160v-80h60v220h-60Zm160-80v-60h380v60H450Zm160-160v-220h60v80h160v60H670v80h-60Zm-480-80v-60h380v60H130Z"/>
         </svg>
       </button>
 
