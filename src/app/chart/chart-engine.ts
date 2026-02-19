@@ -477,6 +477,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     aspectAnimLines = [];
     aspectAnimDone = false;
     pendantAlpha = 0;
+    _3dModelReady = false;
     pendantModelData = null;
 
     if (!displayState) {
