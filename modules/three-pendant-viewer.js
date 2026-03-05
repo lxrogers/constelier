@@ -42,8 +42,10 @@ const ColorGradingShader = {
     }
     void main() {
       vec4 color = texture2D(tDiffuse, vUv);
-      color.rgb = adjustSaturation(color.rgb, saturation);
-      color.rgb = adjustContrast(color.rgb, contrast);
+      if (color.a > 0.0) {
+        color.rgb = adjustSaturation(color.rgb, saturation);
+        color.rgb = adjustContrast(color.rgb, contrast);
+      }
       gl_FragColor = color;
     }
   `,
@@ -220,7 +222,12 @@ export class PendantViewer {
     var w = this.container.clientWidth || this.container.width || 700;
     var h = this.container.clientHeight || this.container.height || 700;
 
-    this.composer = new EffectComposer(this.renderer);
+    var rt = new THREE.WebGLRenderTarget(
+      w * this.renderer.getPixelRatio(),
+      h * this.renderer.getPixelRatio(),
+      { type: THREE.HalfFloatType, format: THREE.RGBAFormat },
+    );
+    this.composer = new EffectComposer(this.renderer, rt);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
     var taaPass = new TAARenderPass(this.scene, this.camera);
@@ -435,7 +442,14 @@ export class PendantViewer {
     }
     // Rebuild post-processing with current camera
     if (this.composer) {
-      this.composer = new EffectComposer(this.renderer);
+      var w = this.container.clientWidth || this.container.width || 700;
+      var h = this.container.clientHeight || this.container.height || 700;
+      var rt = new THREE.WebGLRenderTarget(
+        w * this.renderer.getPixelRatio(),
+        h * this.renderer.getPixelRatio(),
+        { type: THREE.HalfFloatType, format: THREE.RGBAFormat },
+      );
+      this.composer = new EffectComposer(this.renderer, rt);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
       var taaPass = new TAARenderPass(this.scene, this.camera);
       taaPass.sampleLevel = 3;
