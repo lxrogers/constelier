@@ -7,12 +7,9 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { TAARenderPass } from "three/addons/postprocessing/TAARenderPass.js";
 import { VignetteShader } from "three/addons/shaders/VignetteShader.js";
+import { MESH_QUALITY_PRESETS } from "./mesh-presets.js";
 
-export const MESH_QUALITY_PRESETS = {
-  draft:  { tolerance: 0.5, angularTolerance: 10 },
-  medium: { tolerance: 0.1, angularTolerance: 2 },
-  high:   { tolerance: 0.02, angularTolerance: 0.5 },
-};
+export { MESH_QUALITY_PRESETS };
 
 const ColorGradingShader = {
   uniforms: {
@@ -319,6 +316,116 @@ export class PendantViewer {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     return mesh;
+  }
+
+  _buildMeshFromData(meshData) {
+    var faceGeom = new THREE.BufferGeometry();
+    faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(meshData.vertices, 3));
+    faceGeom.setAttribute('normal', new THREE.Float32BufferAttribute(meshData.normals, 3));
+    if (meshData.triangles && meshData.triangles.length > 0) {
+      faceGeom.setIndex(Array.from(meshData.triangles));
+    }
+    var mat = this._faceMat.clone();
+    mat.transparent = true;
+    mat.opacity = 1;
+    mat.depthWrite = true;
+    var mesh = new THREE.Mesh(faceGeom, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  updateMeshFromData(meshData) {
+    while (this.pendantGroup.children.length > 0) {
+      var child = this.pendantGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      this.pendantGroup.remove(child);
+    }
+
+    var faceGeom = new THREE.BufferGeometry();
+    faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(meshData.vertices, 3));
+    faceGeom.setAttribute('normal', new THREE.Float32BufferAttribute(meshData.normals, 3));
+    if (meshData.triangles && meshData.triangles.length > 0) {
+      faceGeom.setIndex(Array.from(meshData.triangles));
+    }
+
+    var mesh = new THREE.Mesh(faceGeom, this._faceMat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.pendantGroup.add(mesh);
+
+    if (this.options.enableEdges !== false && meshData.edgeLines && meshData.edgeLines.length > 0) {
+      var edgeGeom = new THREE.BufferGeometry();
+      edgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(meshData.edgeLines, 3));
+      var edgeLines = new THREE.LineSegments(edgeGeom, this._edgeMat);
+      edgeLines.visible = false;
+      this.pendantGroup.add(edgeLines);
+    }
+
+    this._fitCamera();
+    this.renderOnce();
+  }
+
+  crossFadeMeshFromData(meshData, duration) {
+    duration = duration || 800;
+    var self = this;
+
+    if (this._crossFadeId) {
+      cancelAnimationFrame(this._crossFadeId);
+      this._crossFadeId = null;
+    }
+
+    var oldChildren = [];
+    for (var i = 0; i < this.pendantGroup.children.length; i++) {
+      oldChildren.push(this.pendantGroup.children[i]);
+    }
+
+    var newMesh = this._buildMeshFromData(meshData);
+    newMesh.material.opacity = 0;
+    newMesh.renderOrder = 1;
+    this.pendantGroup.add(newMesh);
+
+    for (var i = 0; i < oldChildren.length; i++) {
+      if (oldChildren[i].material) {
+        oldChildren[i].material.transparent = true;
+        oldChildren[i].material.depthWrite = false;
+        oldChildren[i].renderOrder = 0;
+      }
+    }
+
+    var startTime = null;
+    function fadeStep(ts) {
+      if (!startTime) startTime = ts;
+      var t = Math.min((ts - startTime) / duration, 1);
+      var e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      newMesh.material.opacity = e;
+      for (var i = 0; i < oldChildren.length; i++) {
+        if (oldChildren[i].material) {
+          oldChildren[i].material.opacity = 1 - e;
+        }
+      }
+
+      self.renderOnce();
+
+      if (t < 1) {
+        self._crossFadeId = requestAnimationFrame(fadeStep);
+      } else {
+        self._crossFadeId = null;
+        for (var i = 0; i < oldChildren.length; i++) {
+          if (oldChildren[i].geometry) oldChildren[i].geometry.dispose();
+          if (oldChildren[i].material && oldChildren[i].material !== self._faceMat) {
+            oldChildren[i].material.dispose();
+          }
+          self.pendantGroup.remove(oldChildren[i]);
+        }
+        newMesh.material = self._faceMat;
+        newMesh.renderOrder = 0;
+        self.renderOnce();
+      }
+    }
+
+    this._crossFadeId = requestAnimationFrame(fadeStep);
   }
 
   crossFadeMesh(shape, quality, duration) {

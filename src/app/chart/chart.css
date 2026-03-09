@@ -95,6 +95,22 @@ input[type="range"]::-moz-range-thumb {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.date-row {
+  display: flex;
+  gap: 8px;
+}
+.date-row select {
+  flex: 1;
+  background: #faf7f0;
+  border: 1px solid #d4cfc5;
+  color: #2c2c2c;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.date-row select:focus { border-color: #8b7d6b; }
 .time-row {
   display: flex;
   gap: 8px;
@@ -331,30 +347,57 @@ input[type="range"]::-moz-range-thumb {
   max-height: 100%;
 }
 
+.mobile-only { display: none; }
+
 @media (max-width: 768px) {
+  .mobile-only { display: block; }
+
   .chart-page {
     flex-direction: column;
-    padding: 12px;
-    padding-left: 12px;
-    gap: 12px;
+    padding: 0;
+    gap: 0;
+    position: relative;
+    height: calc(100vh - 76px);
+    overflow: hidden;
   }
 
   #main {
     flex: none;
-    height: 45vh;
+    height: 100%;
     padding-right: 0;
     min-height: 0;
     order: -1;
+    align-items: flex-start;
+    padding-top: 12px;
   }
 
   #controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     min-width: 0;
-    flex: 1;
-    border-radius: 14px;
+    max-height: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px 20px 0 0;
     padding: 20px;
     min-height: 0;
+    box-shadow: none;
+    z-index: 10;
+    overflow-y: hidden;
   }
+
+  #controls h2 { display: none; }
+  #controls .controls-subheading { display: none; }
+  #controls > div { flex: none; }
+
+  .birth-field { display: none; }
+  .birth-field.active { display: flex; flex-direction: column; gap: 16px; }
+
+  .hide-mobile { display: none !important; }
 
   #chart {
     width: 100% !important;

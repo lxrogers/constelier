@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Include WASM in serverless function bundle for the pendant generation API
+  outputFileTracingIncludes: {
+    '/api/pendant/generate': ['./public/wasm/replicad_single.wasm'],
+  },
   // Turbopack config (Next.js 16 default bundler)
   turbopack: {
     resolveAlias: {

@@ -5,7 +5,8 @@
 import { Horoscope, Origin } from '@/lib/horoscope';
 import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
 import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
-import { preloadWASM, buildPendant3DFromModel, buildRing3DShape } from '@/modules/pendant-builder';
+import { preloadWASM, buildRing3DShape } from '@/modules/pendant-builder';
+import { prefetchPendant, cancelPrefetch, awaitPendantResult } from '@/modules/pendant-builder-hybrid';
 import makerjs from 'makerjs';
 
 const m = makerjs;
@@ -88,6 +89,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         // Fade out old pendant + crossfade 3D back to ring
         pendantAlpha = 0;
         pendantModelData = null;
+        cancelPrefetch();
         aspectAnimLines = [];
         aspectAnimDone = false;
         if (pendantViewer && chart3dCanvas.style.opacity === '1') {
@@ -434,9 +436,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     errorEl.style.display = 'none';
     if (selectedLat === null) return;
 
-    const year = parseInt((document.getElementById('birth-year') as HTMLInputElement).value);
-    const month = parseInt((document.getElementById('birth-month') as HTMLInputElement).value);
-    const date = parseInt((document.getElementById('birth-day') as HTMLInputElement).value);
+    const year = parseInt((document.getElementById('birth-year') as HTMLSelectElement).value);
+    const month = parseInt((document.getElementById('birth-month') as HTMLSelectElement).value);
+    const date = parseInt((document.getElementById('birth-day') as HTMLSelectElement).value);
     const hour = parseInt((document.getElementById('birth-hour') as HTMLSelectElement).value);
     const minute = parseInt((document.getElementById('birth-minute') as HTMLSelectElement).value);
 
@@ -479,6 +481,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantAlpha = 0;
     _3dModelReady = false;
     pendantModelData = null;
+    cancelPrefetch();
 
     if (!displayState) {
       displayState = newState;
@@ -629,13 +632,55 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
 
   function updateDayMax() {
-    const year = parseInt((document.getElementById('birth-year') as HTMLInputElement).value);
-    const month = parseInt((document.getElementById('birth-month') as HTMLInputElement).value);
+    const year = parseInt((document.getElementById('birth-year') as HTMLSelectElement).value);
+    const month = parseInt((document.getElementById('birth-month') as HTMLSelectElement).value);
     const max = daysInMonth(year, month);
-    const daySlider = document.getElementById('birth-day') as HTMLInputElement;
-    daySlider.max = String(max);
-    if (parseInt(daySlider.value) > max) daySlider.value = String(max);
-    document.getElementById('birth-day-val').textContent = daySlider.value;
+    const daySel = document.getElementById('birth-day') as HTMLSelectElement;
+    const cur = parseInt(daySel.value);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= max; d++) {
+      const opt = document.createElement('option');
+      opt.value = String(d);
+      opt.textContent = String(d);
+      daySel.appendChild(opt);
+    }
+    daySel.value = String(cur > max ? max : cur);
+  }
+
+  // Populate month dropdown
+  {
+    const monthSel = document.getElementById('birth-month') as HTMLSelectElement;
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = String(m);
+      opt.textContent = MONTH_ABBR[m - 1];
+      monthSel.appendChild(opt);
+    }
+    monthSel.value = '1';
+  }
+
+  // Populate year dropdown
+  {
+    const yearSel = document.getElementById('birth-year') as HTMLSelectElement;
+    for (let y = 2026; y >= 1925; y--) {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSel.appendChild(opt);
+    }
+    yearSel.value = '2000';
+  }
+
+  // Populate day dropdown (initial)
+  {
+    const daySel = document.getElementById('birth-day') as HTMLSelectElement;
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = String(d);
+      opt.textContent = String(d);
+      daySel.appendChild(opt);
+    }
+    daySel.value = '1';
   }
 
   // Populate hour dropdown
@@ -666,17 +711,13 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── Apply URL params to form elements ─────────────────────────
   {
     if (urlParams.has('y')) {
-      (document.getElementById('birth-year') as HTMLInputElement).value = urlParams.get('y')!;
-      document.getElementById('birth-year-val')!.textContent = urlParams.get('y')!;
+      (document.getElementById('birth-year') as HTMLSelectElement).value = urlParams.get('y')!;
     }
     if (urlParams.has('m')) {
-      (document.getElementById('birth-month') as HTMLInputElement).value = urlParams.get('m')!;
-      const mv = parseInt(urlParams.get('m')!);
-      document.getElementById('birth-month-val')!.textContent = MONTH_ABBR[mv - 1] || 'Jan';
+      (document.getElementById('birth-month') as HTMLSelectElement).value = urlParams.get('m')!;
     }
     if (urlParams.has('d')) {
-      (document.getElementById('birth-day') as HTMLInputElement).value = urlParams.get('d')!;
-      document.getElementById('birth-day-val')!.textContent = urlParams.get('d')!;
+      (document.getElementById('birth-day') as HTMLSelectElement).value = urlParams.get('d')!;
     }
     if (urlParams.has('h')) {
       (document.getElementById('birth-hour') as HTMLSelectElement).value = urlParams.get('h')!;
@@ -697,9 +738,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   function syncURL() {
     const p = new URLSearchParams();
-    p.set('y', (document.getElementById('birth-year') as HTMLInputElement).value);
-    p.set('m', (document.getElementById('birth-month') as HTMLInputElement).value);
-    p.set('d', (document.getElementById('birth-day') as HTMLInputElement).value);
+    p.set('y', (document.getElementById('birth-year') as HTMLSelectElement).value);
+    p.set('m', (document.getElementById('birth-month') as HTMLSelectElement).value);
+    p.set('d', (document.getElementById('birth-day') as HTMLSelectElement).value);
     p.set('h', (document.getElementById('birth-hour') as HTMLSelectElement).value);
     p.set('mi', (document.getElementById('birth-minute') as HTMLSelectElement).value);
     p.set('lat', String(selectedLat));
@@ -716,21 +757,17 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (el) { el.addEventListener(event, handler); listeners.push([el, event, handler]); }
   }
 
-  addListener('birth-year', 'input', () => {
-    document.getElementById('birth-year-val').textContent = (document.getElementById('birth-year') as HTMLInputElement).value;
+  addListener('birth-year', 'change', () => {
     updateDayMax();
     generateChart();
     syncURL();
   });
-  addListener('birth-month', 'input', () => {
-    const v = parseInt((document.getElementById('birth-month') as HTMLInputElement).value);
-    document.getElementById('birth-month-val').textContent = MONTH_ABBR[v - 1];
+  addListener('birth-month', 'change', () => {
     updateDayMax();
     generateChart();
     syncURL();
   });
-  addListener('birth-day', 'input', () => {
-    document.getElementById('birth-day-val').textContent = (document.getElementById('birth-day') as HTMLInputElement).value;
+  addListener('birth-day', 'change', () => {
     generateChart();
     syncURL();
   });
@@ -749,7 +786,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const r = 100;
       pendantExpansion = lineThickness;
       const model = buildPendantModel(pendantChords, lineThickness, r, borderThickness, 185, 5, filletRadius);
-      pendantModelData = { model, r, chords: pendantChords };
+      pendantModelData = { model, r, chords: pendantChords, expansion: lineThickness };
       pendantAlpha = 1;
       _3dModelReady = false;
       _startDotAnim();
@@ -1339,6 +1376,13 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       pendantChords = result.chords;
       pendantExpansion = 0;
       pendantAlpha = 1;
+
+      // Fire server request immediately with final expansion value,
+      // so it runs in parallel with the expansion animation
+      prefetchPendant(result.chords, result.r, borderThickness, lineThickness, {
+        thickness: 5, filletR: 2, minArea: 185, minAngle: 5, filletRadius, meshQuality: 'high',
+      });
+
       startExpansionAnim();
     } catch (err) {
       console.error('Pendant build error:', err);
@@ -1367,7 +1411,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       try {
         const r = 100;
         const model = buildPendantModel(pendantChords, pendantExpansion, r, borderThickness, 185, 5, filletRadius);
-        pendantModelData = { model, r, chords: pendantChords };
+        pendantModelData = { model, r, chords: pendantChords, expansion: pendantExpansion };
         drawChartState(displayState);
       } catch {}
     }
@@ -1577,8 +1621,14 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         chart3dCanvas.style.opacity = '1';
       }
 
-      const full = await buildPendant3DFromModel(pendantModelData.model, r, borderThickness, opts);
-      pendantViewer.crossFadeMesh(full.shape, 'high', 800);
+      const full = await awaitPendantResult(
+        pendantModelData.model, r, borderThickness, opts
+      );
+      if (full.source === 'server') {
+        pendantViewer.crossFadeMeshFromData(full.meshData, 800);
+      } else {
+        pendantViewer.crossFadeMesh(full.shape, 'high', 800);
+      }
       _3dModelReady = true;
       _stopDotAnim();
       if (displayState) drawChartState(displayState);

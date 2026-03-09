@@ -33,6 +33,7 @@ export default function NatalChart() {
   const controlsRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<(() => void) | null>(null);
   const [step, setStep] = useState<'birth' | 'aspects' | 'waitlist'>('birth');
+  const [birthStep, setBirthStep] = useState<'date' | 'time' | 'location'>('date');
   const [aspects, setAspects] = useState<AspectData[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -104,6 +105,11 @@ export default function NatalChart() {
             &larr; {step === 'aspects' ? 'Birth Details' : 'Your Aspects'}
           </button>
         )}
+        {step === 'birth' && birthStep !== 'date' && (
+          <button className="controls-back-btn mobile-only" onClick={() => setBirthStep(birthStep === 'time' ? 'date' : 'time')}>
+            &larr; {birthStep === 'time' ? 'Date' : 'Time'}
+          </button>
+        )}
         {step !== 'aspects' && (
           <h3 className="controls-subheading">
             {step === 'birth' ? 'Birth Details' : 'Join the Waitlist'}
@@ -111,42 +117,41 @@ export default function NatalChart() {
         )}
 
         <div style={{ display: step === 'birth' ? undefined : 'none' }}>
-          <div className="form-group">
-            <label>Year</label>
-            <div className="slider-row">
-              <input type="range" id="birth-year" min="1925" max="2026" defaultValue="2000" />
-              <span className="slider-value" id="birth-year-val">2000</span>
+          <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Date of Birth</label>
+              <div className="date-row">
+                <select id="birth-month"></select>
+                <select id="birth-day"></select>
+                <select id="birth-year"></select>
+              </div>
             </div>
+            <button className="controls-step-btn mobile-only" onClick={() => setBirthStep('time')}>
+              Next &rarr;
+            </button>
           </div>
-          <div className="form-group">
-            <label>Month</label>
-            <div className="slider-row">
-              <input type="range" id="birth-month" min="1" max="12" defaultValue="1" />
-              <span className="slider-value" id="birth-month-val">Jan</span>
+          <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Time</label>
+              <div className="time-row">
+                <select id="birth-hour"></select>
+                <select id="birth-minute"></select>
+              </div>
             </div>
+            <button className="controls-step-btn mobile-only" onClick={() => setBirthStep('location')}>
+              Next &rarr;
+            </button>
           </div>
-          <div className="form-group">
-            <label>Day</label>
-            <div className="slider-row">
-              <input type="range" id="birth-day" min="1" max="31" defaultValue="1" />
-              <span className="slider-value" id="birth-day-val">1</span>
+          <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Location</label>
+              <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
+              <div id="location-dropdown" className="dropdown"></div>
+              <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
             </div>
-          </div>
-          <div className="form-group">
-            <label>Time</label>
-            <div className="time-row">
-              <select id="birth-hour"></select>
-              <select id="birth-minute"></select>
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Location</label>
-            <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
-            <div id="location-dropdown" className="dropdown"></div>
-            <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
           </div>
           <div id="error"></div>
-          <button className="controls-step-btn" onClick={() => setStep('aspects')}>
+          <button className={`controls-step-btn${birthStep !== 'location' ? ' hide-mobile' : ''}`} onClick={() => setStep('aspects')}>
             View Aspects &rarr;
           </button>
         </div>
