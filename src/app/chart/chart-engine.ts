@@ -117,8 +117,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const SIZE = 700;
   canvas.width = SIZE * dpr;
   canvas.height = SIZE * dpr;
-  canvas.style.width = SIZE + 'px';
-  canvas.style.height = SIZE + 'px';
   ctx.scale(dpr, dpr);
 
   const CX = SIZE / 2;
@@ -213,24 +211,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       tooltip.textContent = `Your ${name1} and ${name2} are in ${ha.aspectKey}`;
       const rect = canvas.getBoundingClientRect();
       const scale = rect.width / SIZE;
-      const mx = ((ha.x1 + ha.x2) / 2) * scale;
-      const my = ((ha.y1 + ha.y2) / 2) * scale;
-      const dx = ha.x2 - ha.x1, dy = ha.y2 - ha.y1;
-      const len = Math.hypot(dx, dy) || 1;
-      let nx = -dy / len, ny = dx / len;
-      const cx = SIZE / 2 * scale, cy = SIZE / 2 * scale;
-      if ((mx + nx * 50 - cx) * (mx + nx * 50 - cx) + (my + ny * 50 - cy) * (my + ny * 50 - cy) <
-          (mx - nx * 50 - cx) * (mx - nx * 50 - cx) + (my - ny * 50 - cy) * (my - ny * 50 - cy)) {
-        nx = -nx; ny = -ny;
-      }
-      const absNx = Math.abs(nx);
-      const offset = 30 + 50 * absNx;
-      const px = mx + nx * offset;
-      const py = my + ny * offset;
+      const cx = (SIZE / 2) * scale;
+      const cy = (SIZE / 2) * scale;
       tooltip.style.display = '';
-      tooltip.style.left = px + 'px';
-      tooltip.style.top = (py - 16) + 'px';
-      tooltip.style.transform = 'translateX(-50%)';
+      tooltip.style.left = cx + 'px';
+      tooltip.style.top = cy + 'px';
+      tooltip.style.transform = 'translate(-50%, -50%)';
       const canvasLeft = canvas.offsetLeft;
       const canvasTop = canvas.offsetTop;
       hoverLine.setAttribute('x1', String(canvasLeft + ha.x1 * scale));
@@ -955,7 +941,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // Draw sign name curved along the arc
       const labelR = OUTER_R + 18;
       const label = sign.name.toUpperCase();
-      ctx.font = '11px Graphik Web, system-ui, sans-serif';
+      ctx.font = '13px Graphik Web, system-ui, sans-serif';
       ctx.fillStyle = '#8a8078';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

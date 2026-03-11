@@ -26,6 +26,7 @@
     "postcss": "^8.5.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-mobile-picker": "^1.2.0",
     "replicad": "^0.20.5",
     "replicad-opencascadejs": "^0.20.2",
     "tailwindcss": "^4.2.0",

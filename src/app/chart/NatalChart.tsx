@@ -1,7 +1,10 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
+const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
+const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
 
 interface AspectData {
@@ -40,6 +43,17 @@ export default function NatalChart() {
 
   useEffect(() => {
     controlsRef.current?.scrollTo(0, 0);
+    if (step === 'aspects' && aspects.length > 0) {
+      // Select the first aspect as it appears in the grouped list
+      const first = ASPECT_ORDER.reduce<AspectData | null>((found, key) => {
+        if (found) return found;
+        return aspects.find(a => a.aspectKey === key) || null;
+      }, null);
+      if (first) dispatchAspectHover(first);
+    }
+    if (step !== 'aspects') {
+      dispatchAspectHover(null);
+    }
   }, [step]);
 
   useEffect(() => {
@@ -99,15 +113,10 @@ export default function NatalChart() {
   return (
     <div className="chart-page">
       <div id="controls" ref={controlsRef}>
-        <h2>Aspect Pendant</h2>
+        <h2>Customize your Aspect Pendant</h2>
         {step !== 'birth' && (
-          <button className="controls-back-btn" onClick={() => setStep(step === 'aspects' ? 'birth' : 'aspects')}>
+          <button className="controls-back-btn hide-mobile" onClick={() => setStep(step === 'aspects' ? 'birth' : 'aspects')}>
             &larr; {step === 'aspects' ? 'Birth Details' : 'Your Aspects'}
-          </button>
-        )}
-        {step === 'birth' && birthStep !== 'date' && (
-          <button className="controls-back-btn mobile-only" onClick={() => setBirthStep(birthStep === 'time' ? 'date' : 'time')}>
-            &larr; {birthStep === 'time' ? 'Date' : 'Time'}
           </button>
         )}
         {step !== 'aspects' && (
@@ -120,38 +129,61 @@ export default function NatalChart() {
           <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
             <div className="form-group">
               <label>Date of Birth</label>
-              <div className="date-row">
+              <div className="date-row hide-mobile">
                 <select id="birth-month"></select>
                 <select id="birth-day"></select>
                 <select id="birth-year"></select>
               </div>
+              <div className="mobile-only">
+                <WheelDatePicker />
+              </div>
             </div>
-            <button className="controls-step-btn mobile-only" onClick={() => setBirthStep('time')}>
-              Next &rarr;
-            </button>
+            <div className="btn-row mobile-only">
+              <button className="controls-step-btn" onClick={() => setBirthStep('time')}>
+                Next &rarr;
+              </button>
+            </div>
           </div>
           <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
             <div className="form-group">
               <label>Time</label>
-              <div className="time-row">
+              <div className="time-row hide-mobile">
                 <select id="birth-hour"></select>
                 <select id="birth-minute"></select>
               </div>
+              <div className="mobile-only">
+                <WheelTimePicker />
+              </div>
             </div>
-            <button className="controls-step-btn mobile-only" onClick={() => setBirthStep('location')}>
-              Next &rarr;
-            </button>
+            <div className="btn-row mobile-only">
+              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('date')}>
+                &larr; Back
+              </button>
+              <button className="controls-step-btn" onClick={() => setBirthStep('location')}>
+                Next &rarr;
+              </button>
+            </div>
           </div>
           <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
             <div className="form-group">
               <label>Location</label>
-              <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
-              <div id="location-dropdown" className="dropdown"></div>
+              <div className="location-input-wrap">
+                <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
+                <div id="location-dropdown" className="dropdown"></div>
+              </div>
               <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
+            </div>
+            <div className="btn-row mobile-only">
+              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('time')}>
+                &larr; Back
+              </button>
+              <button className="controls-step-btn" onClick={() => setStep('aspects')}>
+                View Aspects &rarr;
+              </button>
             </div>
           </div>
           <div id="error"></div>
-          <button className={`controls-step-btn${birthStep !== 'location' ? ' hide-mobile' : ''}`} onClick={() => setStep('aspects')}>
+          <button className="controls-step-btn hide-mobile" onClick={() => setStep('aspects')}>
             View Aspects &rarr;
           </button>
         </div>
@@ -192,9 +224,14 @@ export default function NatalChart() {
             ))}
           </div>
 
-          <button className="controls-step-btn" onClick={() => setStep('waitlist')}>
-            Next &rarr;
-          </button>
+          <div className="btn-row">
+            <button className="controls-back-btn-mobile mobile-only" onClick={() => setStep('birth')}>
+              &larr; Back
+            </button>
+            <button className="controls-step-btn" onClick={() => setStep('waitlist')}>
+              Next &rarr;
+            </button>
+          </div>
         </div>
 
         <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>

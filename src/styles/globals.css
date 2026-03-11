@@ -72,6 +72,10 @@ nav.site-nav .logo-icon {
 }
 
 @media (max-width: 768px) {
+  html, body {
+    overflow: hidden !important;
+    height: 100dvh !important;
+  }
   nav.site-nav {
     padding: 12px 12px 0 12px;
     min-height: 44px;
