@@ -11,18 +11,19 @@ export default function SunArcs() {
     let instance;
     let observer: ResizeObserver;
     let redraw: () => void;
+    let frame = 0;
     import('@/modules/three-pendant-viewer').then(({ PendantViewer }) => {
       if (cancelled) return;
       instance = viewer.current = new PendantViewer(container.current, { hdriPath: '/softbox.hdr', enableGroundPlane: false, enablePostProcessing: false, enableEdges: false });
       instance.controls.enableDamping = false;
-      redraw = () => instance.renderOnce();
+      redraw = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (!cancelled) instance.renderOnce(); }); };
       instance.controls.addEventListener('change', redraw);
       observer = new ResizeObserver(() => { instance.resize(); instance.renderOnce(); });
       observer.observe(container.current);
       viewer.current.start();
       generate();
     }).catch(e => { if (!cancelled) { setStatus(`Viewer unavailable: ${e.message}`); setBusy(false); } });
-    return () => { cancelled = true; alive.current = false; observer?.disconnect(); instance?.controls?.removeEventListener('change', redraw); instance?.controls?.dispose(); instance?.dispose(); instance?.renderer.domElement.remove(); };
+    return () => { cancelled = true; alive.current = false; cancelAnimationFrame(frame); observer?.disconnect(); instance?.controls?.removeEventListener('change', redraw); instance?.controls?.dispose(); instance?.dispose(); instance?.renderer.domElement.remove(); };
   }, []);
   async function generate(exportFile = false) {
     setBusy(true); setStatus(exportFile ? 'Preparing STL…' : 'Building solid…');

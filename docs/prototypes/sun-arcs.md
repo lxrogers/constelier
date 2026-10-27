@@ -60,7 +60,9 @@ preview triangles. These sampled results do not certify all parameter combinatio
 
 Headless Chromium checks passed: automatic default, all four presets, repeated
 regeneration, reset, browser STL download, mobile width without horizontal
-overflow, and no page JavaScript errors. Reference/Quiet/Waves/Bold screenshots
+overflow, and no page JavaScript errors. A final orbit check confirmed changed
+rendered pixels after dragging; the responsive canvas measured 330 px in a
+390 px viewport without overflow. Reference/Quiet/Waves/Bold screenshots
 were captured; default was inspected against the supplied image. Existing
 Graphik/Moulin font requests return 404 and fall back to system fonts.
 
