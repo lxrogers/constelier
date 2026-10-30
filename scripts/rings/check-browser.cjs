@@ -8,20 +8,32 @@ const base = process.env.RING_URL || 'http://localhost:3000/prototypes/rings';
 const labels = ['Inside diameter','Band width','Radial thickness','Section shape','Wave count','Axial wave','Radial variation'];
 const keys = ['innerDiameter','width','thickness','section','waves','amplitude','radial'];
 fs.mkdirSync(destination,{recursive:true});
-const report = {url:base,started:new Date().toISOString(),errors:[],sliders:[],screenshots:[],performance:{}};
+const report = {url:base,started:new Date().toISOString(),errors:[],externalFailures:[],sliders:[],screenshots:[],performance:{}};
 (async()=>{
- const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,proxy:process.env.RING_PROXY?{server:process.env.RING_PROXY}:undefined,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  try {
  const context = await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
  // Optional short-lived same-project OIDC header, scoped to the exact origin.
  if(process.env.VERCEL_OIDC_TOKEN) await context.route('**/*', async route=>{
    const request=route.request();
-   if(new URL(request.url()).origin===new URL(base).origin) await route.continue({headers:{...request.headers(),'x-vercel-trusted-oidc-idp-token':process.env.VERCEL_OIDC_TOKEN}});
-   else await route.continue();
+   if(new URL(request.url()).origin===new URL(base).origin) {
+     const headers={...request.headers(),'x-vercel-trusted-oidc-idp-token':process.env.VERCEL_OIDC_TOKEN};
+     // The cloud proxy CA is trusted by Node's request stack. Chromium's
+     // separate CA store may lack it. Fetch through that verified TLS stack,
+     // keeping the real deployment origin and never relaxing certificate checks.
+     try { if(process.env.RING_TRUSTED_FETCH) await route.fulfill({response:await route.fetch({headers,maxRedirects:0})}); else await route.continue({headers}); }
+     catch { report.errors.push('Authenticated preview request failed.'); await route.abort(); }
+   } else await route.continue();
  });
  const page=await context.newPage();
  page.on('pageerror',e=>report.errors.push(e.message));
- page.on('console',m=>{if(m.type()==='error') report.errors.push(m.text())});
+ page.on('console',m=>{if(m.type()==='error') {
+   // Vercel injects its optional feedback toolbar on previews. This cloud's
+   // destination policy blocks vercel.live; keep that failure explicit and
+   // separate from application failures. No app assets use that hostname.
+   if(m.location().url==='https://vercel.live/_next-live/feedback/feedback.js') report.externalFailures.push({url:m.location().url,message:m.text()});
+   else report.errors.push(m.text());
+ }});
  await page.addInitScript(()=>{window.__longTasks=[];new PerformanceObserver(list=>{for(const e of list.getEntries())window.__longTasks.push({start:e.startTime,duration:e.duration});}).observe({entryTypes:['longtask']});});
  await page.goto(base,{waitUntil:'domcontentloaded'});
  async function settled(){await page.waitForFunction(()=>{

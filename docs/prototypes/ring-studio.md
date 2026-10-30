@@ -189,6 +189,44 @@ and idle rendering stopped. The browser's downloaded 65,536-triangle STL was
 byte-for-byte identical to the validated default export (3,276,884 bytes).
 [Browser evidence](rings/browser-evidence.json).
 
+A separate held-pointer check confirmed that all seven sliders publish changed
+geometry before releasing the pointer, not just after the settled debounce.
+[Live-drag evidence](rings/live-drag-evidence.json).
+
+## Preview deployment and authenticated verification
+
+The Git integration created an isolated Preview for this branch in the existing
+`constelier` project (`prj_e3FiZ4CCDnnoisZKsHUBFnbCF80R`), team
+`team_UToweekwD5EbaXmKZnUJaf9i`. The branch preview is:
+
+https://constelier-git-prototype-rin-e1f435-lawrences-projects-c9c8f187.vercel.app/prototypes/rings
+
+The first reviewed runtime commit was
+`6f4dfbc0b4c23e44fc4ab2d0622b3d810ed51179`; subsequent verification/documentation
+commits leave that runtime code unchanged. Deployment protection remains enabled.
+Route, all app scripts, the actual 14,443,345-byte HDR and fonts were fetched with
+same-project development OIDC authentication. Hosted browser checks exercised
+all seven sliders, presets, orbit, resize, design-link reload and STL download.
+The optional platform feedback script at `vercel.live/_next-live/feedback/feedback.js`
+is blocked by this cloud environment's destination policy. That failure is
+recorded separately from application failures; it is not required by the studio.
+
+Reproduce authenticated verification with the exact Preview URL:
+
+```sh
+RING_URL=https://<exact-preview>.vercel.app/prototypes/rings \
+RING_EVIDENCE=/workspace/ring-evidence/deployed \
+python3 scripts/rings/check-protected-preview.py
+```
+
+The helper uses the configured Vercel API credential to obtain a short-lived
+development OIDC token via the official SDK's refresh endpoint. It does not
+persist/print tokens or change access settings. The cloud proxy CA is trusted by
+Node but not Chromium's separate CA store, so Playwright routes same-origin
+requests through its TLS-verified request stack, then supplies the actual
+deployed responses to the browser. Certificate checking stays enabled and the
+credential is never forwarded across an origin redirect.
+
 ## Limits
 
 This is a reviewable prototype, not casting certification. Numeric intersection
