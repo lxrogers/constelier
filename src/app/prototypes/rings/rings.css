@@ -8,6 +8,11 @@ body:has(.ring-playground) nav.site-nav { padding: 22px 4.5% 0; }
 .ring-eyebrow span { padding: 0 12px; color: #b2ae9f; }
 .ring-heading h1 { font-family: 'Moulin', Georgia, serif; font-size: clamp(34px, 3.6vw, 54px); line-height: 1.05; font-weight: 400; }
 .ring-intro { font-size: 12px; line-height: 1.8; color: var(--muted); padding-right: 4px; }
+.ring-families { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.ring-families button { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 10px 14px; font-size: 11px; border-radius: 2px; }
+.ring-families button[aria-pressed=true] { background: #454e3e; color: #f7f7ed; border-color: #454e3e; }
+.ring-families button:disabled { cursor: default; color: #94958a; }
+.ring-families small { font-size: 8px; color: #9b9c90; }
 .ring-layout { display: grid; grid-template-columns: minmax(0, 1fr) 308px; border: 1px solid var(--line); background: #faf9f5; }
 .ring-stage { position: relative; min-width: 0; display: flex; flex-direction: column; background: radial-gradient(ellipse at 48% 40%, #fcfbf7 0%, #eeece4 100%); }
 .ring-stage-top, .ring-stage-bottom { display: flex; justify-content: space-between; align-items: center; padding: 23px 26px; z-index: 1; }

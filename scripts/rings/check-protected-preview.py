@@ -32,4 +32,7 @@ environment = os.environ.copy()
 environment['VERCEL_OIDC_TOKEN'] = token
 environment['RING_PROXY'] = os.environ.get('HTTPS_PROXY', '')
 environment['RING_TRUSTED_FETCH'] = '1'
-raise SystemExit(subprocess.call(['node', 'scripts/rings/check-browser.cjs'], env=environment))
+check = os.environ.get('RING_CHECK', 'browser')
+if check not in ('browser', 'cadence'):
+    raise SystemExit('RING_CHECK must be browser or cadence.')
+raise SystemExit(subprocess.call(['node', f'scripts/rings/check-{check}.cjs'], env=environment))

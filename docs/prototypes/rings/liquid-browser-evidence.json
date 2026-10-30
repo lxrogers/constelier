@@ -1,0 +1,309 @@
+{
+  "url": "http://localhost:3008/prototypes/rings",
+  "started": "2026-10-30T04:54:39.125Z",
+  "errors": [],
+  "sliders": [
+    {
+      "key": "innerDiameter",
+      "old": "17.8",
+      "value": "22.4",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "width",
+      "old": "1.6",
+      "value": "3.6",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "thickness",
+      "old": "1.3",
+      "value": "2.85",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "span",
+      "old": "140",
+      "value": "155",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "amplitude",
+      "old": "1.7",
+      "value": "2.55",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "asymmetry",
+      "old": "0.24",
+      "value": "0.54",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "accentWidth",
+      "old": "2.1",
+      "value": "7.8",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "radial",
+      "old": "0.4",
+      "value": "2.65",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "gloopiness",
+      "old": "0.24",
+      "value": "0.84",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    }
+  ],
+  "screenshots": [
+    "/workspace/ring-evidence/liquid-browser-final/flicker-gold.png",
+    "/workspace/ring-evidence/liquid-browser-final/flicker-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-crest-gold.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-crest-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/undertow-gold.png",
+    "/workspace/ring-evidence/liquid-browser-final/undertow-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-top-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-front-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-side-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-perspective-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-close-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/molten-close-gold.png",
+    "/workspace/ring-evidence/liquid-browser-final/liquid-extreme-gold.png",
+    "/workspace/ring-evidence/liquid-browser-final/liquid-extreme-clay.png",
+    "/workspace/ring-evidence/liquid-browser-final/liquid-mobile-gold.png"
+  ],
+  "orbit": true,
+  "maximum": {
+    "params": {
+      "innerDiameter": 14,
+      "width": 1.6,
+      "thickness": 1.2,
+      "span": 80,
+      "amplitude": 0.8,
+      "asymmetry": 0.8,
+      "accentWidth": 9,
+      "radial": 3.2,
+      "gloopiness": 1
+    },
+    "triangles": 23040
+  },
+  "export": {
+    "family": "liquid-accent",
+    "params": {
+      "innerDiameter": 17.8,
+      "width": 2.4,
+      "thickness": 1.65,
+      "span": 155,
+      "amplitude": 2.5,
+      "asymmetry": -0.36,
+      "accentWidth": 7.8,
+      "radial": 2.7,
+      "gloopiness": 0.9
+    },
+    "byteIdentical": true,
+    "triangles": 65536,
+    "path": "/workspace/ring-evidence/liquid-browser-final/liquid-captured-mm.stl",
+    "switchedToWave": true
+  },
+  "serializedReload": true,
+  "switchStress": {
+    "switches": 40,
+    "before": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 6,
+      "meshCommitCount": 2,
+      "displayedRequestId": 4,
+      "displayedFamily": "liquid-accent",
+      "displayedSelection": 1,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "after": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 24,
+      "meshCommitCount": 7,
+      "displayedRequestId": 45,
+      "displayedFamily": "liquid-accent",
+      "displayedSelection": 41,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "commits": [
+      {
+        "requestId": 3,
+        "quality": "preview",
+        "family": "liquid-accent",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 2,
+          "thickness": 1.45,
+          "span": 120,
+          "amplitude": 1.65,
+          "asymmetry": 0.6,
+          "accentWidth": 4.6,
+          "radial": 1.85,
+          "gloopiness": 0.66
+        },
+        "renderedAt": 7154.799999999814,
+        "meshCommitCount": 1,
+        "selected": "liquid-accent",
+        "scope": 1
+      },
+      {
+        "requestId": 4,
+        "quality": "settled",
+        "family": "liquid-accent",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 2,
+          "thickness": 1.45,
+          "span": 120,
+          "amplitude": 1.65,
+          "asymmetry": 0.6,
+          "accentWidth": 4.6,
+          "radial": 1.85,
+          "gloopiness": 0.66
+        },
+        "renderedAt": 7176.899999999441,
+        "meshCommitCount": 2,
+        "selected": "liquid-accent",
+        "scope": 1
+      },
+      {
+        "requestId": 14,
+        "quality": "preview",
+        "family": "liquid-accent",
+        "selection": 11,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.3,
+          "span": 140,
+          "amplitude": 1.7,
+          "asymmetry": 0.24,
+          "accentWidth": 2.1,
+          "radial": 0.4,
+          "gloopiness": 0.24
+        },
+        "renderedAt": 7745.0999999996275,
+        "meshCommitCount": 3,
+        "selected": "liquid-accent",
+        "scope": 11
+      },
+      {
+        "requestId": 34,
+        "quality": "preview",
+        "family": "liquid-accent",
+        "selection": 31,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.3,
+          "span": 140,
+          "amplitude": 1.7,
+          "asymmetry": 0.24,
+          "accentWidth": 2.1,
+          "radial": 0.4,
+          "gloopiness": 0.24
+        },
+        "renderedAt": 8282.099999999627,
+        "meshCommitCount": 4,
+        "selected": "liquid-accent",
+        "scope": 31
+      },
+      {
+        "requestId": 35,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 32,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 8315.799999999814,
+        "meshCommitCount": 5,
+        "selected": "wave",
+        "scope": 32
+      },
+      {
+        "requestId": 44,
+        "quality": "preview",
+        "family": "liquid-accent",
+        "selection": 41,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.3,
+          "span": 140,
+          "amplitude": 1.7,
+          "asymmetry": 0.24,
+          "accentWidth": 2.1,
+          "radial": 0.4,
+          "gloopiness": 0.24
+        },
+        "renderedAt": 8620.599999999627,
+        "meshCommitCount": 6,
+        "selected": "liquid-accent",
+        "scope": 41
+      },
+      {
+        "requestId": 45,
+        "quality": "settled",
+        "family": "liquid-accent",
+        "selection": 41,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.3,
+          "span": 140,
+          "amplitude": 1.7,
+          "asymmetry": 0.24,
+          "accentWidth": 2.1,
+          "radial": 0.4,
+          "gloopiness": 0.24
+        },
+        "renderedAt": 9012.299999999814,
+        "meshCommitCount": 7,
+        "selected": "liquid-accent",
+        "scope": 41
+      }
+    ]
+  },
+  "mobile": true,
+  "passed": true
+}

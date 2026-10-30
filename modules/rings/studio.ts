@@ -20,6 +20,12 @@ export class RingStudio {
   dead = false;
   hdrLoaded = false;
   renderCount = 0;
+  meshCommitCount = 0;
+  meshRevision = 0;
+  renderedRevision = 0;
+  displayedRequestId = 0;
+  pendingMeshInfo: { requestId: number; quality: string; family: string; selection: number; params: object } | null = null;
+  pendingMesh: { data: any; requestId: number; selection: number } | null = null;
   constructor(private host: HTMLElement, onLighting: (status: string) => void) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
     this.renderer.setClearColor(0xf2efe8, 0);
@@ -102,10 +108,36 @@ export class RingStudio {
     if (this.dead || this.frame) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      if (!this.dead) { this.renderer.render(this.scene, this.camera); this.renderCount++; }
+      if (!this.dead) {
+        // A worker can finish several times before the next painted frame.
+        // Upload geometry and refresh its contact shadow only once per frame.
+        if (this.pendingMesh) {
+          const next = this.pendingMesh; this.pendingMesh = null;
+          this.applyMesh(next.data, next.requestId, next.selection);
+        }
+        this.renderer.render(this.scene, this.camera); this.renderCount++;
+        if (this.meshRevision !== this.renderedRevision && this.pendingMeshInfo) {
+          this.renderedRevision = this.meshRevision; this.meshCommitCount++;
+          this.displayedRequestId = this.pendingMeshInfo.requestId;
+          // Tests observe actual renderer commits, not just worker completions.
+          // Keep only counters here; listeners own any bounded recording window.
+          this.host.dispatchEvent(new CustomEvent('ring-mesh-rendered', { bubbles: true, detail: { ...this.pendingMeshInfo, renderedAt: performance.now(), meshCommitCount: this.meshCommitCount } }));
+        }
+      }
     });
   };
-  update(data) {
+  update(data, requestId = 0, selection = 0) {
+    this.pendingMesh = { data, requestId, selection };
+    this.draw();
+  }
+  clear() {
+    this.pendingMesh = null;
+    this.pendingMeshInfo = null;
+    this.mesh.visible = false;
+    this.contact.plane.visible = false;
+    this.draw();
+  }
+  private applyMesh(data, requestId: number, selection: number) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
     geometry.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
@@ -113,9 +145,11 @@ export class RingStudio {
     geometry.computeBoundingSphere();
     const old = this.mesh.geometry;
     this.mesh.geometry = geometry;
+    this.mesh.visible = true;
+    this.meshRevision++;
+    this.pendingMeshInfo = { requestId, quality: data.quality, family: data.family, selection, params: data.params };
     old.dispose();
     this.contact.update(this.renderer, this.scene, data.bounds.minY - 0.12);
-    this.draw();
   }
   setMaterial(mode: 'gold' | 'neutral') { this.mesh.material = mode === 'gold' ? this.gold : this.neutral; this.draw(); }
   resetView() {
@@ -124,16 +158,16 @@ export class RingStudio {
     this.controls.update();
     this.draw();
   }
-  view(direction: 'top' | 'side' | 'hero') {
+  view(direction: 'top' | 'side' | 'end' | 'hero') {
     if (direction === 'hero') return this.resetView();
-    this.camera.position.set(...(direction === 'top' ? [0, 53, 0.01] : [0, 3, 53]) as [number, number, number]);
+    this.camera.position.set(...(direction === 'top' ? [0, 53, 0.01] : direction === 'end' ? [53, 3, 0] : [0, 3, 53]) as [number, number, number]);
     this.controls.target.set(0, 0, 0); this.controls.update(); this.draw();
   }
   diagnostics() {
-    return { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, triangles: this.renderer.info.render.triangles, renderCount: this.renderCount, hdrLoaded: this.hdrLoaded, camera: this.camera.position.toArray(), material: this.mesh.material === this.gold ? 'gold' : 'neutral' };
+    return { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, triangles: this.renderer.info.render.triangles, renderCount: this.renderCount, meshCommitCount: this.meshCommitCount, displayedRequestId: this.displayedRequestId, displayedFamily: this.pendingMeshInfo?.family ?? null, displayedSelection: this.pendingMeshInfo?.selection ?? null, meshVisible: this.mesh.visible, hdrLoaded: this.hdrLoaded, camera: this.camera.position.toArray(), material: this.mesh.material === this.gold ? 'gold' : 'neutral' };
   }
   dispose() {
-    this.dead = true; cancelAnimationFrame(this.frame); this.observer.disconnect(); this.controls.dispose();
+    this.dead = true; this.pendingMesh = null; cancelAnimationFrame(this.frame); this.observer.disconnect(); this.controls.dispose();
     this.mesh.geometry.dispose(); this.gold.dispose(); this.neutral.dispose();
     this.contact.dispose();
     this.scene.traverse(obj => { if (obj instanceof THREE.Light && 'shadow' in obj) (obj as THREE.DirectionalLight).shadow?.dispose(); });

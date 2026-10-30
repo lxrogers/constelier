@@ -1,50 +1,43 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { createMeshQueue } from '@/modules/rings/mesh-queue.mjs';
 
 /** One active job + one replaceable pending job. No queue grows with input rate. */
-export function useRingMesh(params) {
-  const queue = useRef<((params, quality: string) => void) | null>(null);
+export function useRingMesh(params, family = 'wave', selection = 0) {
+  const queue = useRef<((params, quality: string, family: string, selection: number) => void) | null>(null);
   const [result, setResult] = useState<any>(null);
   const [status, setStatus] = useState('Preparing your ring…');
   const [error, setError] = useState('');
   useEffect(() => {
     const worker = new Worker(new URL('./ring.worker.ts', import.meta.url));
-    let active = false, pending = null, latest = 0, closed = false;
-    const send = job => { active = true; worker.postMessage(job); };
-    queue.current = (next, quality) => {
-      const job = { id: ++latest, params: next, quality };
-      if (active) pending = job; else send(job);
-      setStatus(quality === 'preview' ? 'Shaping…' : 'Checking your ring…');
-    };
-    worker.onmessage = ({ data }) => {
-      if (closed) return;
-      active = false;
-      if (data.id === latest) {
-        if (data.error) { setError(data.error); setStatus('Shape rejected'); }
-        else {
-          setResult(data); setError('');
-          setStatus(data.quality === 'settled' ? 'Ready' : 'Live preview');
-        }
-      }
-      if (pending) { const job = pending; pending = null; send(job); }
-    };
-    worker.onerror = () => { setError('The geometry worker could not start. Reload to try again.'); setStatus('Unavailable'); };
-    return () => { closed = true; queue.current = null; worker.terminate(); };
+    const scheduler = createMeshQueue({ send: job => worker.postMessage(job), publish: setResult, setStatus, setError });
+    queue.current = (next, quality, nextFamily, nextSelection) => { scheduler.request(next, quality, nextFamily, nextSelection); };
+    worker.onmessage = ({ data }) => scheduler.complete(data);
+    worker.onerror = () => { scheduler.fail('The geometry worker failed. Reload to try again.'); worker.terminate(); };
+    return () => { queue.current = null; scheduler.dispose(); worker.terminate(); };
   }, []);
   useEffect(() => {
-    queue.current?.(params, 'preview');
-    const timer = setTimeout(() => queue.current?.(params, 'settled'), 220);
+    queue.current?.(params, 'preview', family, selection);
+    const timer = setTimeout(() => queue.current?.(params, 'settled', family, selection), 220);
     return () => clearTimeout(timer);
-  }, [params]);
-  return { result, status, error };
+  }, [params, family, selection]);
+  // Filter synchronously during render, before effects can enqueue new work.
+  // This also hides an A result during a rapid A -> B -> A selection sequence.
+  const matching = result?.family === family && result?.selection === selection;
+  return { result: matching ? result : null, status, error };
 }
 
-export function exportRing(params): Promise<any> {
+export function exportRing(params, family = 'wave'): Promise<any> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./ring.worker.ts', import.meta.url));
     const timer = setTimeout(() => { worker.terminate(); reject(new Error('Export timed out. Try again.')); }, 30000);
-    worker.onmessage = ({ data }) => { clearTimeout(timer); worker.terminate(); if (data.error) reject(new Error(data.error)); else resolve(data); };
+    worker.onmessage = ({ data }) => {
+      clearTimeout(timer); worker.terminate();
+      if (data.error) reject(new Error(data.error));
+      else if (data.family !== family || data.quality !== 'export') reject(new Error('Export returned a different ring family.'));
+      else resolve(data);
+    };
     worker.onerror = () => { clearTimeout(timer); worker.terminate(); reject(new Error('Export worker failed.')); };
-    worker.postMessage({ id: 1, quality: 'export', params });
+    worker.postMessage({ id: 1, quality: 'export', family, params: { ...params } });
   });
 }

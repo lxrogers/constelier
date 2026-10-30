@@ -66,7 +66,7 @@ const report = {url:base,started:new Date().toISOString(),errors:[],externalFail
  }
  await page.getByRole('button',{name:'Clay',exact:true}).click();await shot('tide-clay');
  await page.getByRole('button',{name:'Top',exact:true}).click();await shot('tide-clay-top');
- await page.getByRole('button',{name:'Profile',exact:true}).click();await shot('tide-clay-profile');
+ await page.getByRole('button',{name:'Front',exact:true}).click();await shot('tide-clay-profile');
  await page.getByRole('button',{name:'Perspective',exact:true}).click();
  await page.mouse.move(560,530);await page.mouse.wheel(0,-350);await shot('tide-clay-close');
  await page.getByRole('button',{name:'Gold',exact:true}).click();await shot('tide-gold-close');
@@ -89,7 +89,7 @@ const report = {url:base,started:new Date().toISOString(),errors:[],externalFail
  for(let j=0;j<24;j++)await page.mouse.move(ib.x+ib.width*(j%2?.18:.82),ib.y+ib.height/2,{steps:8});
  await page.mouse.up();await settled();
  report.performance.realDragMs=Date.now()-start;report.performance.realDragMoves=192;
- // Faster-than-human input burst confirms queue capacity/latest-only semantics.
+ // Faster-than-human input burst confirms final convergence under coalescing.
  await page.evaluate(async()=>{const el=document.getElementById('ring-radial'),set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;for(let batch=0;batch<15;batch++){for(let j=0;j<40;j++){set.call(el,String(((batch*40+j)%40)*.05));el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}await new Promise(r=>setTimeout(r,20));}set.call(el,'1.35');el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
  await settled();assert.equal(JSON.parse(await page.locator('[data-mesh-params]').getAttribute('data-mesh-params')).radial,1.35);
  await cdp.send('HeapProfiler.collectGarbage');report.performance.after=await cdp.send('Performance.getMetrics');report.performance.gpuAfter=await page.evaluate(()=>window.__ringStudio.diagnostics());
@@ -98,6 +98,20 @@ const report = {url:base,started:new Date().toISOString(),errors:[],externalFail
  const idle=await page.evaluate(()=>window.__ringStudio.diagnostics().renderCount);await page.waitForTimeout(1100);assert.equal(await page.evaluate(()=>window.__ringStudio.diagnostics().renderCount),idle);report.performance.idleRendering=false;
  await page.getByRole('button',{name:'Reset',exact:true}).click();await settled();
  const [download]=await Promise.all([page.waitForEvent('download',{timeout:30000}),page.getByRole('button',{name:'Export ring'}).click()]);const stlPath=path.join(destination,'browser-wave-mm.stl');await download.saveAs(stlPath);const bytes=fs.readFileSync(stlPath);const count=bytes.readUInt32LE(80);assert.equal(bytes.length,84+count*50);report.export={path:stlPath,triangles:count,bytes:bytes.length};
+ const {buildWave,WAVE_DEFAULTS}=await import('../../modules/rings/wave.mjs');const {meshToSTL}=await import('../../modules/rings/stl.mjs');
+ assert.equal(Buffer.compare(bytes,Buffer.from(meshToSTL(buildWave(WAVE_DEFAULTS,'export')))),0);
+ // Start export while a newer preview is still pending, then change presets.
+ // The downloaded shape must remain the parameters captured at the click.
+ await page.evaluate(()=>{const el=document.getElementById('ring-width');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'3.2');el.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.evaluate(()=>new Promise(r=>requestAnimationFrame(r)));
+ const exportParams=await page.locator('input[type=range]').evaluateAll(els=>Object.fromEntries(els.map(el=>[el.id.replace('ring-',''),Number(el.value)])));
+ const snapshotDownload=page.waitForEvent('download',{timeout:30000});await page.getByRole('button',{name:'Export ring'}).click();
+ await page.getByRole('button',{name:/Ribbon/}).click();await settled();
+ const captured=await snapshotDownload;const snapshotPath=path.join(destination,'browser-snapshot-mm.stl');await captured.saveAs(snapshotPath);
+ assert.equal(Buffer.compare(fs.readFileSync(snapshotPath),Buffer.from(meshToSTL(buildWave(exportParams,'export')))),0);
+ assert.equal(JSON.parse(await page.locator('[data-mesh-params]').getAttribute('data-mesh-params')).width,1.6);
+ report.exportSnapshot={params:exportParams,path:snapshotPath,byteIdentical:true,presetChangedDuringExport:true};
+ await page.getByRole('button',{name:'Reset',exact:true}).click();await settled();
  await page.getByRole('button',{name:'Copy design link'}).click();const saved=page.url();assert(saved.includes('#ring='));await page.reload();await settled();assert.equal(await page.getByRole('slider',{name:'Band width',exact:true}).inputValue(),'4.3');report.serializedLink=true;
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);await shot('mobile-gold');assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const mobileCanvas=await canvas.boundingBox();assert(mobileCanvas.width<390&&mobileCanvas.width>300);report.mobile={canvas:mobileCanvas,overflow:false};
  await page.setViewportSize({width:1440,height:1000});await settled();

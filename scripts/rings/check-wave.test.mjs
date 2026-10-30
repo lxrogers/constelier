@@ -13,7 +13,7 @@ const evidence = {
   seed: '0x6a09e667', meshChecks: [], stlChecks: [], normalization: {}, previewStress: null,
   limitations: [
     'Radial wall is independently measured between inner and outer vertices at each axial section center. It is not a true shortest 3D wall thickness certification.',
-    'Intersection checks exclude triangles sharing a vertex; local incident-face foldovers are not certified.',
+    'Incident-face checks allow only the shared indexed vertex/edge. Overlap within epsilon of a shared vertex remains below diagnostic resolution; near-coplanar planes within epsilon are conservatively treated as contact.',
     'Node preview stress drops typed-array references and forces garbage collection; GPU disposal and browser interaction are separate checks.',
     'No image reference comparison was performed.',
   ],

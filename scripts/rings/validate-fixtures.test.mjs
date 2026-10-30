@@ -61,6 +61,76 @@ test('an edge lying in the other triangle plane counts as contact', () => {
   assert.equal(report.intersectionPairs, 1);
 });
 
+test('coplanar adjacent triangles on the same side of their shared edge are rejected', () => {
+  // Shared-edge winding alone passes: the second triangle reverses that edge.
+  const report = validateMesh(mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0], [1, 1, 0]], [0, 1, 2, 1, 0, 3]));
+  assert.equal(report.windingErrors, 0);
+  assert.equal(report.intersectionPairs, 1);
+  assert.equal(report.incidentIntersectionPairs, 1);
+  assert.deepEqual(report.intersectionExamples, [[0, 1]]);
+});
+
+test('valid coplanar and folded neighbors may intersect exactly along their shared edge', () => {
+  for (const third of [[0, -3, 0], [0, 3, 1], [0, 3, 0.0001]]) {
+    const report = validateMesh(mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0], third], [0, 1, 2, 1, 0, 3]));
+    assert.equal(report.incidentIntersectionTests, 1);
+    assert.equal(report.intersectionPairs, 0, `third vertex ${third}`);
+  }
+});
+
+test('shared-vertex noncoplanar faces cannot intersect along a positive-length segment', () => {
+  for (const other of [[[2, 2, -1], [2, 2, 1]], [[1, 1, 0], [0, 0, 1]]]) {
+    const report = validateMesh(mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0], ...other], [0, 1, 2, 0, 3, 4]));
+    assert.equal(report.intersectionPairs, 1);
+    assert.equal(report.incidentIntersectionPairs, 1);
+  }
+});
+
+test('coplanar shared-vertex overlap and unwelded extended edge contact are rejected', () => {
+  for (const other of [[[1, 1, 0], [3, 2, 0]], [[1, 0, 0], [-1, -1, 0]], [[0, 4, 0], [3, 1, 0]]]) {
+    const report = validateMesh(mesh([[0, 0, 0], [4, 0, 0], [1, 3, 0], ...other], [0, 1, 2, 0, 3, 4]));
+    assert.equal(report.intersectionPairs, 1, `other vertices ${other}`);
+  }
+});
+
+test('valid shared-vertex faces touch only at that point, in coplanar or crossing planes', () => {
+  for (const other of [[[-2, 0, 0], [0, -2, 0]], [[-2, -2, -1], [-2, -2, 1]], [[-2, 0, 0], [0, 0, 2]]]) {
+    const report = validateMesh(mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0], ...other], [0, 1, 2, 0, 3, 4]));
+    assert.equal(report.incidentIntersectionTests, 1);
+    assert.equal(report.intersectionPairs, 0, `other vertices ${other}`);
+  }
+});
+
+test('incident overlap checks are independent of coordinate plane, winding, and shared-vertex ordering', () => {
+  const cases = [
+    { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [2, 2, -1], [2, 2, 1]], indices: [0, 1, 2, 3, 0, 4] },
+    { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [1, 1, 0], [3, 2, 0]], indices: [1, 0, 2, 3, 4, 0] },
+    { vertices: [[0, 0, 0], [3, 0, 0], [0, 3, 0], [1, 1, 0]], indices: [2, 0, 1, 3, 1, 0] },
+  ];
+  for (const fixture of cases) for (let axis = 0; axis < 3; axis++) for (const direction of [-1, 1]) {
+    const vertices = fixture.vertices.map(v => [0, 1, 2].map(k => direction * v[(k + axis) % 3] + 1000));
+    const report = validateMesh(mesh(vertices, fixture.indices));
+    assert.equal(report.intersectionPairs, 1, `axis ${axis}, direction ${direction}`);
+  }
+});
+
+test('duplicate indexed faces are overlap even with opposite winding', () => {
+  for (const other of [[0, 1, 2], [2, 1, 0]]) {
+    const report = validateMesh(mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0]], [0, 1, 2, ...other]));
+    assert.equal(report.intersectionPairs, 1);
+    assert.equal(report.incidentIntersectionPairs, 1);
+  }
+});
+
+test('shared-vertex overlap below epsilon is explicitly below diagnostic resolution', () => {
+  const input = mesh([[0, 0, 0], [3, 0, 0], [0, 3, 0], [0.000001, 0.000001, -1], [0.000001, 0.000001, 1]], [0, 1, 2, 0, 3, 4]);
+  assert.equal(validateMesh(input).incidentIntersectionPairs, 1);
+  // This larger epsilon also treats the narrow second triangle as degenerate.
+  const coarse = validateMesh(input, { epsilon: 0.00001 });
+  assert.equal(coarse.valid, false);
+  assert.ok(coarse.degenerateTriangles > 0);
+});
+
 test('watertight intersecting shells fail intersection and connectedness checks', () => {
   const report = validateMesh(combine(tetrahedron(), tetrahedron([0.3, 0.3, 0.3])));
   assert.equal(report.boundaryEdges, 0);

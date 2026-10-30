@@ -1,7 +1,8 @@
 {
-  "url": "http://localhost:3001/prototypes/rings",
-  "started": "2026-10-30T03:36:05.902Z",
+  "url": "http://localhost:3005/prototypes/rings",
+  "started": "2026-10-30T04:12:34.662Z",
   "errors": [],
+  "externalFailures": [],
   "sliders": [
     {
       "label": "Inside diameter",
@@ -47,25 +48,25 @@
     }
   ],
   "screenshots": [
-    "/workspace/ring-evidence/final/tide-gold.png",
-    "/workspace/ring-evidence/final/ribbon-gold.png",
-    "/workspace/ring-evidence/final/swell-gold.png",
-    "/workspace/ring-evidence/final/tide-gold.png",
-    "/workspace/ring-evidence/final/tide-clay.png",
-    "/workspace/ring-evidence/final/tide-clay-top.png",
-    "/workspace/ring-evidence/final/tide-clay-profile.png",
-    "/workspace/ring-evidence/final/tide-clay-close.png",
-    "/workspace/ring-evidence/final/tide-gold-close.png",
-    "/workspace/ring-evidence/final/maximum-gold.png",
-    "/workspace/ring-evidence/final/maximum-clay.png",
-    "/workspace/ring-evidence/final/mobile-gold.png"
+    "/workspace/ring-evidence/review-browser/tide-gold.png",
+    "/workspace/ring-evidence/review-browser/ribbon-gold.png",
+    "/workspace/ring-evidence/review-browser/swell-gold.png",
+    "/workspace/ring-evidence/review-browser/tide-gold.png",
+    "/workspace/ring-evidence/review-browser/tide-clay.png",
+    "/workspace/ring-evidence/review-browser/tide-clay-top.png",
+    "/workspace/ring-evidence/review-browser/tide-clay-profile.png",
+    "/workspace/ring-evidence/review-browser/tide-clay-close.png",
+    "/workspace/ring-evidence/review-browser/tide-gold-close.png",
+    "/workspace/ring-evidence/review-browser/maximum-gold.png",
+    "/workspace/ring-evidence/review-browser/maximum-clay.png",
+    "/workspace/ring-evidence/review-browser/mobile-gold.png"
   ],
   "performance": {
     "before": {
       "metrics": [
         {
           "name": "Timestamp",
-          "value": 1325.674244
+          "value": 3519.966094
         },
         {
           "name": "AudioHandlers",
@@ -85,7 +86,7 @@
         },
         {
           "name": "JSEventListeners",
-          "value": 344
+          "value": 343
         },
         {
           "name": "LayoutObjects",
@@ -161,7 +162,7 @@
         },
         {
           "name": "DevToolsCommandDuration",
-          "value": 0.000043
+          "value": 0.00007
         },
         {
           "name": "ScriptDuration",
@@ -173,39 +174,39 @@
         },
         {
           "name": "TaskDuration",
-          "value": 0.017974
+          "value": 0.02423
         },
         {
           "name": "TaskOtherDuration",
-          "value": 0.017931
+          "value": 0.02416
         },
         {
           "name": "ThreadTime",
-          "value": 0.010853
+          "value": 0.024123
         },
         {
           "name": "ProcessTime",
-          "value": 12.03
+          "value": 13.18
         },
         {
           "name": "JSHeapUsedSize",
-          "value": 7071172
+          "value": 7193384
         },
         {
           "name": "JSHeapTotalSize",
-          "value": 7741440
+          "value": 8265728
         },
         {
           "name": "FirstMeaningfulPaint",
-          "value": 1299.239794
+          "value": 3488.001869
         },
         {
           "name": "DomContentLoaded",
-          "value": 1298.632607
+          "value": 3487.301943
         },
         {
           "name": "NavigationStart",
-          "value": 1298.299567
+          "value": 3487.151031
         }
       ]
     },
@@ -213,7 +214,9 @@
       "geometries": 3,
       "textures": 4,
       "triangles": 20482,
-      "renderCount": 71,
+      "renderCount": 113,
+      "meshCommitCount": 85,
+      "displayedRequestId": 107,
       "hdrLoaded": true,
       "camera": [
         28,
@@ -222,13 +225,13 @@
       ],
       "material": "neutral"
     },
-    "realDragMs": 19308,
+    "realDragMs": 18880,
     "realDragMoves": 192,
     "after": {
       "metrics": [
         {
           "name": "Timestamp",
-          "value": 1346.157753
+          "value": 3540.269926
         },
         {
           "name": "AudioHandlers",
@@ -248,7 +251,7 @@
         },
         {
           "name": "JSEventListeners",
-          "value": 344
+          "value": 343
         },
         {
           "name": "LayoutObjects",
@@ -308,7 +311,7 @@
         },
         {
           "name": "LayoutCount",
-          "value": 389
+          "value": 390
         },
         {
           "name": "RecalcStyleCount",
@@ -316,19 +319,19 @@
         },
         {
           "name": "LayoutDuration",
-          "value": 0.113548
+          "value": 0.149959
         },
         {
           "name": "RecalcStyleDuration",
-          "value": 0.041947
+          "value": 0.076406
         },
         {
           "name": "DevToolsCommandDuration",
-          "value": 0.140672
+          "value": 0.102461
         },
         {
           "name": "ScriptDuration",
-          "value": 0.835535
+          "value": 1.236763
         },
         {
           "name": "V8CompileDuration",
@@ -336,39 +339,39 @@
         },
         {
           "name": "TaskDuration",
-          "value": 2.09678
+          "value": 2.579964
         },
         {
           "name": "TaskOtherDuration",
-          "value": 0.965078
+          "value": 1.014375
         },
         {
           "name": "ThreadTime",
-          "value": 1.148118
+          "value": 1.303411
         },
         {
           "name": "ProcessTime",
-          "value": 17.09
+          "value": 19.32
         },
         {
           "name": "JSHeapUsedSize",
-          "value": 7607344
+          "value": 7634424
         },
         {
           "name": "JSHeapTotalSize",
-          "value": 8790016
+          "value": 8527872
         },
         {
           "name": "FirstMeaningfulPaint",
-          "value": 1299.239794
+          "value": 3488.001869
         },
         {
           "name": "DomContentLoaded",
-          "value": 1298.632607
+          "value": 3487.301943
         },
         {
           "name": "NavigationStart",
-          "value": 1298.299567
+          "value": 3487.151031
         }
       ]
     },
@@ -376,7 +379,9 @@
       "geometries": 3,
       "textures": 4,
       "triangles": 20482,
-      "renderCount": 264,
+      "renderCount": 309,
+      "meshCommitCount": 276,
+      "displayedRequestId": 905,
       "hdrLoaded": true,
       "camera": [
         28,
@@ -387,20 +392,28 @@
     },
     "longTasks": [
       {
-        "start": 264.5,
-        "duration": 67
+        "start": 209.5,
+        "duration": 52
       },
       {
-        "start": 454.29999999981374,
-        "duration": 663
+        "start": 369.39999999990687,
+        "duration": 778
       },
       {
-        "start": 4999.699999999953,
-        "duration": 613
+        "start": 6696,
+        "duration": 709
       },
       {
-        "start": 15424.799999999814,
-        "duration": 143
+        "start": 19982.700000000186,
+        "duration": 140
+      },
+      {
+        "start": 27197.299999999814,
+        "duration": 104
+      },
+      {
+        "start": 33291.89999999991,
+        "duration": 283
       }
     ],
     "idleRendering": false
@@ -409,7 +422,9 @@
     "geometries": 3,
     "textures": 4,
     "triangles": 20482,
-    "renderCount": 4,
+    "renderCount": 5,
+    "meshCommitCount": 2,
+    "displayedRequestId": 2,
     "hdrLoaded": true,
     "camera": [
       28,
@@ -432,15 +447,29 @@
     "triangles": 23040
   },
   "export": {
-    "path": "/workspace/ring-evidence/final/browser-wave-mm.stl",
+    "path": "/workspace/ring-evidence/review-browser/browser-wave-mm.stl",
     "triangles": 65536,
     "bytes": 3276884
+  },
+  "exportSnapshot": {
+    "params": {
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9,
+      "innerDiameter": 17.8,
+      "width": 3.2,
+      "thickness": 1.65,
+      "section": 0.42
+    },
+    "path": "/workspace/ring-evidence/review-browser/browser-snapshot-mm.stl",
+    "byteIdentical": true,
+    "presetChangedDuringExport": true
   },
   "serializedLink": true,
   "mobile": {
     "canvas": {
       "x": 17,
-      "y": 161.890625,
+      "y": 158.890625,
       "width": 356,
       "height": 420
     },

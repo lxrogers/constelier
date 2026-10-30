@@ -1,7 +1,9 @@
 /** Pure mesh checks in millimetres. The finger bore is the Y axis.
  * Indexed vertices must be welded: topology is checked by index, not position.
- * Intersection checks exclude every pair sharing a vertex, so local foldovers
- * between incident faces are not covered. Contacts within epsilon count as hits.
+ * Intersections may occupy a shared indexed vertex/edge, but may not extend
+ * beyond it. Coplanar overlap, duplicate faces and incident-face foldovers are
+ * checked. Near-coplanar planes within epsilon are treated as contact; overlap
+ * extending at most epsilon from a shared vertex is below diagnostic resolution.
  * This is a numerical diagnostic, not an exact-arithmetic CAD certification.
  */
 
@@ -52,6 +54,82 @@ function trianglesIntersect(ta, tb, epsilon) {
   return true;
 }
 
+// Clip a coplanar triangle against the other's half planes. Unlike an expanded
+// SAT, clipping does not inflate the allowed shared vertex into a sliver whose
+// length depends on a narrow corner angle. Work relative to the shared vertex.
+function coplanarOverlapBeyondVertex(a, b, normal, epsilon) {
+  let polygon = a;
+  for (let i = 0; i < 3 && polygon.length; i++) {
+    const origin = b[i], edge = sub(b[(i + 1) % 3], origin);
+    const inward = cross(normal, edge);
+    const signed = p => dot(sub(p, origin), inward);
+    const clipped = [];
+    let previous = polygon[polygon.length - 1], previousDistance = signed(previous);
+    for (const current of polygon) {
+      const currentDistance = signed(current);
+      if ((currentDistance >= 0) !== (previousDistance >= 0)) {
+        const t = previousDistance / (previousDistance - currentDistance);
+        clipped.push(previous.map((v, k) => v + t * (current[k] - v)));
+      }
+      if (currentDistance >= 0) clipped.push(current);
+      previous = current; previousDistance = currentDistance;
+    }
+    polygon = clipped;
+  }
+  return polygon.some(p => Math.hypot(...p) > epsilon);
+}
+
+// Intersection of triangle [0,a,b] with a plane through 0, parameterized on
+// the planes' intersection line. A plane cut is a segment containing 0.
+function planeCutInterval(a, b, da, db, line, roundoff) {
+  if (Math.abs(da) <= roundoff) da = 0;
+  if (Math.abs(db) <= roundoff) db = 0;
+  const pa = dot(a, line), pb = dot(b, line);
+  if (da === 0 && db === 0) return [Math.min(0, pa, pb), Math.max(0, pa, pb)];
+  if (da === 0) return [Math.min(0, pa), Math.max(0, pa)];
+  if (db === 0) return [Math.min(0, pb), Math.max(0, pb)];
+  if ((da > 0) === (db > 0)) return [0, 0];
+  const endpoint = (da * pb - db * pa) / (da - db);
+  return [Math.min(0, endpoint), Math.max(0, endpoint)];
+}
+
+function incidentTrianglesOverlap(ta, tb, shared, epsilon) {
+  // Identical indexed faces overlap in their whole area, regardless of winding.
+  if (shared.length === 3) return true;
+  const origin = ta.vertices[ta.indices.indexOf(shared[0])];
+  if (shared.length === 2) {
+    const edge = sub(ta.vertices[ta.indices.indexOf(shared[1])], origin);
+    const a = sub(ta.vertices[ta.indices.findIndex(i => !shared.includes(i))], origin);
+    const b = sub(tb.vertices[tb.indices.findIndex(i => !shared.includes(i))], origin);
+    // Noncoplanar faces meet only at the shared edge. Coplanar faces are valid
+    // only on opposite sides; the same side necessarily overlaps in area.
+    if (Math.abs(dot(a, tb.normal)) > epsilon || Math.abs(dot(b, ta.normal)) > epsilon) return false;
+    return dot(cross(edge, a), cross(edge, b)) > 0;
+  }
+  const ai = ta.indices.indexOf(shared[0]), bi = tb.indices.indexOf(shared[0]);
+  const a0 = sub(ta.vertices[(ai + 1) % 3], origin), a1 = sub(ta.vertices[(ai + 2) % 3], origin);
+  const da0 = dot(a0, tb.normal), da1 = dot(a1, tb.normal);
+  // A triangle strictly on one side of the other's plane can touch only at
+  // the common vertex. This resolves most valid local pairs without clipping.
+  if ((da0 > epsilon && da1 > epsilon) || (da0 < -epsilon && da1 < -epsilon)) return false;
+  const b0 = sub(tb.vertices[(bi + 1) % 3], origin), b1 = sub(tb.vertices[(bi + 2) % 3], origin);
+  const db0 = dot(b0, ta.normal), db1 = dot(b1, ta.normal);
+  if ((db0 > epsilon && db1 > epsilon) || (db0 < -epsilon && db1 < -epsilon)) return false;
+  if (Math.max(Math.abs(da0), Math.abs(da1), Math.abs(db0), Math.abs(db1)) <= epsilon) {
+    return coplanarOverlapBeyondVertex([[0, 0, 0], a0, a1], [[0, 0, 0], b0, b1], tb.normal, epsilon);
+  }
+  const axis = cross(ta.normal, tb.normal), length = Math.hypot(...axis);
+  // Nonparallel planes are guaranteed here in exact arithmetic because both
+  // contain the shared vertex; a numerically unresolved line is conservative.
+  if (length === 0) return true;
+  const line = axis.map(v => v / length);
+  const roundoff = 64 * Number.EPSILON * Math.max(ta.longestEdge, tb.longestEdge);
+  const ca = planeCutInterval(a0, a1, da0, da1, line, roundoff);
+  const cb = planeCutInterval(b0, b1, db0, db1, line, roundoff);
+  const low = Math.max(ca[0], cb[0]), high = Math.min(ca[1], cb[1]);
+  return low <= high && Math.max(Math.abs(low), Math.abs(high)) > epsilon;
+}
+
 function overlaps(a, b, epsilon) {
   return a.min[0] <= b.max[0] + epsilon && b.min[0] <= a.max[0] + epsilon &&
     a.min[1] <= b.max[1] + epsilon && b.min[1] <= a.max[1] + epsilon &&
@@ -75,10 +153,13 @@ function findIntersections(triangles, epsilon, limit, report) {
   if (triangles.length < 2) return;
   const root = buildBVH(triangles.slice());
   const test = (a, b) => {
-    if (!overlaps(a, b, epsilon) || a.indices.some(i => b.indices.includes(i))) return;
+    if (!overlaps(a, b, epsilon)) return;
+    const shared = a.indices.filter(i => b.indices.includes(i));
     report.intersectionTests++;
-    if (trianglesIntersect(a, b, epsilon)) {
+    if (shared.length) report.incidentIntersectionTests++;
+    if (shared.length ? incidentTrianglesOverlap(a, b, shared, epsilon) : trianglesIntersect(a, b, epsilon)) {
       report.intersectionPairs++;
+      if (shared.length) report.incidentIntersectionPairs++;
       report.intersectionExamples.push([a.id, b.id]);
     }
   };
@@ -109,6 +190,8 @@ function findIntersections(triangles, epsilon, limit, report) {
  * check. `minInnerRadius` is a required cylindrical clearance, not a vertex-only
  * approximation. `maxIntersectionPairs` defaults 16; counts are lower bounds if
  * intersectionsCapped is true. Triangle IDs in intersectionExamples are zero-based.
+ * intersectionPairs/Tests include incident faces; incidentIntersectionPairs/Tests
+ * report that subset. A shared indexed vertex/edge itself is allowed contact.
  * Optional epsilon is a positive distance in mm. Normal length tolerance is 1e-3.
  */
 export function validateMesh(mesh, options = {}) {
@@ -119,6 +202,7 @@ export function validateMesh(mesh, options = {}) {
     boundaryEdges: 0, nonmanifoldEdges: 0, windingErrors: 0, degenerateTriangles: 0,
     invalidVertices: 0, invalidIndices: 0, invalidNormals: 0, unusedVertices: 0,
     intersectionPairs: 0, intersectionTests: 0, intersectionExamples: [], intersectionsCapped: false,
+    incidentIntersectionPairs: 0, incidentIntersectionTests: 0,
     intersectionCheckPerformed: false, minInnerRadius: null, volumeMm3: null,
   };
   if (!positions || !indices || !positions.length || !indices.length || positions.length % 3 || indices.length % 3) {
@@ -163,7 +247,8 @@ export function validateMesh(mesh, options = {}) {
     const vertices = ids.map(i => point(positions, i));
     const [a, b, c] = vertices;
     const ab = sub(b, a), ac = sub(c, a), bc = sub(c, b);
-    const twiceArea = Math.hypot(...cross(ab, ac));
+    const faceNormal = cross(ab, ac);
+    const twiceArea = Math.hypot(...faceNormal);
     const longestEdge = Math.max(Math.hypot(...ab), Math.hypot(...ac), Math.hypot(...bc));
     const degenerate = new Set(ids).size < 3 || twiceArea <= epsilon * Math.max(longestEdge, epsilon);
     if (degenerate) report.degenerateTriangles++;
@@ -176,7 +261,7 @@ export function validateMesh(mesh, options = {}) {
       if (edge) { edge.count++; edge.direction += direction; parent[find(t)] = find(edge.triangle); }
       else edges.set(key, { count: 1, direction, triangle: t });
     }
-    if (!degenerate) triangles.push({ id: t, indices: ids, vertices,
+    if (!degenerate) triangles.push({ id: t, indices: ids, vertices, normal: faceNormal.map(v => v / twiceArea), longestEdge,
       min: [0, 1, 2].map(k => Math.min(a[k], b[k], c[k])), max: [0, 1, 2].map(k => Math.max(a[k], b[k], c[k])) });
   }
   report.components = new Set(Array.from(parent, (_, i) => find(i))).size;
@@ -193,7 +278,7 @@ export function validateMesh(mesh, options = {}) {
     if (!Number.isInteger(limit) || limit < 1) report.errors.push('maxIntersectionPairs must be a positive integer.');
     else { report.intersectionCheckPerformed = true; findIntersections(triangles, epsilon, limit, report); }
   }
-  for (const [field, description] of [['boundaryEdges', 'boundary edges'], ['nonmanifoldEdges', 'nonmanifold edges'], ['windingErrors', 'inconsistently oriented edges'], ['degenerateTriangles', 'degenerate triangles'], ['unusedVertices', 'unused vertices'], ['intersectionPairs', 'nonadjacent intersecting triangle pairs']]) {
+  for (const [field, description] of [['boundaryEdges', 'boundary edges'], ['nonmanifoldEdges', 'nonmanifold edges'], ['windingErrors', 'inconsistently oriented edges'], ['degenerateTriangles', 'degenerate triangles'], ['unusedVertices', 'unused vertices'], ['intersectionPairs', 'intersecting triangle pairs beyond their shared indexed vertex/edge']]) {
     if (report[field]) report.errors.push(`${report[field]} ${description}${field === 'intersectionPairs' && report.intersectionsCapped ? ' (count capped)' : ''}.`);
   }
   if (report.components !== 1) report.errors.push(`Expected one connected surface; found ${report.components}.`);
