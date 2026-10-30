@@ -8,3 +8,19 @@ export function normalize(input = {}) {
     return [key, Math.max(min, Math.min(max, step === 1 ? Math.round(value) : value))];
   }));
 }
+
+// Shared construction for the instant SVG and the CAD kernel.
+export function layout(input) {
+  const p = normalize(input), sun = { x: -2, y: -1.5, radius: 6.4 };
+  const rays = Array.from({ length: p.rays }, (_, i) => {
+    const a = i * Math.PI * 2 / p.rays, dx = Math.cos(a), dy = Math.sin(a), w = p.stroke / 2;
+    const point = (r, side) => [sun.x + dx * r - dy * w * side, sun.y + dy * r + dx * w * side];
+    return [point(5.8, 1), point(35, 1), point(35, -1), point(5.8, -1)];
+  });
+  const centers = [[15, -1], [-3, 16], [11, 11], [-13, 9], [8, -13]];
+  const groups = centers.slice(0, p.groups).map(([x, y], i) => {
+    const outer = [12.5, 13, 12.5, 11, 11][i];
+    return { x, y, maskRadius: outer - p.stroke, rings: Array.from({ length: p.rings }, (_, j) => outer - j * Math.min(p.spacing, (outer - 1.3) / Math.max(1, p.rings - 1))) };
+  });
+  return { params: p, sun, rays, groups, radius: 15, rim: 0.65 };
+}

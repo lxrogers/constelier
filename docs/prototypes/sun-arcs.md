@@ -15,14 +15,23 @@ sun/rays and one another, ordered back to front. This is a recreation, not a tra
 family's footprint, fuses its rings, clips to a 30 mm disk and fuses a 0.65 mm rim.
 Using solid booleans avoids the coincident-boundary failure observed with 2D unions.
 The API uses the existing OpenCascade loader; the UI uses the existing Three.js
-PendantViewer, with post-processing disabled for this experiment. Existing chart
+PendantViewer, with the core chart’s polished gold, rotated studio HDRI, post-processing,
+transparent background, soft shadow and distant narrow-FOV camera. HDRI loading
+finishes before the first mesh is rendered. Orbit controls remain available. Existing chart
 geometry, UI and API code are unchanged. The only shared configuration addition
 is WASM tracing for the new API route. Intermediate and final solids are released.
 
-The page automatically builds the default, then builds on explicit Generate.
-Controls are disabled while a request is running. Changing controls marks the
-preview stale. Export rebuilds from the current parameters and downloads binary
-STL in millimetres, so it does not silently export an older displayed model.
+The SVG outline updates immediately from the same normalized layout used by CAD.
+An 800 ms trailing debounce builds the 3D mesh automatically. Controls remain
+editable during generation. One preview request runs at a time; pending edits
+coalesce into the newest parameters, and stale responses never replace the mesh.
+The last completed mesh stays visible with a waiting/building status. Presets and
+reset follow the same flow. Depth changes only the 3D result. Export snapshots
+current parameters at click time and downloads binary STL in millimetres.
+
+The renderer now matches the core chart's zero-roughness gold, rotated studio
+HDRI, post-processing and transparent background. A display-only 20× scale
+matches the core light/shadow setup; CAD and export dimensions are unchanged.
 
 ## Controls
 
@@ -79,3 +88,7 @@ CAD service. Only STL export is implemented, not STEP. No PR or deployment made.
 Preview persistence: Library prepared-upload helper failed before preparation with
 `hosted apps tools/list request failed: network`. No confirmed Library IDs exist;
 local previews and STL files are under `/workspace/scratch/previews/`.
+
+Live-preview validation: browser test confirmed immediate SVG updates before any
+request, coalescing three rapid ray edits into one build, editing rings during an
+in-flight build, latest-only mesh publication, and zero browser JavaScript errors.
