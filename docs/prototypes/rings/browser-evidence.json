@@ -1,0 +1,450 @@
+{
+  "url": "http://localhost:3001/prototypes/rings",
+  "started": "2026-10-30T03:36:05.902Z",
+  "errors": [],
+  "sliders": [
+    {
+      "label": "Inside diameter",
+      "old": "17.8",
+      "value": "21.9",
+      "meshChanged": true
+    },
+    {
+      "label": "Band width",
+      "old": "4.3",
+      "value": "5.8",
+      "meshChanged": true
+    },
+    {
+      "label": "Radial thickness",
+      "old": "1.65",
+      "value": "2.8",
+      "meshChanged": true
+    },
+    {
+      "label": "Section shape",
+      "old": "0.42",
+      "value": "0.79",
+      "meshChanged": true
+    },
+    {
+      "label": "Wave count",
+      "old": "3",
+      "value": "5",
+      "meshChanged": true
+    },
+    {
+      "label": "Axial wave",
+      "old": "1.25",
+      "value": "1.6",
+      "meshChanged": true
+    },
+    {
+      "label": "Radial variation",
+      "old": "0.9",
+      "value": "1.6",
+      "meshChanged": true
+    }
+  ],
+  "screenshots": [
+    "/workspace/ring-evidence/final/tide-gold.png",
+    "/workspace/ring-evidence/final/ribbon-gold.png",
+    "/workspace/ring-evidence/final/swell-gold.png",
+    "/workspace/ring-evidence/final/tide-gold.png",
+    "/workspace/ring-evidence/final/tide-clay.png",
+    "/workspace/ring-evidence/final/tide-clay-top.png",
+    "/workspace/ring-evidence/final/tide-clay-profile.png",
+    "/workspace/ring-evidence/final/tide-clay-close.png",
+    "/workspace/ring-evidence/final/tide-gold-close.png",
+    "/workspace/ring-evidence/final/maximum-gold.png",
+    "/workspace/ring-evidence/final/maximum-clay.png",
+    "/workspace/ring-evidence/final/mobile-gold.png"
+  ],
+  "performance": {
+    "before": {
+      "metrics": [
+        {
+          "name": "Timestamp",
+          "value": 1325.674244
+        },
+        {
+          "name": "AudioHandlers",
+          "value": 0
+        },
+        {
+          "name": "AudioWorkletProcessors",
+          "value": 0
+        },
+        {
+          "name": "Documents",
+          "value": 1
+        },
+        {
+          "name": "Frames",
+          "value": 1
+        },
+        {
+          "name": "JSEventListeners",
+          "value": 344
+        },
+        {
+          "name": "LayoutObjects",
+          "value": 256
+        },
+        {
+          "name": "MediaKeySessions",
+          "value": 0
+        },
+        {
+          "name": "MediaKeys",
+          "value": 0
+        },
+        {
+          "name": "Nodes",
+          "value": 399
+        },
+        {
+          "name": "Resources",
+          "value": 14
+        },
+        {
+          "name": "ContextLifecycleStateObservers",
+          "value": 17
+        },
+        {
+          "name": "V8PerContextDatas",
+          "value": 2
+        },
+        {
+          "name": "WorkerGlobalScopes",
+          "value": 1
+        },
+        {
+          "name": "UACSSResources",
+          "value": 0
+        },
+        {
+          "name": "RTCPeerConnections",
+          "value": 0
+        },
+        {
+          "name": "ResourceFetchers",
+          "value": 2
+        },
+        {
+          "name": "AdSubframes",
+          "value": 0
+        },
+        {
+          "name": "DetachedScriptStates",
+          "value": 0
+        },
+        {
+          "name": "ArrayBufferContents",
+          "value": 59
+        },
+        {
+          "name": "LayoutCount",
+          "value": 0
+        },
+        {
+          "name": "RecalcStyleCount",
+          "value": 0
+        },
+        {
+          "name": "LayoutDuration",
+          "value": 0
+        },
+        {
+          "name": "RecalcStyleDuration",
+          "value": 0
+        },
+        {
+          "name": "DevToolsCommandDuration",
+          "value": 0.000043
+        },
+        {
+          "name": "ScriptDuration",
+          "value": 0
+        },
+        {
+          "name": "V8CompileDuration",
+          "value": 0
+        },
+        {
+          "name": "TaskDuration",
+          "value": 0.017974
+        },
+        {
+          "name": "TaskOtherDuration",
+          "value": 0.017931
+        },
+        {
+          "name": "ThreadTime",
+          "value": 0.010853
+        },
+        {
+          "name": "ProcessTime",
+          "value": 12.03
+        },
+        {
+          "name": "JSHeapUsedSize",
+          "value": 7071172
+        },
+        {
+          "name": "JSHeapTotalSize",
+          "value": 7741440
+        },
+        {
+          "name": "FirstMeaningfulPaint",
+          "value": 1299.239794
+        },
+        {
+          "name": "DomContentLoaded",
+          "value": 1298.632607
+        },
+        {
+          "name": "NavigationStart",
+          "value": 1298.299567
+        }
+      ]
+    },
+    "gpuBefore": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 71,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "neutral"
+    },
+    "realDragMs": 19308,
+    "realDragMoves": 192,
+    "after": {
+      "metrics": [
+        {
+          "name": "Timestamp",
+          "value": 1346.157753
+        },
+        {
+          "name": "AudioHandlers",
+          "value": 0
+        },
+        {
+          "name": "AudioWorkletProcessors",
+          "value": 0
+        },
+        {
+          "name": "Documents",
+          "value": 1
+        },
+        {
+          "name": "Frames",
+          "value": 1
+        },
+        {
+          "name": "JSEventListeners",
+          "value": 344
+        },
+        {
+          "name": "LayoutObjects",
+          "value": 256
+        },
+        {
+          "name": "MediaKeySessions",
+          "value": 0
+        },
+        {
+          "name": "MediaKeys",
+          "value": 0
+        },
+        {
+          "name": "Nodes",
+          "value": 399
+        },
+        {
+          "name": "Resources",
+          "value": 14
+        },
+        {
+          "name": "ContextLifecycleStateObservers",
+          "value": 17
+        },
+        {
+          "name": "V8PerContextDatas",
+          "value": 2
+        },
+        {
+          "name": "WorkerGlobalScopes",
+          "value": 1
+        },
+        {
+          "name": "UACSSResources",
+          "value": 0
+        },
+        {
+          "name": "RTCPeerConnections",
+          "value": 0
+        },
+        {
+          "name": "ResourceFetchers",
+          "value": 2
+        },
+        {
+          "name": "AdSubframes",
+          "value": 0
+        },
+        {
+          "name": "DetachedScriptStates",
+          "value": 0
+        },
+        {
+          "name": "ArrayBufferContents",
+          "value": 59
+        },
+        {
+          "name": "LayoutCount",
+          "value": 389
+        },
+        {
+          "name": "RecalcStyleCount",
+          "value": 225
+        },
+        {
+          "name": "LayoutDuration",
+          "value": 0.113548
+        },
+        {
+          "name": "RecalcStyleDuration",
+          "value": 0.041947
+        },
+        {
+          "name": "DevToolsCommandDuration",
+          "value": 0.140672
+        },
+        {
+          "name": "ScriptDuration",
+          "value": 0.835535
+        },
+        {
+          "name": "V8CompileDuration",
+          "value": 0
+        },
+        {
+          "name": "TaskDuration",
+          "value": 2.09678
+        },
+        {
+          "name": "TaskOtherDuration",
+          "value": 0.965078
+        },
+        {
+          "name": "ThreadTime",
+          "value": 1.148118
+        },
+        {
+          "name": "ProcessTime",
+          "value": 17.09
+        },
+        {
+          "name": "JSHeapUsedSize",
+          "value": 7607344
+        },
+        {
+          "name": "JSHeapTotalSize",
+          "value": 8790016
+        },
+        {
+          "name": "FirstMeaningfulPaint",
+          "value": 1299.239794
+        },
+        {
+          "name": "DomContentLoaded",
+          "value": 1298.632607
+        },
+        {
+          "name": "NavigationStart",
+          "value": 1298.299567
+        }
+      ]
+    },
+    "gpuAfter": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 264,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "neutral"
+    },
+    "longTasks": [
+      {
+        "start": 264.5,
+        "duration": 67
+      },
+      {
+        "start": 454.29999999981374,
+        "duration": 663
+      },
+      {
+        "start": 4999.699999999953,
+        "duration": 613
+      },
+      {
+        "start": 15424.799999999814,
+        "duration": 143
+      }
+    ],
+    "idleRendering": false
+  },
+  "initial": {
+    "geometries": 3,
+    "textures": 4,
+    "triangles": 20482,
+    "renderCount": 4,
+    "hdrLoaded": true,
+    "camera": [
+      28,
+      28.999999999999996,
+      38.00000000000001
+    ],
+    "material": "gold"
+  },
+  "orbit": true,
+  "maximum": {
+    "params": {
+      "innerDiameter": 14,
+      "width": 7,
+      "thickness": 3.2,
+      "section": 1,
+      "waves": 6,
+      "amplitude": 0.85,
+      "radial": 2
+    },
+    "triangles": 23040
+  },
+  "export": {
+    "path": "/workspace/ring-evidence/final/browser-wave-mm.stl",
+    "triangles": 65536,
+    "bytes": 3276884
+  },
+  "serializedLink": true,
+  "mobile": {
+    "canvas": {
+      "x": 17,
+      "y": 161.890625,
+      "width": 356,
+      "height": 420
+    },
+    "overflow": false
+  },
+  "passed": true
+}

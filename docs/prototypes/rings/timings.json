@@ -1,0 +1,238 @@
+[
+  {
+    "name": "Tide",
+    "quality": "preview",
+    "measurements": [
+      {
+        "generationMs": 9.552036000000001,
+        "totalMs": 35.337417,
+        "triangles": 6144,
+        "valid": true
+      },
+      {
+        "generationMs": 1.3299229999999937,
+        "totalMs": 24.682699,
+        "triangles": 6144,
+        "valid": true
+      },
+      {
+        "generationMs": 2.6032579999999967,
+        "totalMs": 21.647525,
+        "triangles": 6144,
+        "valid": true
+      },
+      {
+        "generationMs": 1.310680000000005,
+        "totalMs": 14.404824000000005,
+        "triangles": 6144,
+        "valid": true
+      },
+      {
+        "generationMs": 0.6729330000000004,
+        "totalMs": 10.432932999999991,
+        "triangles": 6144,
+        "valid": true
+      }
+    ]
+  },
+  {
+    "name": "Tide",
+    "quality": "settled",
+    "measurements": [
+      {
+        "generationMs": 2.474628999999993,
+        "totalMs": 240.421984,
+        "triangles": 20480,
+        "valid": true,
+        "wall": 1.6279550252483797
+      },
+      {
+        "generationMs": 1.6959149999999568,
+        "totalMs": 245.20851499999998,
+        "triangles": 20480,
+        "valid": true,
+        "wall": 1.6279550252483797
+      },
+      {
+        "generationMs": 2.3868949999999813,
+        "totalMs": 210.91466400000002,
+        "triangles": 20480,
+        "valid": true,
+        "wall": 1.6279550252483797
+      },
+      {
+        "generationMs": 2.173080000000027,
+        "totalMs": 200.85161700000003,
+        "triangles": 20480,
+        "valid": true,
+        "wall": 1.6279550252483797
+      },
+      {
+        "generationMs": 2.015272999999979,
+        "totalMs": 187.24603000000002,
+        "triangles": 20480,
+        "valid": true,
+        "wall": 1.6279550252483797
+      }
+    ]
+  },
+  {
+    "name": "Tide",
+    "quality": "export",
+    "measurements": [
+      {
+        "generationMs": 8.26810300000011,
+        "totalMs": 681.7609140000002,
+        "triangles": 65536,
+        "valid": true,
+        "wall": 1.6304639553472415
+      },
+      {
+        "generationMs": 6.793441999999914,
+        "totalMs": 764.590207,
+        "triangles": 65536,
+        "valid": true,
+        "wall": 1.6304639553472415
+      },
+      {
+        "generationMs": 6.7204139999998915,
+        "totalMs": 695.159748,
+        "triangles": 65536,
+        "valid": true,
+        "wall": 1.6304639553472415
+      },
+      {
+        "generationMs": 9.332554999999957,
+        "totalMs": 708.9742689999998,
+        "triangles": 65536,
+        "valid": true,
+        "wall": 1.6304639553472415
+      },
+      {
+        "generationMs": 6.908101999999872,
+        "totalMs": 693.085165,
+        "triangles": 65536,
+        "valid": true,
+        "wall": 1.6304639553472415
+      }
+    ]
+  },
+  {
+    "name": "Maximum",
+    "quality": "preview",
+    "measurements": [
+      {
+        "generationMs": 0.7085569999999279,
+        "totalMs": 9.579986000000645,
+        "triangles": 6912,
+        "valid": true
+      },
+      {
+        "generationMs": 0.7897370000000592,
+        "totalMs": 9.39255200000025,
+        "triangles": 6912,
+        "valid": true
+      },
+      {
+        "generationMs": 0.6705609999999069,
+        "totalMs": 12.125504999999976,
+        "triangles": 6912,
+        "valid": true
+      },
+      {
+        "generationMs": 0.7653250000003027,
+        "totalMs": 9.09200200000032,
+        "triangles": 6912,
+        "valid": true
+      },
+      {
+        "generationMs": 0.7092350000002625,
+        "totalMs": 8.797349000000395,
+        "triangles": 6912,
+        "valid": true
+      }
+    ]
+  },
+  {
+    "name": "Maximum",
+    "quality": "settled",
+    "measurements": [
+      {
+        "generationMs": 2.116791000000376,
+        "totalMs": 232.64376999999968,
+        "triangles": 23040,
+        "valid": true,
+        "wall": 3.2010346377703565
+      },
+      {
+        "generationMs": 2.2268459999995684,
+        "totalMs": 237.05519000000004,
+        "triangles": 23040,
+        "valid": true,
+        "wall": 3.2010346377703565
+      },
+      {
+        "generationMs": 2.4267589999999473,
+        "totalMs": 233.437457,
+        "triangles": 23040,
+        "valid": true,
+        "wall": 3.2010346377703565
+      },
+      {
+        "generationMs": 2.0196810000006735,
+        "totalMs": 230.54901300000074,
+        "triangles": 23040,
+        "valid": true,
+        "wall": 3.2010346377703565
+      },
+      {
+        "generationMs": 2.176038999999946,
+        "totalMs": 249.59353100000044,
+        "triangles": 23040,
+        "valid": true,
+        "wall": 3.2010346377703565
+      }
+    ]
+  },
+  {
+    "name": "Maximum",
+    "quality": "export",
+    "measurements": [
+      {
+        "generationMs": 9.44560299999921,
+        "totalMs": 848.6568709999992,
+        "triangles": 73728,
+        "valid": true,
+        "wall": 3.200198817253836
+      },
+      {
+        "generationMs": 7.254515999999967,
+        "totalMs": 816.7197529999994,
+        "triangles": 73728,
+        "valid": true,
+        "wall": 3.200198817253836
+      },
+      {
+        "generationMs": 6.946584999999686,
+        "totalMs": 975.9958180000003,
+        "triangles": 73728,
+        "valid": true,
+        "wall": 3.200198817253836
+      },
+      {
+        "generationMs": 7.365839000000051,
+        "totalMs": 869.7534260000011,
+        "triangles": 73728,
+        "valid": true,
+        "wall": 3.200198817253836
+      },
+      {
+        "generationMs": 8.171693000000232,
+        "totalMs": 817.8151230000003,
+        "triangles": 73728,
+        "valid": true,
+        "wall": 3.200198817253836
+      }
+    ]
+  }
+]
