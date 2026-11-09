@@ -21,6 +21,9 @@ export function initOpenCascade(wasmUrl = '/wasm/replicad_single.wasm') {
 }
 
 function walkedStart(link) {
+  if (link.type === 'bezier') {
+    return link.reversed ? link.p3 : link.p0;
+  }
   if (link.type === 'line') {
     return link.reversed ? link.end : link.origin;
   } else if (link.type === 'arc') {
@@ -32,6 +35,9 @@ function walkedStart(link) {
 }
 
 function walkedEnd(link) {
+  if (link.type === 'bezier') {
+    return link.reversed ? link.p0 : link.p3;
+  }
   if (link.type === 'line') {
     return link.reversed ? link.origin : link.end;
   } else if (link.type === 'arc') {
@@ -69,6 +75,15 @@ function chainToDrawing(chainData) {
 
     if (link.type === 'line') {
       pen = pen.lineTo(endPt);
+    } else if (link.type === 'bezier') {
+      // Cubic segment from the organic outline algorithms (modules/organic/).
+      var c1 = link.reversed ? link.c2 : link.c1;
+      var c2 = link.reversed ? link.c1 : link.c2;
+      try {
+        pen = pen.cubicBezierCurveTo(endPt, c1, c2);
+      } catch(bzErr) {
+        pen = pen.lineTo(endPt);
+      }
     } else if (link.type === 'arc') {
       var sp = walkedStart(link);
       var dx = endPt[0] - sp[0], dy = endPt[1] - sp[1];

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { buildPendantModel, serializeChainsFor3D } from '@/modules/pendant-geometry.js';
 import { initOpenCascade, buildPendant3D, filletShape } from '@/modules/replicad-pipeline.js';
 import { MESH_QUALITY_PRESETS } from '@/modules/mesh-presets.js';
+import { buildOrganicOutline, OUTLINE_STYLES } from '@/modules/organic/index.js';
 
 export const maxDuration = 60;
 
@@ -25,6 +26,8 @@ export async function POST(request) {
       thickness = 5,
       filletRadius3D = 2,
       meshQuality = 'medium',
+      outlineStyle = 'current', // 'current' | 'tapered' | 'liquid' | 'pebble'
+      outlineOptions = {},
     } = params;
 
     if (!chords || !Array.isArray(chords) || chords.length === 0) {
@@ -37,11 +40,18 @@ export async function POST(request) {
     // Ensure WASM is ready
     await initOpenCascade(wasmPath);
 
-    // Step 1: Build 2D geometry (MakerJS)
-    const model = buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius);
-
-    // Step 2: Serialize for 3D
-    const serialized = serializeChainsFor3D(model, circleRadius, borderThickness);
+    // Step 1+2: Build 2D outline and serialize for 3D
+    let serialized;
+    if (outlineStyle !== 'current' && OUTLINE_STYLES[outlineStyle]) {
+      // Organic prototypes: midHalfWidth defaults to the line thickness so the
+      // thinnest wire matches the current style.
+      serialized = buildOrganicOutline(outlineStyle, chords, circleRadius, borderThickness, {
+        midHalfWidth: expansion, minArea, minAngle, ...outlineOptions,
+      });
+    } else {
+      const model = buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius);
+      serialized = serializeChainsFor3D(model, circleRadius, borderThickness);
+    }
 
     // Step 3: Build 3D shape (Replicad/OpenCascade)
     const result = buildPendant3D(serialized, thickness);
