@@ -4,9 +4,9 @@
 
 import { Horoscope, Origin } from '@/lib/horoscope';
 import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
-import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
-import { preloadWASM, buildRing3DShape } from '@/modules/pendant-builder';
+import { polygonArea, buildPendantModel, serializeChainsFor3D } from '@/modules/pendant-geometry';
 import { prefetchPendant, cancelPrefetch, awaitPendantResult } from '@/modules/pendant-builder-hybrid';
+import { buildPreviewMesh, buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
 import makerjs from 'makerjs';
 
 const m = makerjs;
@@ -93,9 +93,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         aspectAnimLines = [];
         aspectAnimDone = false;
         if (pendantViewer && chart3dCanvas.style.opacity === '1') {
-          buildRing3DShape(100, borderThickness, { thickness: 5, filletR: 2 }).then(ring => {
-            if (pendantViewer) pendantViewer.crossFadeMesh(ring.shape, 'high', 400);
-          }).catch(() => {});
+          crossFadeToRing(400);
         }
         if (displayState) drawChartState(displayState);
         startAspectAnim();
@@ -457,9 +455,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
     if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
     if (pendantViewer && chart3dCanvas.style.opacity === '1') {
-      buildRing3DShape(100, borderThickness, { thickness: 5, filletR: 2 }).then(ring => {
-        if (pendantViewer) pendantViewer.crossFadeMesh(ring.shape, 'high', 400);
-      }).catch(() => {});
+      crossFadeToRing(400);
     }
     spreadT = 0;
     aspectAnimLines = [];
@@ -788,7 +784,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         settings3dTimer = null;
         chart3dCanvas.style.transition = 'opacity 0.8s ease';
         start3DTransition();
-      }, 500);
+      }, USE_BREP_PREVIEW ? 500 : 120);
     }
   }
 
@@ -1365,9 +1361,14 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
       // Fire server request immediately with final expansion value,
       // so it runs in parallel with the expansion animation
-      prefetchPendant(result.chords, result.r, borderThickness, lineThickness, {
-        thickness: 5, filletR: 2, minArea: 185, minAngle: 5, filletRadius, meshQuality: 'high',
-      });
+      if (USE_BREP_PREVIEW) {
+        prefetchPendant(result.chords, result.r, borderThickness, lineThickness, {
+          thickness: 5, filletR: 2, minArea: 185, minAngle: 5, filletRadius, meshQuality: 'high',
+        });
+      }
+      // Start the viewer (and its HDRI download) now, so it is ready by the
+      // time the 2 s expansion animation ends instead of starting then.
+      ensureViewer().catch(() => {});
 
       startExpansionAnim();
     } catch (err) {
@@ -1546,9 +1547,41 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   const chart3dCanvas = canvas3d;
   let pendantViewer = null;
+  let viewerPromise = null;
   let wasmPromise = null;
 
-  try { wasmPromise = preloadWASM(); } catch(e) { console.warn('WASM preload failed:', e); }
+  // The preview mesh is built in JS straight from the 2D outline
+  // (modules/fast-pendant-mesh.js). OpenCascade is only needed for the
+  // casting export now. Add ?brep=1 to the URL to compare with the old path.
+  const USE_BREP_PREVIEW = urlParams.get('brep') === '1';
+  if (USE_BREP_PREVIEW) {
+    wasmPromise = import('@/modules/pendant-builder').then(m => m.preloadWASM()).catch(e => { console.warn('WASM preload failed:', e); });
+  }
+
+  const PREVIEW_OPTS = { thickness: 5, filletR: 2 };
+
+  function previewMinFeature() {
+    // narrowest bar (2 x line half-width) or border: caps the 3D fillet the
+    // way OpenCascade's step-down does when the full radius won't fit
+    return Math.min(2 * lineThickness, borderThickness > 0 ? borderThickness : Infinity);
+  }
+
+  function buildPreviewFromModel(model, r) {
+    const serialized = serializeChainsFor3D(model, r, borderThickness);
+    return buildPreviewMesh(serialized, { ...PREVIEW_OPTS, minFeature: previewMinFeature() });
+  }
+
+  function crossFadeToRing(duration) {
+    if (!pendantViewer) return;
+    if (USE_BREP_PREVIEW) {
+      import('@/modules/pendant-builder')
+        .then(m => m.buildRing3DShape(100, borderThickness, PREVIEW_OPTS))
+        .then(ring => { if (pendantViewer) pendantViewer.crossFadeMesh(ring.shape, 'high', duration); })
+        .catch(() => {});
+      return;
+    }
+    pendantViewer.crossFadeMeshFromData(buildRingPreviewMesh(100, borderThickness, PREVIEW_OPTS), duration);
+  }
 
   function compute3DHalf() {
     const outerR = (pendantModelData?.r || 100) + 8;
@@ -1565,29 +1598,34 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantViewer.setShadowPlaneY(-7);
   }
 
-  async function ensureViewer() {
-    if (pendantViewer) return;
-    const THREE = await import("three");
+  function ensureViewer() {
+    if (!viewerPromise) viewerPromise = createViewer();
+    return viewerPromise;
+  }
+
+  async function createViewer() {
     const { PendantViewer } = await import('@/modules/three-pendant-viewer');
-    pendantViewer = new PendantViewer(chart3dCanvas, {
+    const viewer = new PendantViewer(chart3dCanvas, {
       enableControls: false,
       enableEdges: false,
       enableGroundPlane: false,
       enableHDRI: true,
-      hdriPath: '/softbox.hdr',
+      // 2048x1024 downscale of softbox.hdr: 4.2 MB instead of 14.4 MB
+      hdriPath: '/softbox-2k.hdr',
       enablePostProcessing: true,
       background: null,
       roughness: 0,
     });
-    pendantViewer.scene.background = null;
+    viewer.scene.background = null;
 
-    if (pendantViewer.scene.environmentRotation !== undefined) {
-      pendantViewer.scene.environmentRotation.set(344 * Math.PI / 180, 308 * Math.PI / 180, 0);
+    if (viewer.scene.environmentRotation !== undefined) {
+      viewer.scene.environmentRotation.set(344 * Math.PI / 180, 308 * Math.PI / 180, 0);
     }
 
-    if (pendantViewer.hdriReady) await pendantViewer.hdriReady;
-    pendantViewer.addShadowPlane(-7);
-    pendantViewer.start();
+    if (viewer.hdriReady) await viewer.hdriReady;
+    viewer.addShadowPlane(-7);
+    viewer.start();
+    pendantViewer = viewer;
   }
 
   async function start3DTransition() {
@@ -1598,22 +1636,38 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       await ensureViewer();
 
       const r = pendantModelData.r;
-      const opts = { thickness: 5, filletR: 2 };
+      const opts = PREVIEW_OPTS;
 
-      if (chart3dCanvas.style.opacity !== '1') {
-        const ring = await buildRing3DShape(r, borderThickness, opts);
-        pendantViewer.updateMesh(ring.shape, 'high');
-        update3DCamera();
-        chart3dCanvas.style.opacity = '1';
-      }
-
-      const full = await awaitPendantResult(
-        pendantModelData.model, r, borderThickness, opts
-      );
-      if (full.source === 'server') {
-        pendantViewer.crossFadeMeshFromData(full.meshData, 800);
+      if (!USE_BREP_PREVIEW) {
+        // Fast path: a few ms in JS, no server round trip, no WASM.
+        const t0 = performance.now();
+        const mesh = buildPreviewFromModel(pendantModelData.model, r);
+        if (chart3dCanvas.style.opacity !== '1') {
+          pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, opts));
+          update3DCamera();
+          chart3dCanvas.style.opacity = '1';
+        }
+        pendantViewer.crossFadeMeshFromData(mesh, 800);
+        if (urlParams.get('perf') === '1') {
+          console.log(`[preview] mesh ${(performance.now() - t0).toFixed(1)} ms, ${mesh.triangles.length / 3} tris`);
+        }
       } else {
-        pendantViewer.crossFadeMesh(full.shape, 'high', 800);
+        const { buildRing3DShape } = await import('@/modules/pendant-builder');
+        if (chart3dCanvas.style.opacity !== '1') {
+          const ring = await buildRing3DShape(r, borderThickness, opts);
+          pendantViewer.updateMesh(ring.shape, 'high');
+          update3DCamera();
+          chart3dCanvas.style.opacity = '1';
+        }
+
+        const full = await awaitPendantResult(
+          pendantModelData.model, r, borderThickness, opts
+        );
+        if (full.source === 'server') {
+          pendantViewer.crossFadeMeshFromData(full.meshData, 800);
+        } else {
+          pendantViewer.crossFadeMesh(full.shape, 'high', 800);
+        }
       }
       _3dModelReady = true;
       _stopDotAnim();

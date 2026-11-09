@@ -124,7 +124,9 @@ export class PendantViewer {
     var w = this.container.clientWidth || this.container.width || 700;
     var h = this.container.clientHeight || this.container.height || 700;
     this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    // Phones report 3x; 2x is visually the same here and shades 2.25x fewer
+    // pixels per pass (TAA renders the scene several times per frame).
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -323,7 +325,10 @@ export class PendantViewer {
     faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(meshData.vertices, 3));
     faceGeom.setAttribute('normal', new THREE.Float32BufferAttribute(meshData.normals, 3));
     if (meshData.triangles && meshData.triangles.length > 0) {
-      faceGeom.setIndex(Array.from(meshData.triangles));
+      // typed arrays (fast preview) go straight to the GPU; plain arrays (server JSON) still work
+      faceGeom.setIndex(ArrayBuffer.isView(meshData.triangles)
+        ? new THREE.BufferAttribute(meshData.triangles, 1)
+        : meshData.triangles);
     }
     var mat = this._faceMat.clone();
     mat.transparent = true;
@@ -346,7 +351,10 @@ export class PendantViewer {
     faceGeom.setAttribute('position', new THREE.Float32BufferAttribute(meshData.vertices, 3));
     faceGeom.setAttribute('normal', new THREE.Float32BufferAttribute(meshData.normals, 3));
     if (meshData.triangles && meshData.triangles.length > 0) {
-      faceGeom.setIndex(Array.from(meshData.triangles));
+      // typed arrays (fast preview) go straight to the GPU; plain arrays (server JSON) still work
+      faceGeom.setIndex(ArrayBuffer.isView(meshData.triangles)
+        ? new THREE.BufferAttribute(meshData.triangles, 1)
+        : meshData.triangles);
     }
 
     var mesh = new THREE.Mesh(faceGeom, this._faceMat);
