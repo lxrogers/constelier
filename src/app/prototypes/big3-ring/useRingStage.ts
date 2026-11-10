@@ -51,5 +51,7 @@ export function useRingStage(refs: StageRefs, big3: Big3 | null, design: RingDes
   useEffect(() => { stageRef.current?.setView(view); }, [view]);
 
   const replay = useCallback(() => stageRef.current?.replay(), []);
-  return { replay };
+  const getView = useCallback(() => stageRef.current?.getView() ?? null, []);
+  const resetView = useCallback(() => stageRef.current?.resetView(), []);
+  return { replay, getView, resetView };
 }

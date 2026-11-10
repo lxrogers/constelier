@@ -12,12 +12,21 @@ import { useBig3 } from './useBig3';
 import { useSavedSetup } from './useSavedSetup';
 import './big3-ring.css';
 
+const DIRECTIONS = ['bottom', 'bottom left', 'left', 'top left', 'top', 'top right', 'right', 'bottom right'];
+const formatDirection = (v: number) => `${DIRECTIONS[Math.round(v / 45) % 8]} · ${v}°`;
+
 export default function Big3Ring() {
   const { birth, design, mode, ready, setBirth, setDesign, setMode } = useSavedSetup();
   const { big3, error } = useBig3(ready ? birth : null);
   const [showWheel, setShowWheel] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const stage = useRef<RingStageHandle>(null);
+
+  // Keep the angle found by orbiting as the tilt both prototypes go to.
+  const useCurrentView = () => {
+    const v = stage.current?.getView();
+    if (v) setDesign({ tiltDeg: Math.min(90, v.tiltDeg), tiltDir: v.tiltDir });
+  };
 
   return (
     <div className="b3-page">
@@ -37,9 +46,17 @@ export default function Big3Ring() {
         <StyleCycler label="Moon" options={MOON_STYLES} value={design.moon} onChange={moon => setDesign({ moon })} />
 
         <h3>Ring</h3>
-        <SliderField label="Band width" value={design.width} min={1.6} max={5} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
+        <SliderField label="Band width" value={design.width} min={1.4} max={5} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
         <SliderField label="Marker size" value={design.size} min={0.7} max={1.2} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
-        <SliderField label="Tilt" value={design.tiltDeg} min={30} max={75} step={1} format={v => `${v}°`} onChange={tiltDeg => setDesign({ tiltDeg })} />
+
+        <h3>View</h3>
+        <p className="b3-hint">Drag the ring to orbit, scroll to zoom. Changing a marker turns the ring to face it.</p>
+        <SliderField label="Tilt" value={design.tiltDeg} min={0} max={90} step={1} format={v => `${v}°`} onChange={tiltDeg => setDesign({ tiltDeg })} />
+        <SliderField label="Tilt direction" value={design.tiltDir} min={0} max={359} step={1} format={formatDirection} onChange={tiltDir => setDesign({ tiltDir })} />
+        <div className="b3-row">
+          <button type="button" className="b3-button" onClick={useCurrentView}>Use current angle</button>
+          <button type="button" className="b3-button" onClick={() => stage.current?.resetView()}>Reset view</button>
+        </div>
 
         <div className="b3-toggles">
           <label><input type="checkbox" checked={showWheel} onChange={e => setShowWheel(e.target.checked)} /> Zodiac wheel</label>

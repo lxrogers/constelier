@@ -6,15 +6,15 @@
 //
 // The shapes lie on the band's outer face, following its curve and flush with
 // it: seen face-on, the band simply widens into a disc, a star, a crescent.
-// The ring is drawn flat first - the band as a strip, the shapes unioned onto
-// it, holes cut through - then that pattern is given the band's thickness
-// with fast-pendant-mesh (rounded edges, no OpenCascade) and wrapped round.
+// Each is a thin plate, thinner than the band, so where it crosses the band
+// it is buried in it and never shows on the inside. Band and plates are drawn
+// flat first, given their thickness with fast-pendant-mesh (rounded edges, no
+// OpenCascade), then wrapped round the ring's axis.
 //
 // Pure geometry and chart maths: no DOM, no React, no Three.js scene.
 // Lengths are millimetres. Angles on the ring use the chart canvas convention:
 // 0 = right, 90 = down the screen, 180 = left.
 
-import polygonClipping from 'polygon-clipping';
 import { buildMeshFromLoops } from '../fast-pendant-mesh.js';
 
 const DEG = Math.PI / 180;
@@ -41,7 +41,7 @@ export const MOON_STYLES = [
 ];
 
 // US size 7 or so: 17.2 mm across the finger.
-export const RING = { innerR: 8.6, wall: 1.8 };
+export const RING = { innerR: 8.6, wall: 1.3 };
 export const RING_OUTER_R = RING.innerR + RING.wall;
 
 // Keep-clear distances (degrees around the ring). Closer than this the sun
@@ -183,14 +183,15 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
   if (kind === 'sun') {
     if (style === 'radiant') {
       const tip = 2.8 * s;
-      return { outer: roundCorners(starburst([tip, 1.95 * s], 12), CORNER_R), holes: [circle(0, 0, 0.5 * s, 28)], halfU: tip };
+      return { outer: roundCorners(starburst([tip, 1.9 * s], 12), 0.2), holes: [circle(0, 0, 0.6 * s, 28)], halfU: tip };
     }
     if (style === 'star') {
-      const tip = 2.9 * s;
-      return { outer: roundCorners(starburst([tip, 1.2 * s, 2.05 * s, 1.2 * s], 4), CORNER_R), holes: [], halfU: tip };
+      // long thin rays: the tips are left almost sharp
+      const tip = 3.1 * s;
+      return { outer: roundCorners(starburst([tip, 0.78 * s, 1.75 * s, 0.78 * s], 4), 0.1, 3), holes: [], halfU: tip };
     }
     const r = 2.4 * s;
-    return { outer: circle(0, 0, r, 72), holes: [circle(0, 0, 0.9 * s, 40)], halfU: r };
+    return { outer: circle(0, 0, r, 72), holes: [circle(0, 0, 1.15 * s, 48)], halfU: r };
   }
 
   if (kind === 'moon') {
@@ -199,15 +200,17 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
       return { outer: roundCorners(starburst([r], 6), CORNER_R), holes: [], halfU: r * Math.cos(Math.PI / 6) };
     }
     if (style === 'crescent') {
-      // a disc with a bite out of its upper side, each horn ending in a small
-      // round cap tangent to both circles
-      const R = 2.4 * s, r = 1.75 * s, d = 1.25 * s, cap = 0.32 * s;
+      // A bowl with its horns up: the bite is big and set high, so the horns
+      // stand clear above the band and the belly hangs below it (the band
+      // itself covers the middle). Each horn ends in a small round cap
+      // tangent to both circles.
+      const R = 2.8 * s, r = 2.1 * s, d = 1.5 * s, cap = 0.3 * s, lift = 0.4 * s;
       const px = (d * d + (R - cap) ** 2 - (r + cap) ** 2) / (2 * d), py = Math.sqrt((R - cap) ** 2 - px * px);
       const a1 = Math.atan2(py, px), b1 = Math.atan2(py, px - d);
       const pts = [];
-      // drawn with the bite toward +x, then turned to face up (-v)
+      // drawn with the bite toward +x, then turned to face up (-v) and raised
       const arc = (cx, cy, rad, from, to, n) => {
-        for (let i = 0; i < n; i++) { const a = from + (to - from) * (i / n), x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a); pts.push([y, -x]); }
+        for (let i = 0; i < n; i++) { const a = from + (to - from) * (i / n), x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a); pts.push([y, -x - lift]); }
       };
       arc(0, 0, R, a1, 2 * Math.PI - a1, 48);
       arc(px, -py, cap, -a1, -b1 + Math.PI, 8);
@@ -231,17 +234,6 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
   return { outer: roundCorners([[-w, -h], [w, -h], [w, h], [-w, h]], w * 0.98, 8), holes: [], halfU: w };
 }
 
-// A hole has to go through the band as well, so a sun with one is part of
-// the band's own mesh: `core` is the smooth disc that carries the hole. What
-// is left to draw on top (the rays) is `overlay`. Suns without a hole are all
-// overlay, like the moon and the ascendant mark.
-function sunParts(style, size, width) {
-  const p = markerProfile('sun', style, size, width);
-  if (!p.holes.length) return { core: null, overlay: p };
-  if (style === 'radiant') return { core: { outer: circle(0, 0, 1.95 * size, 64), holes: p.holes }, overlay: p };
-  return { core: p, overlay: null };
-}
-
 // How far the ring reaches either side of the band's centre line.
 export function ringHalfHeight(design) {
   let half = design.width / 2;
@@ -259,7 +251,14 @@ export function ringHalfHeight(design) {
 const LENGTH = 2 * Math.PI * RING_OUTER_R;
 const BEND_STEP = RING_OUTER_R * 3 * DEG; // longest run along the band between mesh points
 const GAP_MM = 2.2;                       // clear opening of the gap style, on the outer face
-const BAND_FILLET = 0.7;                  // of a 1.8 mm wall: a soft, almost oval section
+const BAND_FILLET = 0.48;                 // of a 1.3 mm wall: a soft, almost oval section
+// Plates sit flush with the outer face and stop where the band's inner
+// rounding begins, so the band always hides them from the inside.
+const PLATE = RING.wall - BAND_FILLET;
+const PLATE_FILLET = 0.3;
+// A hair proud of the band's face (0.06 mm), so a shape's outline still reads
+// where it lies across the band, and the two surfaces never share a plane.
+const PLATE_PROUD = 0.06;
 
 // Cut every triangle that spans more than `maxDx` along x into a ladder of
 // narrow ones, so the flat mesh can be bent without cutting corners. Each
@@ -315,10 +314,11 @@ function splitForBend(pos, nor, tris, maxDx) {
 }
 
 // Polygons ({ outer, holes }, flat) -> a mesh wrapped round the ring's axis:
-// thickness becomes radius, x becomes angle (the ascendant at 180 degrees,
-// zodiac order counter-clockwise on screen), y runs along the axis with y < 0
-// toward the viewer. Top and bottom edges are rounded by `filletR`.
-function wrapPattern(polygons, filletR) {
+// thickness becomes radius (starting at `baseR`), x becomes angle (the
+// ascendant at 180 degrees, zodiac order counter-clockwise on screen), y runs
+// along the axis with y < 0 toward the viewer. Top and bottom edges are
+// rounded by `filletR`, less where a shape is too fine for it.
+function wrapPattern(polygons, filletR, thickness = RING.wall, baseR = RING.innerR) {
   const pos = [], nor = [];
   let tris = [];
   for (const poly of polygons) {
@@ -333,7 +333,7 @@ function wrapPattern(polygons, filletR) {
       return out;
     };
     const m = buildMeshFromLoops(dense(poly.outer), poly.holes.map(dense), {
-      thickness: RING.wall, filletR, minFilletR: 0.05, tolerance: 0.004, profileSteps: 7,
+      thickness, filletR, minFilletR: 0.04, tolerance: 0.004, profileSteps: 7,
     });
     const base = pos.length / 3;
     for (let i = 0; i < m.vertices.length; i++) { pos.push(m.vertices[i]); nor.push(m.normals[i]); }
@@ -344,7 +344,7 @@ function wrapPattern(polygons, filletR) {
   const n = pos.length / 3;
   const vertices = new Float32Array(pos.length), normals = new Float32Array(pos.length);
   for (let i = 0; i < n; i++) {
-    const a = Math.PI - pos[3 * i] / RING_OUTER_R, rho = RING.innerR + pos[3 * i + 2];
+    const a = Math.PI - pos[3 * i] / RING_OUTER_R, rho = baseR + pos[3 * i + 2];
     const ca = Math.cos(a), sa = Math.sin(a);
     vertices[3 * i] = rho * ca; vertices[3 * i + 1] = rho * sa; vertices[3 * i + 2] = pos[3 * i + 1];
     const nx = nor[3 * i], ny = nor[3 * i + 1], nz = nor[3 * i + 2];
@@ -356,39 +356,55 @@ function wrapPattern(polygons, filletR) {
   return { vertices, normals, triangles };
 }
 
-const shifted = (ring, dx) => ring.map(q => [q[0] + dx, q[1]]);
-const openRing = ring => ring.slice(0, -1); // polygon-clipping repeats the first point
+// Half the length of band left out under a sun with a hole, so the hole is
+// clear right through; 0 for a sun without one. The band's rounded ends stop
+// just short of the hole and stay hidden under the sun's plate.
+function sunOpening(design) {
+  const p = markerProfile('sun', design.sun, design.size, design.width);
+  if (!p.holes.length) return 0;
+  return Math.max(...p.holes[0].map(q => Math.hypot(q[0], q[1]))) + 0.15;
+}
 
-// True when the band has to be rebuilt as the sun moves: the sun's hole goes
-// through the band, and the gap stops the band from simply turning with it.
+// True when the band has to be rebuilt as the sun moves: it is open at the
+// ascendant and under the sun, and the two openings move against each other.
 export function bandFollowsSun(design) {
-  return design.asc === 'gap' && !!sunParts(design.sun, design.size, design.width).core;
+  return design.asc === 'gap' && sunOpening(design) > 0;
 }
 
-// The band, with the sun's holed disc (if it has one) at `sunOffDeg` past the
-// ascendant. Without a gap the band is the same all the way round, so build
-// it once with the sun anywhere and turn the mesh to move the sun.
+// The band, open under a holed sun at `sunOffDeg` past the ascendant, and at
+// the ascendant for the gap style. With only the sun's opening the band is
+// otherwise the same all the way round, so build it once with the sun
+// anywhere and turn the mesh to move the sun.
 export function buildBandMesh(design, sunOffDeg = 180) {
-  const hw = design.width / 2, gap = design.asc === 'gap';
-  const strip = gap
-    ? roundCorners([[GAP_MM / 2, -hw], [LENGTH - GAP_MM / 2, -hw], [LENGTH - GAP_MM / 2, hw], [GAP_MM / 2, hw]], hw * 0.98, 8)
-    : [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]]; // the ends overlap, so the join is buried
-  const { core } = sunParts(design.sun, design.size, design.width);
-  if (!core) return wrapPattern([{ outer: strip, holes: [] }], BAND_FILLET);
+  const hw = design.width / 2;
+  const openings = [];
+  if (design.asc === 'gap') openings.push([0, GAP_MM / 2]);
+  const sunHalf = sunOpening(design);
+  if (sunHalf > 0) openings.push([normDeg(sunOffDeg) * DEG * RING_OUTER_R, sunHalf]);
 
-  const x0 = normDeg(sunOffDeg) * DEG * RING_OUTER_R;
-  let metal = polygonClipping.union([strip], [shifted(core.outer, x0)]);
-  metal = polygonClipping.difference(metal, ...core.holes.map(h => [shifted(h, x0)]));
-  return wrapPattern(metal.map(poly => ({ outer: openRing(poly[0]), holes: poly.slice(1).map(openRing) })), BAND_FILLET);
+  if (!openings.length) {
+    // the ends overlap, so the join is buried
+    return wrapPattern([{ outer: [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]], holes: [] }], BAND_FILLET);
+  }
+
+  // metal runs from the end of each opening to the start of the next
+  openings.sort((p, q) => p[0] - q[0]);
+  const strips = [];
+  for (let i = 0; i < openings.length; i++) {
+    const [c0, h0] = openings[i], [c1, h1] = openings[(i + 1) % openings.length];
+    const x0 = c0 + h0, x1 = c1 - h1 + (i === openings.length - 1 ? LENGTH : 0);
+    if (x1 - x0 < design.width * 1.1) continue; // too short to be more than a bead: leave it out
+    strips.push({ outer: roundCorners([[x0, -hw], [x1, -hw], [x1, hw], [x0, hw]], hw * 0.98, 8), holes: [] });
+  }
+  return wrapPattern(strips, BAND_FILLET);
 }
 
-// One marker as its own mesh, lying on the band at 180 degrees past the
+// One marker as its own plate, lying on the band at 180 degrees past the
 // ascendant (the right-hand side): turn it about the axis to place it.
-// null when there is nothing to add to the band (the gap, the halo sun).
+// null for the gap, which is only an opening in the band.
 export function buildMarkerMesh(kind, design) {
-  const p = kind === 'sun'
-    ? sunParts(design.sun, design.size, design.width).overlay
-    : markerProfile(kind, design[kind], design.size, design.width);
+  const p = markerProfile(kind, design[kind], design.size, design.width);
   if (!p) return null;
-  return wrapPattern([{ outer: shifted(p.outer, LENGTH / 2), holes: p.holes.map(h => shifted(h, LENGTH / 2)) }], BAND_FILLET);
+  const shifted = ring => ring.map(q => [q[0] + LENGTH / 2, q[1]]);
+  return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], PLATE_FILLET, PLATE, RING_OUTER_R + PLATE_PROUD - PLATE);
 }

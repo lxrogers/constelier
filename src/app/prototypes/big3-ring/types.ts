@@ -30,8 +30,9 @@ export interface RingDesign {
   width: number;      // band width, mm
   size: number;       // marker scale
   tiltDeg: number;    // how far the view tips over once tilted
+  tiltDir: number;    // which way: 0 = camera drops toward the bottom of the screen, 90 = toward the left
 }
 
-// flat-first: side-on like the 2D chart while the bodies move, then tilt.
+// flat-first: down the ring's axis like the 2D chart while the bodies move, then tilt.
 // always-3d: tilted the whole time.
 export type ViewMode = 'flat-first' | 'always-3d';

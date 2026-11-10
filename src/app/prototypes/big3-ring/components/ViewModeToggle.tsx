@@ -3,7 +3,7 @@
 import type { ViewMode } from '../types';
 
 const MODES: Array<{ key: ViewMode; label: string; hint: string }> = [
-  { key: 'flat-first', label: 'Flat, then tilt', hint: 'Side-on like the chart while the bodies move, then the ring tips toward you.' },
+  { key: 'flat-first', label: 'Flat, then tilt', hint: 'Seen down its axis like the chart while the bodies move, then the ring turns to the side.' },
   { key: 'always-3d', label: 'Always 3D', hint: 'The ring stays tilted; the bodies slide round it under their labels.' },
 ];
 

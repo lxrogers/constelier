@@ -259,6 +259,20 @@
 }
 .b3-toggles input { accent-color: #8b7d6b; }
 
+.b3-stage:active { cursor: grabbing; }
+.b3-button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d4cfc5;
+  border-radius: 8px;
+  background: #faf7f0;
+  color: #3a3630;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.b3-button:hover { background: #ede8de; }
+
 .b3-replay {
   margin-top: 4px;
   padding: 10px 14px;
@@ -283,6 +297,9 @@
 }
 .b3-stage {
   position: relative;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   width: min(100cqw, 100cqh * 10 / 7, 1000px);
   aspect-ratio: 10 / 7;
 }

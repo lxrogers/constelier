@@ -34,6 +34,10 @@ export interface RingStage {
   setDesign(design: RingDesign): void;
   setView(view: RingStageView): void;
   replay(): void;
+  /** Where the camera is now, in the terms of the tilt sliders. */
+  getView(): { tiltDeg: number; tiltDir: number };
+  /** Back to the view the current mode would show. */
+  resetView(): void;
   destroy(): void;
 }
 
@@ -48,6 +52,8 @@ const MOVE_MS = 950;
 const UNTILT_MS = 450;
 const TILT_MS = 1200;
 const TILT_ZOOM = 0.22;
+const FOCUS_MS = 900;
+const FOCUS_ZOOM = 2.6;            // looking straight at one marker
 const SETTLE_MS = 350;            // pause between the bodies landing and the tilt
 
 const INK = '#2c2c2c', MUTED = '#7a7568', LINE = '#a89f92', PAPER = '#f5f0e6';
@@ -88,7 +94,6 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   camera.aspect = VW / VH;
   camera.near = 10;
   camera.far = CAM_DIST * 2;
-  camera.up.set(0, 0, -1); // screen-up is "away" on the table at every tilt, straight down included
 
   type PartName = 'band' | 'asc' | 'sun' | 'moon';
   const parts: Record<PartName, THREE.Mesh | null> = { band: null, asc: null, sun: null, moon: null };
@@ -148,11 +153,34 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
 
   let pose: Pose | null = null;           // what is on screen
   let move: { from: Pose; to: Pose; start: number } | null = null;
-  let tilt = view.mode === 'always-3d' ? design.tiltDeg : 0;
-  let tiltAnim: { from: number; to: number; start: number; dur: number } | null = null;
+  // The view is the straight-down camera turned by `camQ` about the ring's
+  // centre: identity is the flat, chart-like view. `zoom` multiplies it.
+  type View = { q: THREE.Quaternion; zoom: number };
+  const UP = new THREE.Vector3(0, 1, 0);
+  const flatView = (): View => ({ q: new THREE.Quaternion(), zoom: 1 });
+  // Tip the view over by tiltDeg, the camera heading toward tiltDir on the
+  // table: 0 is toward the bottom of the screen, 90 toward the left.
+  function tiltView(): View {
+    const t = design.tiltDeg * Math.PI / 180, d = design.tiltDir * Math.PI / 180;
+    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(d), 0, Math.sin(d)), t);
+    // tipped toward the bottom or top, the ring takes less height: come in closer
+    return { q, zoom: 1 + TILT_ZOOM * Math.min(1, (1 - Math.cos(t)) / 0.5) * Math.cos(d) ** 2 };
+  }
   let wantTilt = view.mode === 'always-3d';
+  const camQ = (wantTilt ? tiltView() : flatView()).q;
+  let zoom = wantTilt ? tiltView().zoom : 1;
+  let viewAnim: { from: View; to: View; start: number; dur: number } | null = null;
+  let dragging = false;
+  let focused: 'asc' | 'sun' | 'moon' | null = null; // the marker the view is turned to face
   let settleTimer: ReturnType<typeof setTimeout> | null = null;
   let rafId: number | null = null;
+
+  const camDir = new THREE.Vector3();
+  // How far the camera has come down from straight above, in degrees.
+  function tiltFromTop() {
+    camDir.copy(UP).applyQuaternion(camQ);
+    return Math.acos(Math.max(-1, Math.min(1, camDir.y))) * 180 / Math.PI;
+  }
 
   function targetPose(b: Big3): Pose {
     const off = layoutOffsets(b);
@@ -169,11 +197,26 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     };
   }
 
-  function aimTilt(dur: number) {
-    const to = wantTilt ? design.tiltDeg : 0;
-    if (Math.abs(to - tilt) < 0.01 && !tiltAnim) return;
-    tiltAnim = { from: tilt, to, start: performance.now(), dur };
+  function aimView(to: View, dur: number) {
+    viewAnim = { from: { q: camQ.clone(), zoom }, to, start: performance.now(), dur };
     requestFrame();
+  }
+
+  function aimTilt(dur: number) {
+    focused = null;
+    aimView(wantTilt ? tiltView() : flatView(), dur);
+  }
+
+  // Turn the view to look straight at one marker, close up, shapes upright.
+  function focusOn(kind: 'asc' | 'sun' | 'moon') {
+    if (!pose) return;
+    clearSettle();
+    const a = kind === 'asc' ? Math.PI : offsetToAngle(kind === 'sun' ? pose.sunOff : pose.moonOff);
+    const out = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));       // from the ring's centre through the marker
+    const right = new THREE.Vector3(Math.sin(a), 0, -Math.cos(a));
+    const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, out, new THREE.Vector3(0, -1, 0)));
+    focused = kind;
+    aimView({ q, zoom: FOCUS_ZOOM }, FOCUS_MS);
   }
 
   function clearSettle() {
@@ -196,10 +239,15 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     let delay = 0;
     if (view.mode === 'flat-first') {
       // lie the ring flat again first, so the move reads as the 2D chart
-      const wasTilted = tilt > 1;
+      const wasTilted = tiltFromTop() > 1;
       wantTilt = false;
       aimTilt(UNTILT_MS);
       if (wasTilted) delay = UNTILT_MS * 0.6;
+    }
+    if (view.mode === 'always-3d' && focused) {
+      // the body is about to leave the close-up: pull back to the whole ring
+      wantTilt = true;
+      aimTilt(FOCUS_MS);
     }
     move = { from, to, start: performance.now() + delay };
     requestFrame();
@@ -215,18 +263,62 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   }
   const polar = (r: number, a: number, y = 0) => project(r * Math.cos(a), r * Math.sin(a), y);
 
+  const camUp = new THREE.Vector3();
   function placeCamera() {
-    const t = tilt * Math.PI / 180;
     const midY = K * halfHeight;
-    camera.position.set(0, midY + CAM_DIST * Math.cos(t), CAM_DIST * Math.sin(t));
+    camDir.copy(UP).applyQuaternion(camQ);
+    camera.position.set(camDir.x * CAM_DIST, midY + camDir.y * CAM_DIST, camDir.z * CAM_DIST);
+    // straight down, screen-up is "away" on the table; it turns with the view from there
+    camera.up.copy(camUp.set(0, 0, -1).applyQuaternion(camQ));
     camera.lookAt(0, midY, 0);
-    // tipped over, the ring takes less height: come in closer
-    camera.zoom = 1 + TILT_ZOOM * Math.min(1, (1 - Math.cos(t)) / 0.5);
-    // side-on, the shadow lands well clear of the ring and muddies the chart: keep it faint until tilted
-    viewer.setShadowOpacity(0.07 + 0.12 * Math.min(1, tilt / 50));
+    camera.zoom = zoom;
+    // seen from above, the shadow lands well clear of the ring and muddies the chart: keep it faint until tilted
+    viewer.setShadowOpacity(0.07 + 0.12 * Math.min(1, tiltFromTop() / 50));
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld(true);
   }
+
+  // ── Orbit ──────────────────────────────────────────────────
+  // Drag to turn the view about the ring, wheel to zoom. Free tumbling, so
+  // any angle can be reached; the next move or "reset" takes the view back.
+
+  let lastX = 0, lastY = 0;
+  const axis = new THREE.Vector3(), turn = new THREE.Quaternion();
+  function onPointerDown(e: PointerEvent) {
+    dragging = true;
+    focused = null;
+    lastX = e.clientX; lastY = e.clientY;
+    viewAnim = null;
+    clearSettle();
+    els.wrap.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: PointerEvent) {
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    camQ.premultiply(turn.setFromAxisAngle(axis.set(1, 0, 0).applyQuaternion(camQ), -dy * 0.008));
+    camQ.premultiply(turn.setFromAxisAngle(axis.set(0, 0, -1).applyQuaternion(camQ), -dx * 0.008));
+    camQ.normalize();
+    requestFrame();
+  }
+  function onPointerUp(e: PointerEvent) {
+    if (!dragging) return;
+    dragging = false;
+    try { els.wrap.releasePointerCapture(e.pointerId); } catch {}
+    requestFrame(); // one more frame at full quality
+  }
+  function onWheel(e: WheelEvent) {
+    e.preventDefault();
+    viewAnim = null;
+    clearSettle();
+    zoom = Math.max(0.6, Math.min(6, zoom * Math.exp(-e.deltaY * 0.0012)));
+    requestFrame();
+  }
+  els.wrap.addEventListener('pointerdown', onPointerDown);
+  els.wrap.addEventListener('pointermove', onPointerMove);
+  els.wrap.addEventListener('pointerup', onPointerUp);
+  els.wrap.addEventListener('pointercancel', onPointerUp);
+  els.wrap.addEventListener('wheel', onWheel, { passive: false });
 
   // ── 2D layers ──────────────────────────────────────────────
 
@@ -263,8 +355,11 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     const ctx = wheelCtx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, els.wheel.width, els.wheel.height);
-    if (!view.showWheel) return;
+    // seen edge-on the wheel is only a smear: let it go as the view comes level with the table
+    const level = Math.max(0, Math.min(1, (88 - tiltFromTop()) / 12));
+    if (!view.showWheel || level <= 0) return;
     ctx.setTransform(pxScale, 0, 0, pxScale, 0, 0);
+    ctx.globalAlpha = level;
 
     const eclAngle = (ecl: number) => (180 - ecl + p.asc) * Math.PI / 180;
 
@@ -329,6 +424,29 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     if (!view.showLabels || !big3) return;
     ctx.setTransform(pxScale, 0, 0, pxScale, 0, 0);
 
+    // Looking straight at one marker: just its own caption, above it.
+    if (focused) {
+      const who = focused === 'asc' ? big3.asc : focused === 'sun' ? big3.sun : big3.moon;
+      const lines: Array<[string, string, string]> = [
+        [focused === 'asc' ? 'ASCENDANT' : focused.toUpperCase(), `500 11px ${FONT}`, MUTED],
+        [formatPosition(who), `22px 'Moulin', serif`, INK],
+        [focused === 'asc' ? 'rising' : formatHouse(who), `12px ${FONT}`, MUTED],
+      ];
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let y = 70;
+      for (const [text, font, color] of lines) {
+        ctx.font = font; ctx.fillStyle = color;
+        ctx.fillText(text, VW / 2, y);
+        y += 24;
+      }
+      return;
+    }
+    // The leaders only make sense from above: let them go as the view comes level with the table.
+    const level = Math.max(0, Math.min(1, (80 - tiltFromTop()) / 12));
+    if (level <= 0) return;
+    ctx.globalAlpha = level;
+
     const topY = 2 * K * halfHeight;
     const centre = project(0, 0, topY / 2);
     // far side: level with the ring's upper edge, so things clear it; near side: down on the table
@@ -341,9 +459,9 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
 
     // Side-on the shapes are hidden in the band's thickness (they only widen
     // it), so mark where each one starts and ends. Gone once the ring tilts.
-    const flat = Math.max(0, 1 - tilt / 18);
+    const flat = Math.max(0, 1 - tiltFromTop() / 18);
     if (flat > 0) {
-      ctx.globalAlpha = flat;
+      ctx.globalAlpha = flat * level;
       ctx.strokeStyle = '#4a3a12';
       ctx.lineWidth = 1.1;
       ctx.beginPath();
@@ -357,7 +475,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
         }
       }
       ctx.stroke();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = level;
     }
 
     // a small drawing of each shape beside its place on the band, face-on
@@ -444,6 +562,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       }
       (ctx as any).letterSpacing = '0px';
     }
+    ctx.globalAlpha = 1;
   }
 
   // ── Frame loop ─────────────────────────────────────────────
@@ -465,23 +584,24 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
         scheduleSettle(SETTLE_MS);
       }
     }
-    if (tiltAnim) {
-      const t = Math.max(0, Math.min(1, (now - tiltAnim.start) / tiltAnim.dur));
-      tilt = tiltAnim.from + (tiltAnim.to - tiltAnim.from) * easeInOutCubic(t);
-      if (t >= 1) tiltAnim = null;
+    if (viewAnim) {
+      const t = Math.max(0, Math.min(1, (now - viewAnim.start) / viewAnim.dur)), e = easeInOutCubic(t);
+      camQ.slerpQuaternions(viewAnim.from.q, viewAnim.to.q, e);
+      zoom = viewAnim.from.zoom + (viewAnim.to.zoom - viewAnim.from.zoom) * e;
+      if (t >= 1) viewAnim = null;
     }
 
     if (pose) {
       placeParts(pose);
       placeCamera();
       // fewer anti-aliasing samples while things move, full quality for the frame that stays
-      if (taaPass) taaPass.sampleLevel = move || tiltAnim ? 1 : 3;
+      if (taaPass) taaPass.sampleLevel = move || viewAnim || dragging ? 1 : 3;
       viewer.renderOnce();
       drawWheel(pose);
       drawLabels(pose);
     }
 
-    if (move || tiltAnim) rafId = requestAnimationFrame(frame);
+    if (move || viewAnim) rafId = requestAnimationFrame(frame);
   }
 
   // ── Sizing ─────────────────────────────────────────────────
@@ -536,12 +656,18 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     },
 
     setDesign(next) {
-      const tiltChanged = next.tiltDeg !== design.tiltDeg;
+      const tiltChanged = next.tiltDeg !== design.tiltDeg || next.tiltDir !== design.tiltDir;
+      const restyled = (['asc', 'sun', 'moon'] as const).find(kind => next[kind] !== design[kind]);
       design = next;
       rebuildMeshes();
-      if (tiltChanged && wantTilt) {
-        tiltAnim = null;
-        tilt = design.tiltDeg; // follow the slider directly
+      if (restyled) {
+        focusOn(restyled); // show the new shape face-on
+      } else if (tiltChanged && wantTilt) {
+        // follow the sliders directly
+        viewAnim = null;
+        const to = tiltView();
+        camQ.copy(to.q);
+        zoom = to.zoom;
       }
       requestFrame();
     },
@@ -571,8 +697,25 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       startMove({ ...to, sunOff: 17, moonOff: -17 }, to);
     },
 
+    getView() {
+      camDir.copy(UP).applyQuaternion(camQ);
+      const dir = Math.atan2(-camDir.x, camDir.z) * 180 / Math.PI;
+      return { tiltDeg: Math.round(tiltFromTop()), tiltDir: Math.round((dir + 360) % 360) };
+    },
+
+    resetView() {
+      clearSettle();
+      wantTilt = true;
+      aimTilt(FOCUS_MS);
+    },
+
     destroy() {
       destroyed = true;
+      els.wrap.removeEventListener('pointerdown', onPointerDown);
+      els.wrap.removeEventListener('pointermove', onPointerMove);
+      els.wrap.removeEventListener('pointerup', onPointerUp);
+      els.wrap.removeEventListener('pointercancel', onPointerUp);
+      els.wrap.removeEventListener('wheel', onWheel);
       clearSettle();
       if (rafId != null) cancelAnimationFrame(rafId);
       observer.disconnect();
