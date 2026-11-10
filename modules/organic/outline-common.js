@@ -265,24 +265,35 @@ export function outlineSVG(loops, circleRadius, borderThickness, opts = {}) {
 // in the casting investment and hard to polish into.
 export function limitTipRadius(loop, rMin = 1.2, spacing = 0.3, maxIter = 400) {
   let pts = resampleLoop(loop, spacing);
+  // Same Jacobi iteration as before, but a point is only re-tested when it
+  // or a neighbour moved in the last pass (otherwise its answer can't
+  // change), and the full set is re-tested after each resample.
+  let active = null; // null = test every point
+  const moves = [];
   for (let it = 0; it < maxIter; it++) {
     const n = pts.length;
-    let moved = 0;
-    const next = pts.map(p => p.slice());
-    for (let i = 0; i < n; i++) {
+    moves.length = 0;
+    const test = (i) => {
       const a = pts[(i - 1 + n) % n], b = pts[i], c = pts[(i + 1) % n];
       const abx = b[0] - a[0], aby = b[1] - a[1], bcx = c[0] - b[0], bcy = c[1] - b[1];
       const cross = abx * bcy - aby * bcx;
-      if (cross <= 0) continue; // concave (or straight) on a CCW void: leave it
+      if (cross <= 0) return; // concave (or straight) on a CCW void: leave it
       const ab = Math.hypot(abx, aby), bc = Math.hypot(bcx, bcy), ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
       const R = (ab * bc * ca) / (2 * Math.abs(cross));
-      if (R >= rMin) continue;
-      next[i] = [b[0] + 0.5 * ((a[0] + c[0]) / 2 - b[0]), b[1] + 0.5 * ((a[1] + c[1]) / 2 - b[1])];
-      moved++;
+      if (R >= rMin) return;
+      moves.push(i, b[0] + 0.5 * ((a[0] + c[0]) / 2 - b[0]), b[1] + 0.5 * ((a[1] + c[1]) / 2 - b[1]));
+    };
+    if (active === null) for (let i = 0; i < n; i++) test(i);
+    else for (const i of active) test(i);
+    if (!moves.length) break;
+    const next = new Set();
+    for (let k = 0; k < moves.length; k += 3) {
+      const i = moves[k];
+      pts[i] = [moves[k + 1], moves[k + 2]];
+      next.add((i - 1 + n) % n); next.add(i); next.add((i + 1) % n);
     }
-    pts = next;
-    if (!moved) break;
-    if (it % 20 === 19) pts = resampleLoop(pts, spacing);
+    active = Array.from(next).sort((x, y) => x - y);
+    if (it % 20 === 19) { pts = resampleLoop(pts, spacing); active = null; }
   }
   return pts;
 }
