@@ -374,6 +374,26 @@ export class PendantViewer {
     this.renderOnce();
   }
 
+  // Replace the pendant's geometry in place: no fade, no camera move. For
+  // live slider drags, where a new shape arrives many times a second.
+  swapMeshFromData(meshData) {
+    if (this._crossFadeId) {
+      cancelAnimationFrame(this._crossFadeId);
+      this._crossFadeId = null;
+    }
+    while (this.pendantGroup.children.length > 0) {
+      var child = this.pendantGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material && child.material !== this._faceMat) child.material.dispose();
+      this.pendantGroup.remove(child);
+    }
+    var mesh = this._buildMeshFromData(meshData);
+    mesh.material.dispose();
+    mesh.material = this._faceMat;
+    this.pendantGroup.add(mesh);
+    this.renderOnce();
+  }
+
   crossFadeMeshFromData(meshData, duration) {
     duration = duration || 800;
     var self = this;
@@ -394,6 +414,11 @@ export class PendantViewer {
     this.pendantGroup.add(newMesh);
 
     for (var i = 0; i < oldChildren.length; i++) {
+      // Fade a private copy: fading the shared material would also fade
+      // the new mesh, which takes the shared material when the fade ends.
+      if (oldChildren[i].material === this._faceMat) {
+        oldChildren[i].material = this._faceMat.clone();
+      }
       if (oldChildren[i].material) {
         oldChildren[i].material.transparent = true;
         oldChildren[i].material.depthWrite = false;
@@ -461,6 +486,11 @@ export class PendantViewer {
     // Old meshes: disable depth write so new mesh always wins
     // Both old and new cast shadows — shadow is union of both shapes
     for (var i = 0; i < oldChildren.length; i++) {
+      // Fade a private copy: fading the shared material would also fade
+      // the new mesh, which takes the shared material when the fade ends.
+      if (oldChildren[i].material === this._faceMat) {
+        oldChildren[i].material = this._faceMat.clone();
+      }
       if (oldChildren[i].material) {
         oldChildren[i].material.transparent = true;
         oldChildren[i].material.depthWrite = false;

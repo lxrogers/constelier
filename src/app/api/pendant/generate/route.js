@@ -1,33 +1,18 @@
-import { join } from 'path';
 import { NextResponse } from 'next/server';
-import { buildPendantModel, serializeChainsFor3D } from '@/modules/pendant-geometry.js';
-import { initOpenCascade, buildPendant3D, filletShape } from '@/modules/replicad-pipeline.js';
-import { MESH_QUALITY_PRESETS } from '@/modules/mesh-presets.js';
-import { buildOrganicOutline, OUTLINE_STYLES } from '@/modules/organic/index.js';
+import { buildExportMesh, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
 
+// Mesh-only build (no OpenCascade): rolling-ball rounding of the top and
+// bottom edges, a few tens of ms for any outline style.
 export const maxDuration = 60;
-
-// Eagerly start WASM init on module load — persists across warm invocations
-const wasmPath = join(process.cwd(), 'public', 'wasm', 'replicad_single.wasm');
-initOpenCascade(wasmPath);
 
 export async function POST(request) {
   try {
     const params = await request.json();
-
     const {
-      chords,
-      expansion,
-      circleRadius,
-      borderThickness,
-      minArea = 10,
-      minAngle = 15,
-      filletRadius = 2,
-      thickness = 5,
-      filletRadius3D = 2,
-      meshQuality = 'medium',
-      outlineStyle = 'current', // 'current' | 'liquid' | 'pebble'
-      outlineOptions = {},
+      chords, expansion, circleRadius, borderThickness,
+      minArea = 10, minAngle = 15, filletRadius = 2,
+      thickness = 5, filletRadius3D = 2,
+      outlineStyle = 'current', liquidity,
     } = params;
 
     if (!chords || !Array.isArray(chords) || chords.length === 0) {
@@ -36,50 +21,44 @@ export async function POST(request) {
     if (typeof expansion !== 'number' || typeof circleRadius !== 'number' || typeof borderThickness !== 'number') {
       return NextResponse.json({ error: 'expansion, circleRadius, and borderThickness are required numbers' }, { status: 400 });
     }
-
-    // Ensure WASM is ready
-    await initOpenCascade(wasmPath);
-
-    // Step 1+2: Build 2D outline and serialize for 3D
-    let serialized;
-    if (outlineStyle !== 'current' && OUTLINE_STYLES[outlineStyle]) {
-      // Organic prototypes: midHalfWidth defaults to the line thickness so the
-      // thinnest wire matches the current style.
-      serialized = buildOrganicOutline(outlineStyle, chords, circleRadius, borderThickness, {
-        midHalfWidth: expansion, minArea, minAngle, ...outlineOptions,
-      });
-    } else {
-      const model = buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius);
-      serialized = serializeChainsFor3D(model, circleRadius, borderThickness);
+    if (!OUTLINE_STYLE_IDS.includes(outlineStyle)) {
+      return NextResponse.json({ error: 'outlineStyle must be one of ' + OUTLINE_STYLE_IDS.join(', ') }, { status: 400 });
     }
 
-    // Step 3: Build 3D shape (Replicad/OpenCascade)
-    const result = buildPendant3D(serialized, thickness);
-
-    // Step 4: Apply 3D fillets
-    let filletInfo = '';
-    if (filletRadius3D > 0) {
-      const filleted = filletShape(result.shape, thickness, filletRadius3D);
-      result.shape = filleted.shape;
-      filletInfo = filleted.filletInfo;
-    }
-
-    // Step 5: Tessellate to mesh arrays
-    const preset = MESH_QUALITY_PRESETS[meshQuality] || MESH_QUALITY_PRESETS.medium;
-    const facesData = result.shape.mesh(preset);
-    const edgesData = result.shape.meshEdges(preset);
+    const mesh = buildExportMesh(
+      { style: outlineStyle, chords, circleRadius, borderThickness, expansion, minArea, minAngle, filletRadius, liquidity },
+      { thickness, filletR: filletRadius3D },
+    );
+    const normals = vertexNormals(mesh.vertices, mesh.triangles);
 
     return NextResponse.json({
-      vertices: Array.from(facesData.vertices),
-      normals: Array.from(facesData.normals),
-      triangles: Array.from(facesData.triangles),
-      edgeLines: Array.from(edgesData.lines),
-      cutOk: result.cutOk,
-      cutFail: result.cutFail,
-      filletInfo,
+      vertices: Array.from(mesh.vertices),
+      normals: Array.from(normals),
+      triangles: Array.from(mesh.triangles),
+      edgeLines: [],
+      cutOk: true,
+      cutFail: 0,
+      filletInfo: 'mesh r=' + mesh.filletR.toFixed(2),
     });
   } catch (err) {
     console.error('Pendant generation error:', err);
     return NextResponse.json({ error: 'Generation failed: ' + (err.message || err) }, { status: 500 });
   }
+}
+
+// Area-weighted vertex normals for the welded export mesh.
+function vertexNormals(V, T) {
+  const N = new Float32Array(V.length);
+  for (let t = 0; t < T.length; t += 3) {
+    const a = 3 * T[t], b = 3 * T[t + 1], c = 3 * T[t + 2];
+    const ux = V[b] - V[a], uy = V[b + 1] - V[a + 1], uz = V[b + 2] - V[a + 2];
+    const wx = V[c] - V[a], wy = V[c + 1] - V[a + 1], wz = V[c + 2] - V[a + 2];
+    const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+    for (const i of [a, b, c]) { N[i] += nx; N[i + 1] += ny; N[i + 2] += nz; }
+  }
+  for (let i = 0; i < N.length; i += 3) {
+    const l = Math.hypot(N[i], N[i + 1], N[i + 2]) || 1;
+    N[i] /= l; N[i + 1] /= l; N[i + 2] /= l;
+  }
+  return N;
 }

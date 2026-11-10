@@ -1,5 +1,5 @@
-import { buildPendantModel, serializeChainsFor3D } from '@/modules/pendant-geometry.js';
-import { buildPendantMesh, meshToSTL } from '@/modules/fast-pendant-mesh.js';
+import { buildExportMesh, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
+import { meshToSTL } from '@/modules/fast-pendant-mesh.js';
 
 // Casting export without OpenCascade: same body as /api/pendant/generate,
 // returns a watertight binary STL with the edges rounded to filletRadius3D.
@@ -9,6 +9,7 @@ export async function POST(request) {
       chords, expansion, circleRadius, borderThickness,
       minArea = 10, minAngle = 15, filletRadius = 2,
       thickness = 5, filletRadius3D = 2, scale = 1,
+      outlineStyle = 'current', liquidity,
     } = await request.json();
 
     if (!chords || !Array.isArray(chords) || chords.length === 0) {
@@ -17,15 +18,19 @@ export async function POST(request) {
     if (typeof expansion !== 'number' || typeof circleRadius !== 'number' || typeof borderThickness !== 'number') {
       return Response.json({ error: 'expansion, circleRadius, and borderThickness are required numbers' }, { status: 400 });
     }
+    if (!OUTLINE_STYLE_IDS.includes(outlineStyle)) {
+      return Response.json({ error: 'outlineStyle must be one of ' + OUTLINE_STYLE_IDS.join(', ') }, { status: 400 });
+    }
 
-    const model = buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, filletRadius);
-    const data = serializeChainsFor3D(model, circleRadius, borderThickness);
-    const mesh = buildPendantMesh(data, { thickness, filletR: filletRadius3D });
+    const mesh = buildExportMesh(
+      { style: outlineStyle, chords, circleRadius, borderThickness, expansion, minArea, minAngle, filletRadius, liquidity },
+      { thickness, filletR: filletRadius3D },
+    );
 
     return new Response(meshToSTL(mesh, { scale }), {
       headers: {
         'Content-Type': 'model/stl',
-        'Content-Disposition': 'attachment; filename="constelier-pendant.stl"',
+        'Content-Disposition': `attachment; filename="constelier-${outlineStyle}.stl"`,
         'X-Rounding-Radius': mesh.filletR.toFixed(2),
       },
     });

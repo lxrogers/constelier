@@ -4,9 +4,9 @@
 
 import { Horoscope, Origin } from '@/lib/horoscope';
 import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
-import { polygonArea, buildPendantModel, serializeChainsFor3D } from '@/modules/pendant-geometry';
-import { prefetchPendant, cancelPrefetch, awaitPendantResult } from '@/modules/pendant-builder-hybrid';
-import { buildPreviewMesh, buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
+import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
+import { buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
+import { buildPreview, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
 import makerjs from 'makerjs';
 
 const m = makerjs;
@@ -89,7 +89,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         // Fade out old pendant + crossfade 3D back to ring
         pendantAlpha = 0;
         pendantModelData = null;
-        cancelPrefetch();
         aspectAnimLines = [];
         aspectAnimDone = false;
         if (pendantViewer && chart3dCanvas.style.opacity === '1') {
@@ -463,7 +462,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantAlpha = 0;
     _3dModelReady = false;
     pendantModelData = null;
-    cancelPrefetch();
 
     if (!displayState) {
       displayState = newState;
@@ -730,6 +728,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     p.set('loc', (document.getElementById('location') as HTMLInputElement).value);
     const aspects = [...enabledAspects].sort().join(',');
     p.set('a', aspects);
+    if (outlineStyle !== 'current') p.set('outline', outlineStyle);
+    if (outlineStyle === 'liquid' && liquidity !== LIQUIDITY.default) p.set('liq', String(liquidity));
     history.replaceState(null, '', '?' + p.toString());
   }
 
@@ -784,7 +784,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         settings3dTimer = null;
         chart3dCanvas.style.transition = 'opacity 0.8s ease';
         start3DTransition();
-      }, USE_BREP_PREVIEW ? 500 : 120);
+      }, 120);
     }
   }
 
@@ -1361,11 +1361,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
       // Fire server request immediately with final expansion value,
       // so it runs in parallel with the expansion animation
-      if (USE_BREP_PREVIEW) {
-        prefetchPendant(result.chords, result.r, borderThickness, lineThickness, {
-          thickness: 5, filletR: 2, minArea: 185, minAngle: 5, filletRadius, meshQuality: 'high',
-        });
-      }
       // Start the viewer (and its HDRI download) now, so it is ready by the
       // time the 2 s expansion animation ends instead of starting then.
       ensureViewer().catch(() => {});
@@ -1450,6 +1445,23 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (_dotAnimId) { cancelAnimationFrame(_dotAnimId); _dotAnimId = null; }
   }
 
+  function modelCutouts(model, r) {
+    const fillChains = m.model.findChains(model);
+    const circleArea = Math.PI * r * r;
+    const cutouts = [];
+    for (const ch of fillChains) {
+      if (!ch.endless) continue;
+      try {
+        const pts = m.chain.toKeyPoints(ch, 1);
+        if (pts.length < 3) continue;
+        const area = polygonArea(pts);
+        if (area >= circleArea * 0.95) continue;
+        cutouts.push(pts);
+      } catch {}
+    }
+    return cutouts;
+  }
+
   function drawPendant() {
     if (!pendantModelData || pendantAlpha <= 0) { _stopDotAnim(); return; }
     const { model, r } = pendantModelData;
@@ -1467,19 +1479,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     ctx.translate(CX, CY);
     ctx.scale(scale, scale);
 
-    const fillChains = m.model.findChains(model);
-    const circleArea = Math.PI * r * r;
-    const cutouts = [];
-    for (const ch of fillChains) {
-      if (!ch.endless) continue;
-      try {
-        const pts = m.chain.toKeyPoints(ch, 1);
-        if (pts.length < 3) continue;
-        const area = polygonArea(pts);
-        if (area >= circleArea * 0.95) continue;
-        cutouts.push(pts);
-      } catch {}
-    }
+    // Organic outlines (Liquid, Pebble) only exist once the 3D build has
+    // run; until then the 2D view shows today's outline growing in.
+    const cutouts = pendantModelData.loops || modelCutouts(model, r);
 
     ctx.save();
     ctx.beginPath();
@@ -1548,38 +1550,159 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const chart3dCanvas = canvas3d;
   let pendantViewer = null;
   let viewerPromise = null;
-  let wasmPromise = null;
 
-  // The preview mesh is built in JS straight from the 2D outline
-  // (modules/fast-pendant-mesh.js). OpenCascade is only needed for the
-  // casting export now. Add ?brep=1 to the URL to compare with the old path.
-  const USE_BREP_PREVIEW = urlParams.get('brep') === '1';
-  if (USE_BREP_PREVIEW) {
-    wasmPromise = import('@/modules/pendant-builder').then(m => m.preloadWASM()).catch(e => { console.warn('WASM preload failed:', e); });
-  }
+  // ── Outline style + liquidity (preview branch) ───────────────────
+  // Every 3D build is a plain-JS mesh straight from the 2D outline, with
+  // rolling-ball edge rounding (modules/fast-pendant-mesh.js); no
+  // OpenCascade anywhere. The build runs in a Web Worker so dragging the
+  // liquidity slider never blocks the page.
+
+  let outlineStyle = OUTLINE_STYLE_IDS.includes(urlParams.get('outline')) ? urlParams.get('outline') : 'current';
+  let liquidity = (() => {
+    const v = parseFloat(urlParams.get('liq'));
+    return Number.isFinite(v) ? Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)) : LIQUIDITY.default;
+  })();
 
   const PREVIEW_OPTS = { thickness: 5, filletR: 2 };
 
-  function previewMinFeature() {
-    // narrowest bar (2 x line half-width) or border: caps the 3D fillet the
-    // way OpenCascade's step-down does when the full radius won't fit
-    return Math.min(2 * lineThickness, borderThickness > 0 ? borderThickness : Infinity);
+  function previewParams(draft = false) {
+    return {
+      style: outlineStyle,
+      chords: pendantModelData.chords,
+      circleRadius: pendantModelData.r,
+      borderThickness,
+      expansion: lineThickness,
+      minArea: 185,
+      minAngle: 5,
+      filletRadius,
+      liquidity,
+      draft,
+    };
   }
 
-  function buildPreviewFromModel(model, r) {
-    const serialized = serializeChainsFor3D(model, r, borderThickness);
-    return buildPreviewMesh(serialized, { ...PREVIEW_OPTS, minFeature: previewMinFeature() });
+  // Latest-wins scheduler: at most one build in flight. A request made while
+  // one runs replaces any earlier waiting request (that one resolves null).
+  let worker = null;
+  let workerBroken = false;
+  let jobSeq = 0;
+  let runningJob = null;
+  let queuedJob = null;
+
+  function getWorker() {
+    if (worker || workerBroken || typeof Worker === 'undefined') return worker;
+    try {
+      worker = new Worker(new URL('./pendant.worker.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = (e) => {
+        const job = runningJob;
+        if (!job || e.data.id !== job.id) return;
+        finishJob(job, e.data.error ? null : e.data);
+        if (e.data.error) console.warn('[pendant worker]', e.data.error);
+      };
+      worker.onerror = (e) => {
+        console.warn('[pendant worker] failed, building on the main thread', e?.message || e);
+        workerBroken = true;
+        try { worker.terminate(); } catch {}
+        worker = null;
+        const job = runningJob;
+        if (job) runOnMainThread(job);
+      };
+    } catch (err) {
+      workerBroken = true;
+      worker = null;
+    }
+    return worker;
   }
+
+  function runOnMainThread(job) {
+    setTimeout(() => {
+      if (runningJob !== job) return;
+      try {
+        const t0 = performance.now();
+        const res = buildPreview(job.params, PREVIEW_OPTS);
+        finishJob(job, { ...res, ms: performance.now() - t0 });
+      } catch (err) {
+        console.error('Pendant build error:', err);
+        finishJob(job, null);
+      }
+    }, 0);
+  }
+
+  function startJob(job) {
+    runningJob = job;
+    const w = getWorker();
+    if (w) w.postMessage({ id: job.id, params: job.params, meshOpts: PREVIEW_OPTS });
+    else runOnMainThread(job);
+  }
+
+  function finishJob(job, result) {
+    if (runningJob === job) runningJob = null;
+    if (urlParams.get('perf') === '1' && result) {
+      console.log(`[preview] ${job.params.style}${job.params.draft ? ' (draft)' : ''} ${result.ms.toFixed(0)} ms, ${result.mesh.triangles.length / 3} tris`);
+    }
+    job.resolve(result);
+    if (queuedJob) { const next = queuedJob; queuedJob = null; startJob(next); }
+  }
+
+  function requestPreview(params) {
+    return new Promise((resolve) => {
+      const job = { id: ++jobSeq, params, resolve };
+      if (runningJob) {
+        if (queuedJob) queuedJob.resolve(null);
+        queuedJob = job;
+      } else {
+        startJob(job);
+      }
+    });
+  }
+
+  // Which pendant a result belongs to, so a late result for an old chart or
+  // old settings is dropped.
+  let previewGen = 0;
+
+  function applyPreviewLoops(loops) {
+    if (!pendantModelData) return;
+    pendantModelData.loops = outlineStyle === 'current' ? null : loops;
+  }
+
+  // Reshape the pendant already on screen to the current style/liquidity.
+  // `mode`: 'swap' replaces the mesh instantly (slider drag), 'fade' cross-fades.
+  let liveDraftPending = false;
+  function refreshLivePendant(mode, draft) {
+    if (!pendantModelData || !pendantViewer || !_3dModelReady) return;
+    const gen = previewGen;
+    requestPreview(previewParams(draft)).then((res) => {
+      if (!res || gen !== previewGen || !pendantViewer || !_3dModelReady) return;
+      if (mode === 'swap') pendantViewer.swapMeshFromData(res.mesh);
+      else pendantViewer.crossFadeMeshFromData(res.mesh, 450);
+      applyPreviewLoops(res.loops);
+      if (displayState) drawChartState(displayState);
+    });
+  }
+
+  function onOutlineEvent(e) {
+    const d = e.detail || {};
+    if (d.style && OUTLINE_STYLE_IDS.includes(d.style) && d.style !== outlineStyle) {
+      outlineStyle = d.style;
+      if (pendantModelData) pendantModelData.loops = null;
+      syncURL();
+      refreshLivePendant('fade', false);
+      return;
+    }
+    if (typeof d.liquidity === 'number') {
+      const v = Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, d.liquidity));
+      const changed = v !== liquidity;
+      liquidity = v;
+      if (outlineStyle !== 'liquid') return;
+      if (d.final) { syncURL(); refreshLivePendant('swap', false); }
+      else if (changed) refreshLivePendant('swap', true);
+    }
+  }
+  window.addEventListener('pendant-outline', onOutlineEvent);
+  window.dispatchEvent(new CustomEvent('pendant-outline-state', { detail: { style: outlineStyle, liquidity } }));
 
   function crossFadeToRing(duration) {
     if (!pendantViewer) return;
-    if (USE_BREP_PREVIEW) {
-      import('@/modules/pendant-builder')
-        .then(m => m.buildRing3DShape(100, borderThickness, PREVIEW_OPTS))
-        .then(ring => { if (pendantViewer) pendantViewer.crossFadeMesh(ring.shape, 'high', duration); })
-        .catch(() => {});
-      return;
-    }
+    previewGen++;
     pendantViewer.crossFadeMeshFromData(buildRingPreviewMesh(100, borderThickness, PREVIEW_OPTS), duration);
   }
 
@@ -1631,44 +1754,21 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   async function start3DTransition() {
     if (!pendantModelData?.model) return;
     _3dModelReady = false;
+    const gen = ++previewGen;
+    const data = pendantModelData;
     try {
-      if (wasmPromise) await wasmPromise;
       await ensureViewer();
+      const res = await requestPreview(previewParams(false));
+      if (!res || gen !== previewGen || data !== pendantModelData) return;
 
-      const r = pendantModelData.r;
-      const opts = PREVIEW_OPTS;
-
-      if (!USE_BREP_PREVIEW) {
-        // Fast path: a few ms in JS, no server round trip, no WASM.
-        const t0 = performance.now();
-        const mesh = buildPreviewFromModel(pendantModelData.model, r);
-        if (chart3dCanvas.style.opacity !== '1') {
-          pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, opts));
-          update3DCamera();
-          chart3dCanvas.style.opacity = '1';
-        }
-        pendantViewer.crossFadeMeshFromData(mesh, 800);
-        if (urlParams.get('perf') === '1') {
-          console.log(`[preview] mesh ${(performance.now() - t0).toFixed(1)} ms, ${mesh.triangles.length / 3} tris`);
-        }
-      } else {
-        const { buildRing3DShape } = await import('@/modules/pendant-builder');
-        if (chart3dCanvas.style.opacity !== '1') {
-          const ring = await buildRing3DShape(r, borderThickness, opts);
-          pendantViewer.updateMesh(ring.shape, 'high');
-          update3DCamera();
-          chart3dCanvas.style.opacity = '1';
-        }
-
-        const full = await awaitPendantResult(
-          pendantModelData.model, r, borderThickness, opts
-        );
-        if (full.source === 'server') {
-          pendantViewer.crossFadeMeshFromData(full.meshData, 800);
-        } else {
-          pendantViewer.crossFadeMesh(full.shape, 'high', 800);
-        }
+      const r = data.r;
+      if (chart3dCanvas.style.opacity !== '1') {
+        pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, PREVIEW_OPTS));
+        update3DCamera();
+        chart3dCanvas.style.opacity = '1';
       }
+      pendantViewer.crossFadeMeshFromData(res.mesh, 800);
+      applyPreviewLoops(res.loops);
       _3dModelReady = true;
       _stopDotAnim();
       if (displayState) drawChartState(displayState);
@@ -1703,6 +1803,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     for (const [el, event, handler] of listeners) {
       el.removeEventListener(event, handler);
     }
+
+    window.removeEventListener('pendant-outline', onOutlineEvent);
+    if (worker) { try { worker.terminate(); } catch {} worker = null; }
 
     if (pendantViewer) {
       try { pendantViewer.dispose?.(); } catch {}

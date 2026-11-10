@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
+import OutlineControls from './components/OutlineControls';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -250,6 +251,7 @@ export default function NatalChart() {
           <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
         </div>
         <SettingsPanel />
+        <OutlineControls />
       </div>
     </div>
   );
