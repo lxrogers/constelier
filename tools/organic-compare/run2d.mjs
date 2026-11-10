@@ -2,7 +2,6 @@ import fs from 'fs';
 import makerjs from 'makerjs';
 import { chordsFor } from './charts.mjs';
 import { buildPendantModel, serializeChainsFor3D } from '../../modules/pendant-geometry.js';
-import { buildTaperedOutline } from '../../modules/organic/outline-tapered.js';
 import { buildLiquidOutline } from '../../modules/organic/outline-liquid.js';
 import { buildPebbleOutline } from '../../modules/organic/outline-pebble.js';
 import { outlineDataToLoops, castabilityMetrics, outlineSVG, minCurvatureRadius } from '../../modules/organic/outline-common.js';
@@ -16,7 +15,6 @@ export const SAMPLES = {
 const R = 100, BORDER = 8;
 export const ALGOS = {
   current: ch => serializeChainsFor3D(buildPendantModel(ch, 3, R, BORDER, 185, 5, 5), R, BORDER),
-  tapered: ch => buildTaperedOutline(ch, R, BORDER),
   liquid:  ch => buildLiquidOutline(ch, R, BORDER),
   pebble:  ch => buildPebbleOutline(ch, R, BORDER),
 };

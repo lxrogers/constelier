@@ -5,12 +5,10 @@
 // MakerJS and serializeChainsFor3D entirely). See tools/organic-compare/ for
 // the comparison harness.
 
-import { buildTaperedOutline, TAPERED_DEFAULTS } from './outline-tapered.js';
 import { buildLiquidOutline, LIQUID_DEFAULTS } from './outline-liquid.js';
 import { buildPebbleOutline, PEBBLE_DEFAULTS } from './outline-pebble.js';
 
 export const OUTLINE_STYLES = {
-  tapered: { build: buildTaperedOutline, defaults: TAPERED_DEFAULTS },
   liquid: { build: buildLiquidOutline, defaults: LIQUID_DEFAULTS },
   pebble: { build: buildPebbleOutline, defaults: PEBBLE_DEFAULTS },
 };

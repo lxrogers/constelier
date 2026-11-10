@@ -1,6 +1,7 @@
 // outline-voids.js
-// Vector void extraction shared by the "tapered" and "pebble" algorithms:
-// disc minus the union of (optionally tapered) chord bars, via polygon-clipping.
+// Vector void extraction: disc minus the union of chord bars (constant or
+// tapered width), via polygon-clipping. Used by Pebble and by today's outline
+// in pendant-geometry.js.
 
 import polygonClipping from 'polygon-clipping';
 import { circlePolygon, chordSegments, signedArea, ensureCCW, minInteriorAngle } from './outline-common.js';

@@ -26,7 +26,7 @@ export async function POST(request) {
       thickness = 5,
       filletRadius3D = 2,
       meshQuality = 'medium',
-      outlineStyle = 'current', // 'current' | 'tapered' | 'liquid' | 'pebble'
+      outlineStyle = 'current', // 'current' | 'liquid' | 'pebble'
       outlineOptions = {},
     } = params;
 

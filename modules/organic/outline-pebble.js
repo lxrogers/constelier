@@ -9,7 +9,7 @@
 // floor (2 × midHalfWidth, today's bar width).
 
 import { computeVoids, findCorners, clusterCorners } from './outline-voids.js';
-import { toOutlineData, sampleBezierLoop, minCurvatureRadius, limitTipRadius, resampleLoop, fitBezierLoop, loopLength } from './outline-common.js';
+import { toOutlineData, sampleBezierLoop, minCurvatureRadius, limitTipRadius, resampleLoop, fitC2Loop, bsplineToBeziers } from './outline-common.js';
 
 export const PEBBLE_DEFAULTS = {
   baseHalfWidth: 4.8,   // bars start a bit wider than today …
@@ -82,22 +82,22 @@ function controlPolygon(ring, circleRadius, o, bulgeScale) {
       }
     }
   }
-  return ctrl;
+  // The base voids are convex, so the pebble should be too. Where a side's
+  // bow meets a shallow corner, its control point can poke past the next
+  // one and dent the curve. Keeping only the convex hull of the control
+  // points makes the B-spline convex, so it can't have bumps or wobbles.
+  return convexHull(ctrl);
 }
 
-// Periodic uniform cubic B-spline → exact cubic Beziers (C2 joins).
-function bsplineToBeziers(P) {
-  const n = P.length, out = [];
-  for (let i = 0; i < n; i++) {
-    const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
-    out.push([
-      [(p0[0] + 4 * p1[0] + p2[0]) / 6, (p0[1] + 4 * p1[1] + p2[1]) / 6],
-      [(2 * p1[0] + p2[0]) / 3, (2 * p1[1] + p2[1]) / 3],
-      [(p1[0] + 2 * p2[0]) / 3, (p1[1] + 2 * p2[1]) / 3],
-      [(p1[0] + 4 * p2[0] + p3[0]) / 6, (p1[1] + 4 * p2[1] + p3[1]) / 6],
-    ]);
-  }
-  return out;
+// Andrew's monotone chain; CCW, no repeated or collinear points.
+function convexHull(pts) {
+  const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (P.length < 4) return P;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [], upper = [];
+  for (const p of P) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 1e-9) lower.pop(); lower.push(p); }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 1e-9) upper.pop(); upper.push(p); }
+  return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
 
 export function buildPebbleOutline(chords, circleRadius, borderThickness, options = {}) {
@@ -124,9 +124,8 @@ export function buildPebbleOutline(chords, circleRadius, borderThickness, option
   // every void stays curvature-continuous.
   loops = loops.map(l => {
     if (minCurvatureRadius(l) >= 0.75 * o.minTipRadius) return l;
-    const rounded = limitTipRadius(sampleBezierLoop(l, 24), o.minTipRadius * 1.3, 0.3);
-    const fitted = fitBezierLoop(rounded, 0.04);
-    return minCurvatureRadius(fitted) >= 0.5 * o.minTipRadius ? fitted : bsplineToBeziers(resampleLoop(rounded, Math.max(2.2, loopLength(rounded) / 80)));
+    const rounded = convexHull(resampleLoop(limitTipRadius(sampleBezierLoop(l, 24), o.minTipRadius * 1.3, 0.3), 0.4));
+    return fitC2Loop(rounded);
   });
   return toOutlineData(loops, circleRadius, borderThickness);
 }

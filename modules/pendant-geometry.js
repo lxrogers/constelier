@@ -2,6 +2,7 @@
 // Consolidated MakerJS pendant geometry functions (ES module)
 
 import makerjs from 'makerjs';
+import { computeVoids } from './organic/outline-voids.js';
 const m = makerjs;
 
 export function polygonArea(pts) {
@@ -183,26 +184,69 @@ export function deepCloneModel(obj) {
   return clone;
 }
 
-export function buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, fr) {
-  var lineModel = { paths: {} };
-  for (var i = 0; i < chords.length; i++) {
-    var c = chords[i];
-    var x1 = Math.cos(c.a1) * circleRadius, y1 = Math.sin(c.a1) * circleRadius;
-    var x2 = Math.cos(c.a2) * circleRadius, y2 = Math.sin(c.a2) * circleRadius;
-    var dx = x2 - x1, dy = y2 - y1;
-    var len = Math.hypot(dx, dy);
-    if (len < 1e-10) continue;
-    var ext = expansion * 3 / len;
-    lineModel.paths['line' + i] = new m.paths.Line(
-      [x1 - dx * ext, y1 - dy * ext],
-      [x2 + dx * ext, y2 + dy * ext]
-    );
+// Disc minus constant-width bars, as a MakerJS model of lines and rim arcs.
+function voidsModel(chords, expansion, circleRadius) {
+  var rimStep = 0.5; // degrees between disc polygon vertices
+  var voids = computeVoids(chords, circleRadius, function () { return expansion; },
+    { minArea: 0, minAngle: 0, rimSegments: Math.round(360 / rimStep) });
+  var rimEdge = 2 * Math.PI * circleRadius * rimStep / 360 * 1.01;
+  var model = { paths: {} };
+  var id = 0;
+  for (var v = 0; v < voids.length; v++) {
+    var ring = voids[v];
+    var n = ring.length;
+    var onRim = ring.map(function (p) { return Math.abs(Math.hypot(p[0], p[1]) - circleRadius) < 0.02; });
+    var pts = ring.map(function (p, i) {
+      if (!onRim[i]) return p;
+      var r = Math.hypot(p[0], p[1]);
+      return [p[0] * circleRadius / r, p[1] * circleRadius / r];
+    });
+    var isRim = function (i) {
+      var j = (i + 1) % n;
+      return onRim[i] && onRim[j] && Math.hypot(pts[j][0] - pts[i][0], pts[j][1] - pts[i][1]) <= rimEdge;
+    };
+    // Start at a vertex where the edge type changes (or anywhere if none).
+    var start = 0;
+    for (var i = 0; i < n; i++) if (isRim((i - 1 + n) % n) !== isRim(i)) { start = i; break; }
+    var k = 0;
+    while (k < n) {
+      var i0 = (start + k) % n;
+      if (isRim(i0)) {
+        var e = k;
+        while (e < n && isRim((start + e) % n)) e++;
+        var pA = pts[i0], pB = pts[(start + e) % n];
+        var a0 = Math.atan2(pA[1], pA[0]) * 180 / Math.PI, a1 = Math.atan2(pB[1], pB[0]) * 180 / Math.PI;
+        if (a0 < 0) a0 += 360;
+        if (a1 < 0) a1 += 360;
+        if (e - k === n) { model.paths['v' + id++] = new m.paths.Circle([0, 0], circleRadius); break; }
+        model.paths['v' + id++] = new m.paths.Arc([0, 0], circleRadius, a0, a1);
+        k = e;
+      } else {
+        // Straight run: skip vertices where the outline doesn't turn.
+        var e2 = k + 1;
+        while (e2 < n && !isRim((start + e2) % n)) {
+          var a = pts[(start + e2 - 1) % n], b = pts[(start + e2) % n], c = pts[(start + e2 + 1) % n];
+          var cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+          var l1 = Math.hypot(b[0] - a[0], b[1] - a[1]), l2 = Math.hypot(c[0] - b[0], c[1] - b[1]);
+          if (Math.abs(cross) > 1e-3 * l1 * l2) break; // turns under ~0.06° are noise
+          e2++;
+        }
+        model.paths['v' + id++] = new m.paths.Line(pts[i0], pts[(start + e2) % n]);
+        k = e2;
+      }
+    }
   }
+  return model;
+}
 
-  var expanded = m.model.expandPaths(lineModel, expansion);
-  var circle = { paths: { circle: new m.paths.Circle([0, 0], circleRadius) } };
-  m.model.combine(expanded, circle, true, false, false, true);
-  var result = { models: { expanded: expanded, circle: circle } };
+export function buildPendantModel(chords, expansion, circleRadius, borderThickness, minArea, minAngle, fr) {
+  // The voids are the disc minus the bars. This used to be MakerJS
+  // expandPaths + combine, but combine decides which rim pieces to keep by
+  // ray-casting, and where bar ends overlap past the rim it sometimes threw
+  // away rim arcs or bar edges, so a void never closed and came out solid
+  // (about 1 chart in 70). polygon-clipping does the boolean exactly; the
+  // rings are turned back into lines and rim arcs for the steps below.
+  var result = { models: { voids: voidsModel(chords, expansion, circleRadius) } };
 
   // Pre-pass: collapse short segments
   if (expansion > 0) {
@@ -337,6 +381,20 @@ export function buildPendantModel(chords, expansion, circleRadius, borderThickne
       if (changed) preChains = m.model.findChains(result);
     }
   }
+
+  // When two bar edges cross the rim at (almost) the same point, combine
+  // and the short-segment pass can leave a zero-length arc behind. MakerJS
+  // reads an arc whose start and end angles match as a full circle, so the
+  // void touching that point never closes and comes out solid. Drop those
+  // arcs; the edges on either side already meet at that point.
+  m.model.walk(result, {
+    onPath: function (wp) {
+      var p = wp.pathContext;
+      if (p.type !== 'arc') return;
+      var span = ((p.endAngle - p.startAngle) % 360 + 360) % 360;
+      if (span < 1e-3 || 360 - span < 1e-3) delete wp.modelContext.paths[wp.pathId];
+    }
+  });
 
   // Filter small closed regions
   if (minArea > 0 || minAngle > 0) {

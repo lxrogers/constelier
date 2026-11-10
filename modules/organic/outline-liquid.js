@@ -9,32 +9,27 @@
 // below 2 × midHalfWidth, and narrow voids close up on their own.
 
 import { contours } from 'd3-contour';
-import { chordSegments, signedArea, ensureCCW, resampleLoop, taubinSmooth, fitBezierLoop, toOutlineData, limitTipRadius } from './outline-common.js';
+import { chordSegments, signedArea, ensureCCW, resampleLoop, taubinSmooth, fitC2Loop, toOutlineData, limitTipRadius } from './outline-common.js';
 import { taperedHalfWidth } from './outline-voids.js';
 
 export const LIQUID_DEFAULTS = {
   midHalfWidth: 3,
   endHalfWidth: 5.2,
   taperPower: 2,
-  blend: 8,              // smooth-min radius: how far metal pools at junctions
+  blend: 11,             // smooth-min radius: how far metal pools at junctions
+  barOvershoot: 15,      // bars run this far past the rim (no end caps inside)
   resolution: 0.25,      // field grid spacing (model units)
   minArea: 185,
   minVoidRadius: 2.0,    // drop voids whose largest inscribed circle is smaller
-  fitTolerance: 0.05,
   minTipRadius: 1.2,
 };
-
-// Polynomial smooth min (Quilez). Only acts where |a-b| < k.
-function smin(a, b, k) {
-  const h = Math.max(k - Math.abs(a - b), 0) / k;
-  return Math.min(a, b) - h * h * k * 0.25;
-}
 
 export function liquidField(chords, circleRadius, o) {
   const segs = chordSegments(chords, circleRadius).map(([p, q]) => {
     const dx = q[0] - p[0], dy = q[1] - p[1];
     const len = Math.hypot(dx, dy);
-    return { p, dx, dy, len, len2: len * len };
+    const e = o.barOvershoot ?? 0;
+    return { p, dx, dy, len, len2: len * len, t0: -e / len, t1: 1 + e / len };
   });
   const h = o.resolution;
   const ext = circleRadius + 2;
@@ -42,23 +37,40 @@ export function liquidField(chords, circleRadius, o) {
   const ny = nx;
   const field = new Float64Array(nx * ny);
   const wOpts = { midHalfWidth: o.midHalfWidth, endHalfWidth: o.endHalfWidth, taperPower: o.taperPower };
+  const k = o.blend;
+  const ds = new Float64Array(segs.length);
   for (let j = 0; j < ny; j++) {
     const y = -ext + j * h;
     for (let i = 0; i < nx; i++) {
       const x = -ext + i * h;
-      let m = circleRadius - Math.hypot(x, y); // rim: negative outside the circle
-      for (const s of segs) {
-        let t = ((x - s.p[0]) * s.dx + (y - s.p[1]) * s.dy) / s.len2;
-        const tc = t < 0 ? 0 : t > 1 ? 1 : t;
+      const rim = circleRadius - Math.hypot(x, y);
+      for (let si = 0; si < segs.length; si++) {
+        const s = segs[si];
+        const t = ((x - s.p[0]) * s.dx + (y - s.p[1]) * s.dy) / s.len2;
+        // Bars run on past the rim, so a bar that meets the rim at a glancing
+        // angle has a straight flank there instead of a round end cap
+        // bulging inside the circle (that cap made a kink at the junction).
+        const tc = t < s.t0 ? s.t0 : t > s.t1 ? s.t1 : t;
         const px = s.p[0] + s.dx * tc - x, py = s.p[1] + s.dy * tc - y;
-        const d = Math.hypot(px, py) - taperedHalfWidth(t, s.len, circleRadius, wOpts);
-        if (d - m > o.blend) continue; // far away: no influence
-        m = smin(m, d, o.blend);
+        ds[si] = Math.hypot(px, py) - taperedHalfWidth(t, s.len, circleRadius, wOpts);
+      }
+      // Order matters with a pairwise smooth min; rim first, then bars.
+      let m = rim;
+      for (let si = 0; si < segs.length; si++) {
+        const d = ds[si];
+        if (d - m > k) continue; // too far to blend: no influence
+        m = smin3(m, d, k);
       }
       field[j * nx + i] = m;
     }
   }
   return { field, nx, ny, h, ext };
+}
+
+// C2 cubic smooth min (Quilez): no curvature jump where the blend starts.
+function smin3(a, b, k) {
+  const h = Math.max(k - Math.abs(a - b), 0) / k;
+  return Math.min(a, b) - h * h * h * k / 6;
 }
 
 export function buildLiquidOutline(chords, circleRadius, borderThickness, options = {}) {
@@ -83,7 +95,8 @@ export function buildLiquidOutline(chords, circleRadius, borderThickness, option
     }
     if (maxF < o.minVoidRadius) continue;
     const smooth = taubinSmooth(resampleLoop(ccw, 0.4), 3);
-    loops.push(fitBezierLoop(limitTipRadius(smooth, o.minTipRadius, 0.4), o.fitTolerance));
+    // The limiter lands a little under its target, so aim 25% high.
+    loops.push(fitC2Loop(limitTipRadius(smooth, o.minTipRadius * 1.25, 0.3)));
   }
   return toOutlineData(loops, circleRadius, borderThickness);
 }

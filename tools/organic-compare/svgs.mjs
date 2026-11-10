@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { outlineDataToLoops } from '../../modules/organic/outline-common.js';
 const out = {};
-for (const s of ['sparse', 'medium', 'dense', 'extreme']) for (const a of ['current', 'tapered', 'liquid', 'pebble']) {
+for (const s of ['sparse', 'medium', 'dense', 'extreme']) for (const a of ['current', 'liquid', 'pebble']) {
   const data = JSON.parse(fs.readFileSync(`tools/organic-compare/out/${s}-${a}.json`));
   const loops = outlineDataToLoops(data, 0.7);
   const R = 108, f = v => v.toFixed(1);

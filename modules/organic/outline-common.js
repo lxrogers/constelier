@@ -154,106 +154,6 @@ export function minCurvatureRadius(segs, perSeg = 16) {
   return minR;
 }
 
-// ── Schneider curve fitting (closed loop → cubic Beziers, G1 joins) ─────
-
-function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
-function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
-function mul(a, s) { return [a[0] * s, a[1] * s]; }
-function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
-function norm(a) { const l = Math.hypot(a[0], a[1]) || 1; return [a[0] / l, a[1] / l]; }
-
-function chordParams(pts) {
-  const u = [0];
-  for (let i = 1; i < pts.length; i++) u.push(u[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-  const L = u[u.length - 1] || 1;
-  return u.map(x => x / L);
-}
-
-function generateBezier(pts, u, t1, t2) {
-  const p0 = pts[0], p3 = pts[pts.length - 1];
-  let c00 = 0, c01 = 0, c11 = 0, x0 = 0, x1 = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const t = u[i], mt = 1 - t;
-    const b0 = mt * mt * mt, b1 = 3 * mt * mt * t, b2 = 3 * mt * t * t, b3 = t * t * t;
-    const A1 = mul(t1, b1), A2 = mul(t2, b2);
-    c00 += dot(A1, A1); c01 += dot(A1, A2); c11 += dot(A2, A2);
-    const tmp = sub(pts[i], add(mul(p0, b0 + b1), mul(p3, b2 + b3)));
-    x0 += dot(A1, tmp); x1 += dot(A2, tmp);
-  }
-  const det = c00 * c11 - c01 * c01;
-  let a1 = 0, a2 = 0;
-  if (Math.abs(det) > 1e-12) { a1 = (x0 * c11 - x1 * c01) / det; a2 = (c00 * x1 - c01 * x0) / det; }
-  const segLen = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]);
-  const eps = 1e-6 * segLen;
-  if (a1 < eps || a2 < eps || a1 > segLen * 2 || a2 > segLen * 2) { a1 = a2 = segLen / 3; }
-  return [p0, add(p0, mul(t1, a1)), add(p3, mul(t2, a2)), p3];
-}
-
-function reparam(b, pts, u) {
-  return u.map((t, i) => {
-    const d = sub(bez(b, t), pts[i]);
-    const d1 = bezD1(b, t), d2 = bezD2(b, t);
-    const num = dot(d, d1), den = dot(d1, d1) + dot(d, d2);
-    if (Math.abs(den) < 1e-12) return t;
-    return Math.min(1, Math.max(0, t - num / den));
-  });
-}
-
-function maxError(b, pts, u) {
-  let maxD = 0, idx = Math.floor(pts.length / 2);
-  for (let i = 1; i < pts.length - 1; i++) {
-    const p = bez(b, u[i]);
-    const d = (p[0] - pts[i][0]) ** 2 + (p[1] - pts[i][1]) ** 2;
-    if (d > maxD) { maxD = d; idx = i; }
-  }
-  return [maxD, idx];
-}
-
-function fitCubic(pts, t1, t2, err, out, depth = 0) {
-  if (pts.length === 2) {
-    const d = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) / 3;
-    out.push([pts[0], add(pts[0], mul(t1, d)), add(pts[1], mul(t2, d)), pts[1]]);
-    return;
-  }
-  let u = chordParams(pts);
-  let b = generateBezier(pts, u, t1, t2);
-  let [e, split] = maxError(b, pts, u);
-  if (e < err) { out.push(b); return; }
-  if (e < err * 16) {
-    for (let k = 0; k < 6; k++) {
-      u = reparam(b, pts, u);
-      b = generateBezier(pts, u, t1, t2);
-      [e, split] = maxError(b, pts, u);
-      if (e < err) { out.push(b); return; }
-    }
-  }
-  if (depth > 24) { out.push(b); return; }
-  split = Math.max(1, Math.min(pts.length - 2, split));
-  const tc = norm(sub(pts[split - 1], pts[split + 1]));
-  fitCubic(pts.slice(0, split + 1), t1, tc, err, out, depth + 1);
-  fitCubic(pts.slice(split), mul(tc, -1), t2, err, out, depth + 1);
-}
-
-// Fit a closed, smooth polyline with G1-continuous cubic Beziers.
-// tolerance is max deviation in model units.
-export function fitBezierLoop(loop, tolerance = 0.08) {
-  const n = loop.length;
-  // Start at the point of lowest curvature-ish (largest neighbour angle) so
-  // the seam lands on a calm stretch.
-  let start = 0, best = -Infinity;
-  for (let i = 0; i < n; i++) {
-    const a = loop[(i - 1 + n) % n], b = loop[i], c = loop[(i + 1) % n];
-    const s = dot(norm(sub(b, a)), norm(sub(c, b)));
-    if (s > best) { best = s; start = i; }
-  }
-  const pts = [];
-  for (let k = 0; k <= n; k++) pts.push(loop[(start + k) % n]);
-  const tan = norm(sub(loop[(start + 1) % n], loop[(start - 1 + n) % n]));
-  const out = [];
-  fitCubic(pts, tan, mul(tan, -1), tolerance * tolerance, out);
-  return out;
-}
-
 // ── Output assembly ─────────────────────────────────────────────────────
 
 export function toOutlineData(bezierLoops, circleRadius, borderThickness) {
@@ -385,4 +285,64 @@ export function limitTipRadius(loop, rMin = 1.2, spacing = 0.3, maxIter = 400) {
     if (it % 20 === 19) pts = resampleLoop(pts, spacing);
   }
   return pts;
+}
+
+// ── Curvature-continuous fitting ────────────────────────────────────────
+
+// Periodic uniform cubic B-spline (control points P) → exact cubic Beziers.
+// Neighbouring pieces share position, tangent and curvature (C2).
+export function bsplineToBeziers(P) {
+  const n = P.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+    out.push([
+      [(p0[0] + 4 * p1[0] + p2[0]) / 6, (p0[1] + 4 * p1[1] + p2[1]) / 6],
+      [(2 * p1[0] + p2[0]) / 3, (2 * p1[1] + p2[1]) / 3],
+      [(p1[0] + 2 * p2[0]) / 3, (p1[1] + 2 * p2[1]) / 3],
+      [(p1[0] + 4 * p2[0] + p3[0]) / 6, (p1[1] + 4 * p2[1] + p3[1]) / 6],
+    ]);
+  }
+  return out;
+}
+
+// Fit a closed polyline with a C2 curve. Knots are placed more densely
+// where the outline bends (step ≈ stepPerRadius × local bend radius,
+// clamped) and used directly as the control points of a periodic cubic
+// B-spline. Unlike the Schneider fit, joins are curvature-continuous, so
+// reflections on polished metal don't crease at each join. And unlike an
+// interpolating spline it can't overshoot: the curve stays inside the
+// control polygon's corners, so tips only get blunter (never sharper) and
+// no wobble is added. On a bend of radius R it sits ≈ stepPerRadius² R / 6
+// inside the input.
+export function fitC2Loop(loop, { minStep = 0.5, maxStep = 9, stepPerRadius = 0.35, maxRatio = 1.4 } = {}) {
+  const pts = resampleLoop(loop, 0.25);
+  const n = pts.length;
+  const w = 4;
+  const rad = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - w + n) % n], b = pts[i], c = pts[(i + w) % n];
+    const t1 = Math.atan2(b[1] - a[1], b[0] - a[0]), t2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    let da = Math.abs(t2 - t1); if (da > Math.PI) da = 2 * Math.PI - da;
+    rad[i] = da < 1e-6 ? 1e6 : (w * 0.25) / da; // chord turn = chord / R
+  }
+  // Smallest radius nearby (growing with distance), so steps shrink ahead
+  // of a tight bend and grow gradually after it.
+  const reach = Math.ceil(maxStep / 0.25);
+  const want = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let r = Infinity;
+    for (let j = -reach; j <= reach; j++) r = Math.min(r, rad[(i + j + n) % n] + Math.abs(j) * 0.25 * (maxRatio - 1) / stepPerRadius);
+    want[i] = Math.min(maxStep, Math.max(minStep, stepPerRadius * r));
+  }
+  const knots = [];
+  let i = 0, walked = 0;
+  const total = n * 0.25;
+  while (walked < total - 0.5 * want[i % n]) {
+    knots.push(pts[i % n]);
+    const step = want[i % n];
+    let d = 0;
+    while (d < step && walked < total) { i++; d += 0.25; walked += 0.25; }
+  }
+  if (knots.length < 4) return bsplineToBeziers(resampleLoop(loop, Math.max(0.5, loopLength(loop) / 8)));
+  return bsplineToBeziers(knots);
 }
