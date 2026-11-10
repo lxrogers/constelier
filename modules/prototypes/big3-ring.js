@@ -41,8 +41,10 @@ export const MOON_STYLES = [
 ];
 
 // US size 7 or so: 17.2 mm across the finger.
-export const RING = { innerR: 8.6, wall: 1.3 };
-export const RING_OUTER_R = RING.innerR + RING.wall;
+// US size 7 or so: 17.2 mm across the finger. The wall is the design's
+// `thickness`; the pattern is laid out on the band's outer face.
+export const RING = { innerR: 8.6 };
+export const ringOuterR = design => RING.innerR + design.thickness;
 
 // Keep-clear distances (degrees around the ring). Closer than this the sun
 // and moon would swallow each other; at this distance they just overlap.
@@ -148,8 +150,8 @@ function starburst(radii, points) {
   return pts;
 }
 
-// Replace every corner with an arc of radius `r` (less where the edges are
-// too short for it), so tips can be cast and the 3D edge fillet has room.
+// Replace every corner with an arc of radius `r` (one radius, or one per
+// corner; less where the edges are too short for it), so tips can be cast and the 3D edge fillet has room.
 function roundCorners(pts, r, steps = 5) {
   const out = [], n = pts.length;
   for (let i = 0; i < n; i++) {
@@ -159,7 +161,8 @@ function roundCorners(pts, r, steps = 5) {
     const theta = Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1])));
     if (theta > Math.PI - 0.05) { out.push(B); continue; }
     const tan = Math.tan(theta / 2);
-    const t = Math.min(r / tan, 0.45 * Math.min(la, lc)), rr = t * tan;
+    const want = Array.isArray(r) ? r[i] : r;
+    const t = Math.min(want / tan, 0.45 * Math.min(la, lc)), rr = t * tan;
     let bx = u[0] + v[0], by = u[1] + v[1];
     const bl = Math.hypot(bx, by);
     bx /= bl; by /= bl;
@@ -174,6 +177,34 @@ function roundCorners(pts, r, steps = 5) {
 }
 
 const CORNER_R = 0.36;
+
+// A disc of radius R that runs into the band (half-width hw) through four
+// small fillets of radius f, one in each corner where the disc's edge would
+// otherwise meet the band's at an angle. The outline carries the short piece
+// of band between the fillets, so the blend is part of the shape and travels
+// with it. Returns the outline and how far it reaches along the band.
+function blendedDisc(R, hw, f) {
+  if (R <= hw + 0.05) return { outer: circle(0, 0, R, 72), halfU: R };
+  const cx = Math.sqrt((R + f) ** 2 - (hw + f) ** 2), cy = hw + f;
+  const t = Math.atan2(cy, cx); // where the disc hands over to a fillet
+  const pts = [];
+  const arc = (ox, oy, rad, from, to, n) => { // the short way round, end point left to the next piece
+    let d = to - from;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    for (let i = 0; i < n; i++) { const a = from + d * (i / n); pts.push([ox + rad * Math.cos(a), oy + rad * Math.sin(a)]); }
+  };
+  arc(0, 0, R, t, Math.PI - t, 40);                                  // lower lobe
+  arc(-cx, cy, f, Math.atan2(-cy, cx), -Math.PI / 2, 8);
+  pts.push([-cx, hw]);                                               // straight across the band
+  arc(-cx, -cy, f, Math.PI / 2, Math.atan2(cy, cx), 8);
+  arc(0, 0, R, Math.PI + t, 2 * Math.PI - t, 40);                    // upper lobe
+  arc(cx, -cy, f, Math.atan2(cy, -cx), Math.PI / 2, 8);
+  pts.push([cx, -hw]);
+  arc(cx, cy, f, -Math.PI / 2, Math.atan2(-cy, -cx), 8);
+  return { outer: pts, halfU: Math.max(R, cx) };
+}
+const BLEND_R = 0.6;
 
 // { outer, holes, halfU } for one marker, centred on its spot on the band;
 // null when the style has no shape of its own (the gap). `halfU` is how far
@@ -190,8 +221,8 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
       const tip = 3.1 * s;
       return { outer: roundCorners(starburst([tip, 0.78 * s, 2.25 * s, 0.78 * s], 4), 0.1, 3), holes: [], halfU: tip };
     }
-    const r = 2.4 * s;
-    return { outer: circle(0, 0, r, 72), holes: [circle(0, 0, 1.15 * s, 48)], halfU: r };
+    const disc = blendedDisc(2.4 * s, width / 2, BLEND_R * s);
+    return { outer: disc.outer, holes: [circle(0, 0, 1.15 * s, 48)], halfU: disc.halfU };
   }
 
   if (kind === 'moon') {
@@ -218,8 +249,8 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
       arc(px, py, cap, b1 - Math.PI, a1, 8);
       return { outer: pts, holes: [], halfU: R };
     }
-    const r = 2.15 * s;
-    return { outer: circle(0, 0, r, 64), holes: [], halfU: r };
+    const disc = blendedDisc(2.15 * s, width / 2, BLEND_R * s);
+    return { outer: disc.outer, holes: [], halfU: disc.halfU };
   }
 
   // ascendant
@@ -249,14 +280,10 @@ export function ringHalfHeight(design) {
 // Every mesh is drawn flat first: x is millimetres along the outer face,
 // starting at the ascendant and running with the zodiac, y is across the band.
 
-const LENGTH = 2 * Math.PI * RING_OUTER_R;
-const BEND_STEP = RING_OUTER_R * 3 * DEG; // longest run along the band between mesh points
+const BEND_STEP = 0.5;                    // mm, longest run along the band between mesh points
 const GAP_MM = 2.2;                       // clear opening of the gap style, on the outer face
-const BAND_FILLET = 0.48;                 // of a 1.3 mm wall: a soft, almost oval section
-// With no relief the shapes still sit a few microns up, so that their face and
-// the band's are never exactly the same surface.
-const MIN_RELIEF = 0.004;
-
+// Edge rounding as a share of the wall: a soft, almost oval section.
+const bandFillet = design => Math.min(0.5, design.thickness * 0.37);
 // Cut every triangle that spans more than `maxDx` along x into a ladder of
 // narrow ones, so the flat mesh can be bent without cutting corners. Each
 // edge is divided the same way whichever triangle asks, so neighbours stay
@@ -315,7 +342,7 @@ function splitForBend(pos, nor, tris, maxDx) {
 // ascendant at 180 degrees, zodiac order counter-clockwise on screen), y runs
 // along the axis with y < 0 toward the viewer. Top and bottom edges are
 // rounded by `filletR`, less where a shape is too fine for it.
-function wrapPattern(polygons, filletR, thickness = RING.wall, baseR = RING.innerR) {
+function wrapPattern(polygons, { outerR, filletR, thickness, baseR = RING.innerR }) {
   const pos = [], nor = [];
   let tris = [];
   for (const poly of polygons) {
@@ -341,7 +368,7 @@ function wrapPattern(polygons, filletR, thickness = RING.wall, baseR = RING.inne
   const n = pos.length / 3;
   const vertices = new Float32Array(pos.length), normals = new Float32Array(pos.length);
   for (let i = 0; i < n; i++) {
-    const a = Math.PI - pos[3 * i] / RING_OUTER_R, rho = baseR + pos[3 * i + 2];
+    const a = Math.PI - pos[3 * i] / outerR, rho = baseR + pos[3 * i + 2];
     const ca = Math.cos(a), sa = Math.sin(a);
     vertices[3 * i] = rho * ca; vertices[3 * i + 1] = rho * sa; vertices[3 * i + 2] = pos[3 * i + 1];
     const nx = nor[3 * i], ny = nor[3 * i + 1], nz = nor[3 * i + 2];
@@ -373,37 +400,49 @@ export function bandFollowsSun(design) {
 // otherwise the same all the way round, so build it once with the sun
 // anywhere and turn the mesh to move the sun.
 export function buildBandMesh(design, sunOffDeg = 180) {
-  const hw = design.width / 2;
+  const hw = design.width / 2, outerR = ringOuterR(design), LENGTH = 2 * Math.PI * outerR;
+  const shell = { outerR, filletR: bandFillet(design), thickness: design.thickness };
   const openings = [];
-  if (design.asc === 'gap') openings.push([0, GAP_MM / 2]);
+  // [centre, half-length, how round the band's ends are there]: fully round at
+  // the gap, where they show; nearly square under the sun, so that they stay
+  // tucked under its disc
+  if (design.asc === 'gap') openings.push([0, GAP_MM / 2, hw * 0.98]);
   const sunHalf = sunOpening(design);
-  if (sunHalf > 0) openings.push([normDeg(sunOffDeg) * DEG * RING_OUTER_R, sunHalf]);
+  if (sunHalf > 0) openings.push([normDeg(sunOffDeg) * DEG * outerR, sunHalf, Math.min(0.3, hw * 0.5)]);
 
   if (!openings.length) {
     // the ends overlap, so the join is buried
-    return wrapPattern([{ outer: [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]], holes: [] }], BAND_FILLET);
+    return wrapPattern([{ outer: [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]], holes: [] }], shell);
   }
 
   // metal runs from the end of each opening to the start of the next
   openings.sort((p, q) => p[0] - q[0]);
   const strips = [];
   for (let i = 0; i < openings.length; i++) {
-    const [c0, h0] = openings[i], [c1, h1] = openings[(i + 1) % openings.length];
+    const [c0, h0, r0] = openings[i], [c1, h1, r1] = openings[(i + 1) % openings.length];
     const x0 = c0 + h0, x1 = c1 - h1 + (i === openings.length - 1 ? LENGTH : 0);
     if (x1 - x0 < design.width * 1.1) continue; // too short to be more than a bead: leave it out
-    strips.push({ outer: roundCorners([[x0, -hw], [x1, -hw], [x1, hw], [x0, hw]], hw * 0.98, 8), holes: [] });
+    strips.push({ outer: roundCorners([[x0, -hw], [x1, -hw], [x1, hw], [x0, hw]], [r0, r1, r1, r0], 8), holes: [] });
   }
-  return wrapPattern(strips, BAND_FILLET);
+  return wrapPattern(strips, shell);
 }
 
 // One marker as its own mesh, lying on the band at 180 degrees past the
-// ascendant (the right-hand side): turn it about the axis to place it. It is
-// as thick as the band, with the same rounded edges, and stands `relief` mm
-// out from the band's face. null for the gap, which is only an opening.
+// ascendant (the right-hand side): turn it about the axis to place it. Its
+// inside is flush with the band's, its edges are rounded like the band's, and
+// its face stands `relief` mm out from the band's (0 for flush). null for the
+// gap, which is only an opening.
+//
+// Flush, a marker's faces are exactly the band's where the two overlap, so
+// its edges vanish into the band with no seam. Whoever draws the two should
+// let the band win the depth test there (a polygon offset on the marker).
 export function buildMarkerMesh(kind, design) {
   const p = markerProfile(kind, design[kind], design.size, design.width);
   if (!p) return null;
-  const shifted = ring => ring.map(q => [q[0] + LENGTH / 2, q[1]]);
-  const relief = Math.max(MIN_RELIEF, design.relief || 0);
-  return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], BAND_FILLET, RING.wall, RING.innerR + relief);
+  const outerR = ringOuterR(design), half = Math.PI * outerR;
+  const shifted = ring => ring.map(q => [q[0] + half, q[1]]);
+  const relief = Math.max(0, design.relief || 0);
+  return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], {
+    outerR, filletR: bandFillet(design), thickness: design.thickness + relief,
+  });
 }

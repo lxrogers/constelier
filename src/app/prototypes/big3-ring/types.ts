@@ -28,6 +28,7 @@ export interface RingDesign {
   sun: string;
   moon: string;
   width: number;      // band width, mm
+  thickness: number;  // band wall, mm
   size: number;       // marker scale
   relief: number;     // how far the markers stand out from the band's face, mm (0 = flush)
   tiltDeg: number;    // how far the view tips over once tilted

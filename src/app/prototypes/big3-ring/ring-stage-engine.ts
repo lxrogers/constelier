@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { PendantViewer } from '@/modules/three-pendant-viewer';
 import { easeInOutCubic } from '@/modules/easing';
 import {
-  SIGN_NAMES, RING, RING_OUTER_R,
+  SIGN_NAMES, RING, ringOuterR,
   lerpAngle, layoutOffsets, offsetToAngle, formatPosition, formatHouse,
   markerProfile, ringHalfHeight, bandFollowsSun, buildBandMesh, buildMarkerMesh,
 } from '@/modules/prototypes/big3-ring';
@@ -92,8 +92,9 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   const camera: THREE.PerspectiveCamera = viewer.camera;
   camera.fov = 2 * Math.atan((VH / 2 / PX_PER_MM * K) / CAM_DIST) * 180 / Math.PI;
   camera.aspect = VW / VH;
-  camera.near = 10;
-  camera.far = CAM_DIST * 2;
+  // a tight depth range round the ring: the band and its markers share faces, and need the precision
+  camera.near = CAM_DIST - 700;
+  camera.far = CAM_DIST + 700;
 
   type PartName = 'band' | 'asc' | 'sun' | 'moon';
   const parts: Record<PartName, THREE.Mesh | null> = { band: null, asc: null, sun: null, moon: null };
@@ -104,18 +105,32 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   let bandBuiltAt = NaN;
   let builtKey = '';
 
+  // Flush markers share their faces with the band exactly: bias their depth a
+  // touch away from the camera, so the band always wins there. A marker then
+  // shows only where it truly stands clear of the band, and its ends vanish.
+  let markerMat: THREE.Material | null = null;
+
   function setPart(name: PartName, meshData: any) {
     const old = parts[name];
     if (old) { viewer.pendantGroup.remove(old); old.geometry.dispose(); }
     parts[name] = null;
     if (!meshData) return;
     const mesh: THREE.Mesh = viewer.createMesh(meshData);
+    if (name !== 'band') {
+      if (!markerMat) {
+        markerMat = (mesh.material as THREE.Material).clone();
+        markerMat.polygonOffset = true;
+        markerMat.polygonOffsetFactor = 1;
+        markerMat.polygonOffsetUnits = 1;
+      }
+      mesh.material = markerMat;
+    }
     viewer.pendantGroup.add(mesh);
     parts[name] = mesh;
   }
 
   function rebuildMeshes() {
-    const key = [design.asc, design.sun, design.moon, design.width, design.size, design.relief].join('|');
+    const key = [design.asc, design.sun, design.moon, design.width, design.thickness, design.size, design.relief].join('|');
     if (key === builtKey) return;
     builtKey = key;
     bandRebuilds = bandFollowsSun(design);
@@ -469,8 +484,8 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
         const prof = profiles[it.kind];
         if (!prof) continue;
         for (const side of [-1, 1]) {
-          const a = it.a + side * prof.halfU / RING_OUTER_R;
-          const [x1, y1] = polar(RING.innerR, a, topY), [x2, y2] = polar(RING_OUTER_R, a, topY);
+          const a = it.a + side * prof.halfU / ringOuterR(design);
+          const [x1, y1] = polar(RING.innerR, a, topY), [x2, y2] = polar(ringOuterR(design), a, topY);
           ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
         }
       }
@@ -725,6 +740,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       if (rafId != null) cancelAnimationFrame(rafId);
       observer.disconnect();
       for (const name of Object.keys(parts) as PartName[]) setPart(name, null);
+      markerMat?.dispose();
       try { viewer.dispose(); } catch {}
     },
   };
