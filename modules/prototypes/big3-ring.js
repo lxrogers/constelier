@@ -6,10 +6,10 @@
 //
 // The shapes lie on the band's outer face, following its curve and flush with
 // it: seen face-on, the band simply widens into a disc, a star, a crescent.
-// Each is a thin plate, thinner than the band, so where it crosses the band
-// it is buried in it and never shows on the inside. Band and plates are drawn
-// flat first, given their thickness with fast-pendant-mesh (rounded edges, no
-// OpenCascade), then wrapped round the ring's axis.
+// Each is as thick as the band and can be raised a little from its face
+// (`relief`, 0 for flush). Band and shapes are drawn flat first, given their
+// thickness with fast-pendant-mesh (rounded edges, no OpenCascade), then
+// wrapped round the ring's axis.
 //
 // Pure geometry and chart maths: no DOM, no React, no Three.js scene.
 // Lengths are millimetres. Angles on the ring use the chart canvas convention:
@@ -188,7 +188,7 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
     if (style === 'star') {
       // long thin rays: the tips are left almost sharp
       const tip = 3.1 * s;
-      return { outer: roundCorners(starburst([tip, 0.78 * s, 1.75 * s, 0.78 * s], 4), 0.1, 3), holes: [], halfU: tip };
+      return { outer: roundCorners(starburst([tip, 0.78 * s, 2.25 * s, 0.78 * s], 4), 0.1, 3), holes: [], halfU: tip };
     }
     const r = 2.4 * s;
     return { outer: circle(0, 0, r, 72), holes: [circle(0, 0, 1.15 * s, 48)], halfU: r };
@@ -225,9 +225,10 @@ export function markerProfile(kind, style, size = 1, width = 2.6) {
   // ascendant
   if (style === 'gap') return null;
   if (style === 'triangle') {
-    // sits on the band's lower edge and points up
-    const half = 2.3 * s, base = width / 2, apex = -(width / 2 + 2.1 * s);
-    return { outer: roundCorners([[-half, base], [0, apex], [half, base]], CORNER_R), holes: [], halfU: half };
+    // An arrowhead along the band, wider than it, pointing against the zodiac:
+    // with the ascendant on the left of the chart, that is straight up.
+    const half = 2.3 * s;
+    return { outer: roundCorners([[1.3 * s, -half], [-2.7 * s, 0], [1.3 * s, half]], CORNER_R), holes: [], halfU: 2.7 * s };
   }
   // bar: a stadium standing across the band
   const w = 0.75 * s, h = width / 2 + 1.5 * s;
@@ -252,13 +253,9 @@ const LENGTH = 2 * Math.PI * RING_OUTER_R;
 const BEND_STEP = RING_OUTER_R * 3 * DEG; // longest run along the band between mesh points
 const GAP_MM = 2.2;                       // clear opening of the gap style, on the outer face
 const BAND_FILLET = 0.48;                 // of a 1.3 mm wall: a soft, almost oval section
-// Plates sit flush with the outer face and stop where the band's inner
-// rounding begins, so the band always hides them from the inside.
-const PLATE = RING.wall - BAND_FILLET;
-const PLATE_FILLET = 0.3;
-// A hair proud of the band's face (0.06 mm), so a shape's outline still reads
-// where it lies across the band, and the two surfaces never share a plane.
-const PLATE_PROUD = 0.06;
+// With no relief the shapes still sit a few microns up, so that their face and
+// the band's are never exactly the same surface.
+const MIN_RELIEF = 0.004;
 
 // Cut every triangle that spans more than `maxDx` along x into a ladder of
 // narrow ones, so the flat mesh can be bent without cutting corners. Each
@@ -358,7 +355,7 @@ function wrapPattern(polygons, filletR, thickness = RING.wall, baseR = RING.inne
 
 // Half the length of band left out under a sun with a hole, so the hole is
 // clear right through; 0 for a sun without one. The band's rounded ends stop
-// just short of the hole and stay hidden under the sun's plate.
+// just short of the hole and stay hidden under the sun.
 function sunOpening(design) {
   const p = markerProfile('sun', design.sun, design.size, design.width);
   if (!p.holes.length) return 0;
@@ -399,12 +396,14 @@ export function buildBandMesh(design, sunOffDeg = 180) {
   return wrapPattern(strips, BAND_FILLET);
 }
 
-// One marker as its own plate, lying on the band at 180 degrees past the
-// ascendant (the right-hand side): turn it about the axis to place it.
-// null for the gap, which is only an opening in the band.
+// One marker as its own mesh, lying on the band at 180 degrees past the
+// ascendant (the right-hand side): turn it about the axis to place it. It is
+// as thick as the band, with the same rounded edges, and stands `relief` mm
+// out from the band's face. null for the gap, which is only an opening.
 export function buildMarkerMesh(kind, design) {
   const p = markerProfile(kind, design[kind], design.size, design.width);
   if (!p) return null;
   const shifted = ring => ring.map(q => [q[0] + LENGTH / 2, q[1]]);
-  return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], PLATE_FILLET, PLATE, RING_OUTER_R + PLATE_PROUD - PLATE);
+  const relief = Math.max(MIN_RELIEF, design.relief || 0);
+  return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], BAND_FILLET, RING.wall, RING.innerR + relief);
 }

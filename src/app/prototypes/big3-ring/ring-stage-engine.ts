@@ -115,7 +115,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   }
 
   function rebuildMeshes() {
-    const key = [design.asc, design.sun, design.moon, design.width, design.size].join('|');
+    const key = [design.asc, design.sun, design.moon, design.width, design.size, design.relief].join('|');
     if (key === builtKey) return;
     builtKey = key;
     bandRebuilds = bandFollowsSun(design);
@@ -486,8 +486,13 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       ctx.beginPath();
       if (prof) {
         const k = 3.4; // px per mm
+        // drawn as the shape sits on the left of the chart, where "along the band" is up the screen
+        const upright = it.kind === 'asc';
         for (const ring of [prof.outer, ...prof.holes]) {
-          ring.forEach((q, i) => (i ? ctx.lineTo(ix + q[0] * k, iy + q[1] * k) : ctx.moveTo(ix + q[0] * k, iy + q[1] * k)));
+          ring.forEach((q, i) => {
+            const x = ix + (upright ? q[1] : q[0]) * k, y = iy + (upright ? q[0] : q[1]) * k;
+            if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          });
           ctx.closePath();
         }
         ctx.fill('evenodd');

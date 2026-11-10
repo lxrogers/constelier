@@ -29,6 +29,7 @@ export interface RingDesign {
   moon: string;
   width: number;      // band width, mm
   size: number;       // marker scale
+  relief: number;     // how far the markers stand out from the band's face, mm (0 = flush)
   tiltDeg: number;    // how far the view tips over once tilted
   tiltDir: number;    // which way: 0 = camera drops toward the bottom of the screen, 90 = toward the left
 }

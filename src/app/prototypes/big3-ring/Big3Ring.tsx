@@ -47,6 +47,7 @@ export default function Big3Ring() {
 
         <h3>Ring</h3>
         <SliderField label="Band width" value={design.width} min={1.4} max={5} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
+        <SliderField label="Marker relief" value={design.relief} min={0} max={0.6} step={0.05} format={v => (v === 0 ? 'flush' : `${v.toFixed(2)} mm`)} onChange={relief => setDesign({ relief })} />
         <SliderField label="Marker size" value={design.size} min={0.7} max={1.2} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
 
         <h3>View</h3>
