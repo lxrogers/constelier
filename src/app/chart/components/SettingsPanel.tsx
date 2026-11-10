@@ -18,7 +18,7 @@ const PARAMS: SliderParam[] = [
   { id: 'fillet-radius', label: '2D Fillet Radius', min: 0, max: 20, step: 0.5, defaultValue: 5 },
 ];
 
-export default function SettingsPanel() {
+export default function SettingsPanel({ showGear = true }: { showGear?: boolean }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -45,7 +45,7 @@ export default function SettingsPanel() {
         <input key={p.id} type="hidden" id={p.id} defaultValue={p.defaultValue} />
       ))}
 
-      <button
+      {showGear && <button
         ref={buttonRef}
         className={`settings-gear${open ? ' active' : ''}`}
         onClick={() => setOpen(!open)}
@@ -54,7 +54,7 @@ export default function SettingsPanel() {
         <svg width="20" height="20" viewBox="0 -960 960 960" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M450-130v-220h60v80h320v60H510v80h-60Zm-320-80v-60h220v60H130Zm160-160v-80H130v-60h160v-80h60v220h-60Zm160-80v-60h380v60H450Zm160-160v-220h60v80h160v60H670v80h-60Zm-480-80v-60h380v60H130Z"/>
         </svg>
-      </button>
+      </button>}
 
       {open && (
         <div ref={panelRef} className="settings-panel">

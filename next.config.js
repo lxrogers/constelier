@@ -3,6 +3,8 @@ const nextConfig = {
   // Local dev database (DATABASE_URL=pglite:…): loaded from node_modules at
   // runtime instead of bundled, because it ships its own WebAssembly.
   serverExternalPackages: ['@electric-sql/pglite'],
+  // No dev-mode badge in the corner (it covers buttons in screenshots).
+  devIndicators: false,
   // Turbopack config (Next.js 16 default bundler)
   turbopack: {
     resolveAlias: {

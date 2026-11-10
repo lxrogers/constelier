@@ -1,6 +1,4 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import BagLink from '@/components/BagLink';
+import type { Metadata, Viewport } from 'next';
 import SiteAnalytics from '@/components/SiteAnalytics';
 import '@/styles/globals.css';
 
@@ -40,31 +38,19 @@ export const metadata: Metadata = {
     ],
     apple: '/favicons/apple-touch-icon.png',
   },
-  other: {
-    'theme-color': '#f5f0e6',
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#07080d',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <nav className="site-nav">
-          <Link href="/chart" className="logo">
-            <svg className="logo-icon" width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
-              <polygon points="50,2 57,40 50,50 43,40" fill="currentColor"/>
-              <polygon points="98,50 60,57 50,50 60,43" fill="currentColor"/>
-              <polygon points="50,98 43,60 50,50 57,60" fill="currentColor"/>
-              <polygon points="2,50 40,43 50,50 40,57" fill="currentColor"/>
-              <polygon points="55,38 76,24 62,45 50,50" fill="currentColor"/>
-              <polygon points="62,55 76,76 55,62 50,50" fill="currentColor"/>
-              <polygon points="45,62 24,76 38,55 50,50" fill="currentColor"/>
-              <polygon points="38,45 24,24 45,38 50,50" fill="currentColor"/>
-            </svg>
-            Constelier
-          </Link>
-          <BagLink />
-        </nav>
         {children}
         <SiteAnalytics />
       </body>

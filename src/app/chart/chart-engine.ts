@@ -206,8 +206,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const name1 = PLANET_NAMES[ha.point1Key] || ha.point1Key;
       const name2 = PLANET_NAMES[ha.point2Key] || ha.point2Key;
       tooltip.textContent = `Your ${name1} and ${name2} are in ${ha.aspectKey}`;
-      const rect = canvas.getBoundingClientRect();
-      const scale = rect.width / SIZE;
+      // Layout size, not the on-screen rect: the overlay sits inside the same
+      // (possibly scaled) frame as the canvas.
+      const scale = canvas.offsetWidth / SIZE;
       const cx = (SIZE / 2) * scale;
       const cy = (SIZE / 2) * scale;
       tooltip.style.display = '';
@@ -241,12 +242,15 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (changed && displayState) drawChartState(displayState);
     if (changed) {
       chart3dCanvas.style.transition = 'opacity 0.15s ease';
-      chart3dCanvas.style.opacity = hoveredAspect ? '0.3' : '1';
+      chart3dCanvas.style.opacity = hoveredAspect ? T.dim : '1';
       canvas.dispatchEvent(new CustomEvent('hover-changed', {
         detail: hoveredAspect ? {
           point1Key: hoveredAspect.point1Key,
           point2Key: hoveredAspect.point2Key,
           aspectKey: hoveredAspect.aspectKey,
+          // Chord ends in 0..1 of the chart, for pages that frame the view.
+          x1: hoveredAspect.x1 / SIZE, y1: hoveredAspect.y1 / SIZE,
+          x2: hoveredAspect.x2 / SIZE, y2: hoveredAspect.y2 / SIZE,
         } : null,
       }));
     }
@@ -718,6 +722,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   function syncURL() {
     const p = new URLSearchParams();
+    // Keep page-level params (theme, where they came from, dev tools).
+    const cur = new URLSearchParams(window.location.search);
+    for (const k of ['theme', 'from', 'dev', 'capture']) { const v = cur.get(k); if (v !== null) p.set(k, v); }
     p.set('y', (document.getElementById('birth-year') as HTMLSelectElement).value);
     p.set('m', (document.getElementById('birth-month') as HTMLSelectElement).value);
     p.set('d', (document.getElementById('birth-day') as HTMLSelectElement).value);
@@ -728,7 +735,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     p.set('loc', (document.getElementById('location') as HTMLInputElement).value);
     const aspects = [...enabledAspects].sort().join(',');
     p.set('a', aspects);
-    if (outlineStyle !== 'current') p.set('outline', outlineStyle);
+    if (outlineStyle !== 'liquid') p.set('outline', outlineStyle);
     if (outlineStyle === 'liquid' && liquidity !== LIQUIDITY.default) p.set('liq', String(liquidity));
     history.replaceState(null, '', '?' + p.toString());
   }
@@ -850,6 +857,43 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   // ── Drawing from State ─────────────────────────────────────
 
+  // ── Theme ──────────────────────────────────────────────────
+  // Colors come from CSS custom properties on the chart wrapper, so a page
+  // can restyle the chart (night, paper, mono) without touching the engine.
+  // Fallbacks are the original paper palette.
+  const THEME_DEFAULTS = {
+    paper: '#f5f0e6', ring: '#a89f92', ringInner: '#b8b0a2', label: '#8a8078',
+    tick: '#8b8078', glyph: '#2c2c2c', glyphHi: '#000000', aspect: '#2c2c2c',
+    aspectHi: '#2c2c2c', angle: '#5a524a', angle2: '#7a7268', angleText: '#3a3630',
+    outline: '#5a524a', dot: '#c9a227', hover: 'rgba(0,0,0,0.4)', hoverFg: 'rgba(255,255,255,0.8)',
+    hoverWidth: '30', dim: '0.3',
+  };
+  const THEME_VARS = {
+    paper: '--chart-paper', ring: '--chart-ring', ringInner: '--chart-ring-inner', label: '--chart-label',
+    tick: '--chart-tick', glyph: '--chart-glyph', glyphHi: '--chart-glyph-hi', aspect: '--chart-aspect',
+    aspectHi: '--chart-aspect-hi', angle: '--chart-angle', angle2: '--chart-angle-2', angleText: '--chart-angle-text',
+    outline: '--chart-outline', dot: '--chart-dot', hover: '--chart-hover', hoverFg: '--chart-hover-fg',
+    hoverWidth: '--chart-hover-width', dim: '--chart-dim',
+  };
+  let T = { ...THEME_DEFAULTS };
+  function readTheme() {
+    const cs = getComputedStyle(canvas.parentElement || canvas);
+    const next = { ...THEME_DEFAULTS };
+    for (const [k, v] of Object.entries(THEME_VARS)) {
+      const val = cs.getPropertyValue(v).trim();
+      if (val) next[k] = val;
+    }
+    T = next;
+    hoverLine.setAttribute('stroke', T.hover);
+    hoverLine.setAttribute('stroke-width', T.hoverWidth);
+    hoverLineFg.setAttribute('stroke', T.hoverFg);
+  }
+  readTheme();
+  // Re-read when the page swaps theme (class or data-theme on <html>/<body>).
+  const themeObserver = new MutationObserver(() => { readTheme(); if (displayState) drawChartState(displayState); });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
   function drawChartState(state) {
     _updateFps();
     const { ascDeg, mcDeg, planets, cusps } = state;
@@ -862,9 +906,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       ctx.beginPath();
       ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
       ctx.arc(CX, CY, innerR, 0, Math.PI * 2, true);
-      ctx.fillStyle = '#f5f0e6';
+      ctx.fillStyle = T.paper;
       ctx.fill('evenodd');
-      ctx.strokeStyle = '#5a524a';
+      ctx.strokeStyle = T.outline;
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
@@ -882,12 +926,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     ctx.beginPath();
     ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
     ctx.arc(CX, CY, ASPECT_R, 0, Math.PI * 2, true);
-    ctx.fillStyle = '#f5f0e6';
+    ctx.fillStyle = T.paper;
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(CX, CY, ASPECT_R, 0, Math.PI * 2);
-    ctx.strokeStyle = '#b8b0a2';
+    ctx.strokeStyle = T.ringInner;
     ctx.lineWidth = 0.8;
     ctx.stroke();
 
@@ -917,7 +961,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function drawZodiacRing(ascDeg) {
     ctx.beginPath();
     ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
-    ctx.strokeStyle = '#a89f92';
+    ctx.strokeStyle = T.ring;
     ctx.lineWidth = 1.2;
     ctx.stroke();
 
@@ -930,7 +974,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
-      ctx.strokeStyle = '#a89f92';
+      ctx.strokeStyle = T.ring;
       ctx.lineWidth = 0.8;
       ctx.stroke();
 
@@ -938,7 +982,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const labelR = OUTER_R + 18;
       const label = sign.name.toUpperCase();
       ctx.font = '13px Graphik Web, system-ui, sans-serif';
-      ctx.fillStyle = '#8a8078';
+      ctx.fillStyle = T.label;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -1128,7 +1172,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       ctx.beginPath();
       ctx.moveTo(tick1.x, tick1.y);
       ctx.lineTo(tick2.x, tick2.y);
-      ctx.strokeStyle = '#8b8078';
+      ctx.strokeStyle = T.tick;
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -1139,7 +1183,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
-        ctx.strokeStyle = `rgba(139,128,120,${0.3 * spreadT})`;
+        ctx.strokeStyle = T.tick; ctx.globalAlpha = Math.min(ctx.globalAlpha, 0.3 * spreadT + 0.001);
         ctx.lineWidth = 0.5;
         ctx.stroke();
       }
@@ -1150,7 +1194,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const fontSize = p.key === 'sun' ? 28 : 22;
       const weight = isHighlighted ? 600 : 400;
       ctx.font = weight + ' ' + fontSize + 'px Graphik Web, system-ui, sans-serif';
-      ctx.fillStyle = isHighlighted ? '#000000' : '#2c2c2c';
+      ctx.fillStyle = isHighlighted ? T.glyphHi : T.glyph;
       const prevAlpha = ctx.globalAlpha;
       if (isHighlighted) ctx.globalAlpha = 1.0;
       ctx.textAlign = 'center';
@@ -1200,7 +1244,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = style.color;
+        ctx.strokeStyle = isHovered ? T.aspectHi : T.aspect;
         ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
         ctx.setLineDash(style.dash);
         ctx.globalAlpha = isHovered ? 0.95 : style.opacity * chartOpacity;
@@ -1230,7 +1274,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(ex, ey);
-        ctx.strokeStyle = line.style.color;
+        ctx.strokeStyle = T.aspect;
         ctx.lineWidth = line.style.width;
         ctx.setLineDash(line.style.dash);
         ctx.globalAlpha = line.style.opacity * chartOpacity;
@@ -1257,36 +1301,36 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const acP = eclToXY(ascDeg, OUTER_R + 5, ascDeg);
     const acI = eclToXY(ascDeg, ZODIAC_INNER_R - 2, ascDeg);
     ctx.beginPath(); ctx.moveTo(acP.x, acP.y); ctx.lineTo(acI.x, acI.y);
-    ctx.strokeStyle = '#5a524a'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = T.angle; ctx.lineWidth = 1.5; ctx.stroke();
     const acL = eclToXY(ascDeg, OUTER_R + 18, ascDeg);
     ctx.font = 'bold 11px Graphik Web, system-ui, sans-serif';
-    ctx.fillStyle = '#3a3630'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = T.angleText; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('AC', acL.x, acL.y);
 
     const dcDeg = normDeg(ascDeg + 180);
     const dcP = eclToXY(dcDeg, OUTER_R + 5, ascDeg);
     const dcI = eclToXY(dcDeg, ZODIAC_INNER_R - 2, ascDeg);
     ctx.beginPath(); ctx.moveTo(dcP.x, dcP.y); ctx.lineTo(dcI.x, dcI.y);
-    ctx.strokeStyle = '#5a524a'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = T.angle; ctx.lineWidth = 1.5; ctx.stroke();
     const dcL = eclToXY(dcDeg, OUTER_R + 18, ascDeg);
-    ctx.fillStyle = '#3a3630';
+    ctx.fillStyle = T.angleText;
     ctx.fillText('DC', dcL.x, dcL.y);
 
     if (mcDeg != null) {
       const mcP = eclToXY(mcDeg, OUTER_R + 5, ascDeg);
       const mcI = eclToXY(mcDeg, ZODIAC_INNER_R - 2, ascDeg);
       ctx.beginPath(); ctx.moveTo(mcP.x, mcP.y); ctx.lineTo(mcI.x, mcI.y);
-      ctx.strokeStyle = '#7a7268'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = T.angle2; ctx.lineWidth = 1.5; ctx.stroke();
       const mcL = eclToXY(mcDeg, OUTER_R + 18, ascDeg);
       ctx.font = 'bold 11px Graphik Web, system-ui, sans-serif';
-      ctx.fillStyle = '#5a524a';
+      ctx.fillStyle = T.angle;
       ctx.fillText('MC', mcL.x, mcL.y);
 
       const icDeg = normDeg(mcDeg + 180);
       const icP = eclToXY(icDeg, OUTER_R + 5, ascDeg);
       const icI = eclToXY(icDeg, ZODIAC_INNER_R - 2, ascDeg);
       ctx.beginPath(); ctx.moveTo(icP.x, icP.y); ctx.lineTo(icI.x, icI.y);
-      ctx.strokeStyle = '#7a7268'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = T.angle2; ctx.lineWidth = 1.5; ctx.stroke();
       const icL = eclToXY(icDeg, OUTER_R + 18, ascDeg);
       ctx.fillText('IC', icL.x, icL.y);
     }
@@ -1496,7 +1540,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (_3dModelReady) {
       // 3D model is visible — skip dot grid, just fill solid background
       ctx.globalAlpha = pendantAlpha;
-      ctx.fillStyle = '#f5f0e6';
+      ctx.fillStyle = T.paper;
       ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
       ctx.restore();
       ctx.restore();
@@ -1520,14 +1564,14 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         const alpha = 0.15 + 0.85 * Math.pow(smooth, waveWidth);
 
         ctx.globalAlpha = pendantAlpha * alpha;
-        ctx.fillStyle = '#c9a227';
+        ctx.fillStyle = T.dot;
         ctx.fillRect(gx - dotSize / 2, gy - dotSize / 2, dotSize, dotSize);
       }
     }
     ctx.restore();
 
     ctx.globalAlpha = pendantAlpha;
-    ctx.strokeStyle = '#5a524a';
+    ctx.strokeStyle = T.outline;
     ctx.lineWidth = 1.0 / scale;
     ctx.beginPath();
     ctx.arc(0, 0, outerR, 0, Math.PI * 2);
@@ -1557,7 +1601,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // OpenCascade anywhere. The build runs in a Web Worker so dragging the
   // liquidity slider never blocks the page.
 
-  let outlineStyle = OUTLINE_STYLE_IDS.includes(urlParams.get('outline')) ? urlParams.get('outline') : 'current';
+  // Liquid is the default look (Nov 10); ?outline=current brings back the crisp outline.
+  let outlineStyle = OUTLINE_STYLE_IDS.includes(urlParams.get('outline')) ? urlParams.get('outline') : 'liquid';
   let liquidity = (() => {
     const v = parseFloat(urlParams.get('liq'));
     return Number.isFinite(v) ? Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)) : LIQUIDITY.default;
@@ -1796,6 +1841,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       roughness: 0,
     });
     viewer.scene.background = null;
+    // Pages can tune the gold (e.g. a warmer, less saturated alloy on dark
+    // backgrounds) with --pendant-gold on the chart wrapper.
+    const gold = getComputedStyle(canvas.parentElement || canvas).getPropertyValue('--pendant-gold').trim();
+    if (gold) { try { viewer._faceMat.color.set(gold); } catch {} }
+    const rough = parseFloat(getComputedStyle(canvas.parentElement || canvas).getPropertyValue('--pendant-roughness'));
+    if (Number.isFinite(rough)) viewer._faceMat.roughness = rough;
 
     if (viewer.scene.environmentRotation !== undefined) {
       viewer.scene.environmentRotation.set(344 * Math.PI / 180, 308 * Math.PI / 180, 0);
@@ -1805,6 +1856,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     viewer.addShadowPlane(-7);
     viewer.start();
     pendantViewer = viewer;
+    // ?capture: expose the viewer so a script can pose the pendant for
+    // product stills (tools/capture). No effect otherwise.
+    if (urlParams.has('capture')) {
+      (window as any).__pendantViewer = viewer;
+      (window as any).__THREE = await import('three');
+    }
   }
 
   async function start3DTransition() {
@@ -1862,6 +1919,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
     window.removeEventListener('pendant-outline', onOutlineEvent);
     canvas.removeEventListener('design-snapshot', onDesignSnapshot);
+    themeObserver.disconnect();
     if (worker) { try { worker.terminate(); } catch {} worker = null; }
 
     if (pendantViewer) {

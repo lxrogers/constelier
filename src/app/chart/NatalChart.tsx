@@ -1,73 +1,90 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import SettingsPanel from './components/SettingsPanel';
 import OutlineControls from './components/OutlineControls';
+import Reading from './components/Reading';
 import AddToBagPanel from './components/AddToBagPanel';
+import BagLink from '@/components/BagLink';
+import { Wordmark } from '@/components/Logo';
+import type { AspectLike } from '@/lib/reading';
 import { trackFunnel } from '@/lib/analytics';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
 
-interface AspectData {
-  aspectKey: string;
-  point1Key: string;
-  point2Key: string;
+interface AspectData extends AspectLike {
   enabled: boolean;
 }
 
-const PLANET_NAMES: Record<string, string> = {
-  sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus',
-  mars: 'Mars', jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus',
-  neptune: 'Neptune', pluto: 'Pluto',
-};
-
-const ASPECT_ORDER = ['opposition', 'trine', 'square', 'sextile'];
+type Step = 'birth' | 'reading' | 'shape' | 'reserve';
+export type ChartTheme = 'night' | 'paper' | 'mono';
 
 // Off until launch: the last step stays the waitlist unless this is 'true'.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
 
-const ASPECT_INFO: Record<string, { label: string; degrees: number; description: string }> = {
-  conjunction: { label: 'Conjunctions', degrees: 0, description: 'Planets merge their energies, intensifying and blending their qualities.' },
-  opposition: { label: 'Oppositions', degrees: 180, description: 'A tension between opposing forces that demands balance and integration.' },
-  trine: { label: 'Trines', degrees: 120, description: 'A natural harmony where energies flow together with ease and grace.' },
-  square: { label: 'Squares', degrees: 90, description: 'A dynamic friction that drives growth through challenge and effort.' },
-  sextile: { label: 'Sextiles', degrees: 60, description: 'A gentle opportunity for cooperation that rewards initiative.' },
-};
+const STEPS: { id: Step; label: string }[] = [
+  { id: 'birth', label: 'Birth' },
+  { id: 'reading', label: 'Reading' },
+  { id: 'shape', label: 'Shape' },
+  { id: 'reserve', label: 'Reserve' },
+];
 
-export default function NatalChart() {
+// How much of the zodiac ring stays visible in each step (0..100, the
+// engine's chart opacity). The shape step fades the chart so the metal leads.
+const CHART_OPACITY: Record<Step, number> = { birth: 60, reading: 60, shape: 22, reserve: 30 };
+
+export default function NatalChart({ theme = 'night', initialStep = 'birth', homeHref = '/' }: {
+  theme?: ChartTheme;
+  initialStep?: Step;
+  homeHref?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
-  const controlsRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<(() => void) | null>(null);
-  const [step, setStep] = useState<'birth' | 'aspects' | 'waitlist'>('birth');
+  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [step, setStep] = useState<Step>(initialStep);
+  const [visited, setVisited] = useState<Set<Step>>(() => new Set(STEPS.slice(0, STEPS.findIndex((s) => s.id === initialStep) + 1).map((s) => s.id)));
   const [birthStep, setBirthStep] = useState<'date' | 'time' | 'location'>('date');
   const [aspects, setAspects] = useState<AspectData[]>([]);
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [focus, setFocus] = useState<{ x: number; y: number } | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showDev, setShowDev] = useState(false);
   const chartTracked = useRef(false);
 
   useEffect(() => {
-    if (step !== 'aspects' || aspects.length === 0 || chartTracked.current) return;
+    if (step === 'reading') trackFunnel('birth_details_entered');
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== 'reading' || aspects.length === 0 || chartTracked.current) return;
     chartTracked.current = true;
     trackFunnel('chart_shown', { aspects: aspects.length });
   }, [step, aspects.length]);
 
   useEffect(() => {
-    controlsRef.current?.scrollTo(0, 0);
-    if (step === 'aspects') trackFunnel('birth_details_entered');
-    if (step === 'aspects' && aspects.length > 0) {
-      // Select the first aspect as it appears in the grouped list
-      const first = ASPECT_ORDER.reduce<AspectData | null>((found, key) => {
-        if (found) return found;
-        return aspects.find(a => a.aspectKey === key) || null;
-      }, null);
-      if (first) dispatchAspectHover(first);
+    setShowDev(new URLSearchParams(window.location.search).has('dev'));
+  }, []);
+
+  function goTo(next: Step) {
+    setStep(next);
+    setVisited((v) => new Set(v).add(next));
+  }
+
+  // Step changes: scroll the panel to the top, set how loud the chart is,
+  // and clear any highlight outside the reading.
+  useEffect(() => {
+    panelRef.current?.scrollTo(0, 0);
+    const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
+    if (op) {
+      op.value = String(CHART_OPACITY[step]);
+      op.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    if (step !== 'aspects') {
-      dispatchAspectHover(null);
-    }
+    if (step !== 'reading') dispatchAspectHover(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   useEffect(() => {
@@ -85,7 +102,7 @@ export default function NatalChart() {
     const handleHoverChanged = (e: Event) => {
       if (destroyed) return;
       const d = (e as CustomEvent).detail;
-      setHoveredKey(d ? `${d.point1Key}-${d.point2Key}-${d.aspectKey}` : null);
+      setFocus(d && typeof d.x1 === 'number' ? { x: (d.x1 + d.x2) / 2, y: (d.y1 + d.y2) / 2 } : null);
     };
     canvas.addEventListener('hover-changed', handleHoverChanged);
 
@@ -93,12 +110,16 @@ export default function NatalChart() {
       const { initChartEngine } = await import('./chart-engine');
       if (destroyed) return;
       engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!);
+      // Apply the starting step's chart opacity once the engine listens.
+      const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
+      op?.dispatchEvent(new Event('input', { bubbles: true }));
     })();
 
     return () => {
       destroyed = true;
       canvas.removeEventListener('aspects-updated', handleAspects);
       canvas.removeEventListener('hover-changed', handleHoverChanged);
+      if (focusTimer.current) clearTimeout(focusTimer.current);
       if (engineRef.current) {
         engineRef.current();
         engineRef.current = null;
@@ -106,8 +127,7 @@ export default function NatalChart() {
     };
   }, []);
 
-  function dispatchAspectHover(aspect: AspectData | null) {
-    setHoveredKey(aspect ? `${aspect.point1Key}-${aspect.point2Key}-${aspect.aspectKey}` : null);
+  function dispatchAspectHover(aspect: AspectLike | null) {
     canvasRef.current?.dispatchEvent(new CustomEvent('aspect-hover', {
       detail: aspect ? {
         point1Key: aspect.point1Key,
@@ -117,157 +137,204 @@ export default function NatalChart() {
     }));
   }
 
-  // Group aspects by type
-  const grouped = ASPECT_ORDER.reduce<Record<string, AspectData[]>>((acc, key) => {
-    const items = aspects.filter(a => a.aspectKey === key);
-    if (items.length > 0) acc[key] = items;
-    return acc;
-  }, {});
+  // The engine ignores a highlight while the lines are still drawing in, so
+  // send it again a moment later.
+  const onReadingFocus = useCallback((a: AspectLike | null) => {
+    dispatchAspectHover(a);
+    if (focusTimer.current) clearTimeout(focusTimer.current);
+    if (a) focusTimer.current = setTimeout(() => dispatchAspectHover(a), 900);
+  }, []);
+
+  const enabled = aspects.filter((a) => a.enabled);
+
+  // "Camera": lean the view toward the line being read; pull in close on
+  // the metal while shaping.
+  let stageTransform = 'none';
+  if (step === 'reading' && focus) {
+    const k = 0.22;
+    stageTransform = `translate(${((0.5 - focus.x) * k * 100).toFixed(2)}%, ${((0.5 - focus.y) * k * 100).toFixed(2)}%) scale(1.1)`;
+  } else if (step === 'shape' || step === 'reserve') {
+    stageTransform = 'scale(1.08)';
+  }
+
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <div className="chart-page">
-      <div id="controls" ref={controlsRef}>
-        <h2>Customize your Aspect Pendant</h2>
-        {step !== 'birth' && (
-          <button className="controls-back-btn hide-mobile" onClick={() => setStep(step === 'aspects' ? 'birth' : 'aspects')}>
-            &larr; {step === 'aspects' ? 'Birth Details' : 'Your Aspects'}
-          </button>
-        )}
-        {step !== 'aspects' && (
-          <h3 className="controls-subheading">
-            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Join the Waitlist'}
-          </h3>
-        )}
-
-        <div style={{ display: step === 'birth' ? undefined : 'none' }}>
-          <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
-            <div className="form-group">
-              <label>Date of Birth</label>
-              <div className="date-row hide-mobile">
-                <select id="birth-month"></select>
-                <select id="birth-day"></select>
-                <select id="birth-year"></select>
-              </div>
-              <div className="mobile-only">
-                <WheelDatePicker />
-              </div>
-            </div>
-            <div className="btn-row mobile-only">
-              <button className="controls-step-btn" onClick={() => setBirthStep('time')}>
-                Next &rarr;
-              </button>
-            </div>
-          </div>
-          <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
-            <div className="form-group">
-              <label>Time</label>
-              <div className="time-row hide-mobile">
-                <select id="birth-hour"></select>
-                <select id="birth-minute"></select>
-              </div>
-              <div className="mobile-only">
-                <WheelTimePicker />
-              </div>
-            </div>
-            <div className="btn-row mobile-only">
-              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('date')}>
-                &larr; Back
-              </button>
-              <button className="controls-step-btn" onClick={() => setBirthStep('location')}>
-                Next &rarr;
-              </button>
-            </div>
-          </div>
-          <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
-            <div className="form-group">
-              <label>Location</label>
-              <div className="location-input-wrap">
-                <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
-                <div id="location-dropdown" className="dropdown"></div>
-              </div>
-              <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
-            </div>
-            <div className="btn-row mobile-only">
-              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('time')}>
-                &larr; Back
-              </button>
-              <button className="controls-step-btn" onClick={() => setStep('aspects')}>
-                View Aspects &rarr;
-              </button>
-            </div>
-          </div>
-          <div id="error"></div>
-          <button className="controls-step-btn hide-mobile" onClick={() => setStep('aspects')}>
-            View Aspects &rarr;
-          </button>
+    <div className={`theme-root theme-${theme} cfg`} data-step={step}>
+      <header className="cfg-nav">
+        <Link href={homeHref} className="cfg-home" aria-label="Constelier home"><Wordmark /></Link>
+        <div className="cfg-nav-end">
+          <span className="cfg-nav-step eyebrow">{String(stepIndex + 1).padStart(2, '0')} / 04</span>
+          <BagLink />
         </div>
+      </header>
 
-        <div style={{ display: step === 'aspects' ? undefined : 'none' }}>
+      <div id="main" className="cfg-stage">
+        <div className="cfg-stage-glow" aria-hidden="true" />
+        <div className="chart-frame" style={{ transform: stageTransform }}>
+          <div className="chart-wrapper">
+            <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
+            <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
+          </div>
+        </div>
+        <SettingsPanel showGear={showDev} />
+        {/* Engine bindings: chart opacity is driven by the step. */}
+        <input type="hidden" id="chart-opacity" defaultValue={CHART_OPACITY[initialStep]} />
+        <span id="chart-opacity-val" hidden />
+      </div>
+
+      <aside id="controls" className="cfg-panel" ref={panelRef}>
+        <nav className="cfg-steps" aria-label="Steps">
+          {STEPS.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`cfg-step${s.id === step ? ' current' : ''}${i < stepIndex ? ' done' : ''}`}
+              disabled={!visited.has(s.id) || s.id === step}
+              onClick={() => goTo(s.id)}
+            >
+              <span className="cfg-step-n">{String(i + 1).padStart(2, '0')}</span>
+              <span className="cfg-step-l">{s.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* ── 01 Birth ── */}
+        <section className="cfg-section" hidden={step !== 'birth'}>
+          <div className="cfg-head">
+            <h2 className="cfg-title reveal">The sky, the moment you arrived.</h2>
+            <p className="cfg-sub reveal" style={{ ['--d' as string]: '80ms' }}>
+              Date, time and place. The closer the time, the truer the chart.
+            </p>
+          </div>
+
+          <p className="cfg-birth-progress mobile-only" aria-live="polite">
+            {birthStep === 'date' ? 'Date' : birthStep === 'time' ? 'Time' : 'Place'} <span>· {birthStep === 'date' ? 1 : birthStep === 'time' ? 2 : 3} of 3</span>
+          </p>
+          <div className="cfg-fields">
+            <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
+              <div className="form-group">
+                <label htmlFor="birth-month">Date</label>
+                <div className="date-row hide-mobile">
+                  <select id="birth-month" aria-label="Month"></select>
+                  <select id="birth-day" aria-label="Day"></select>
+                  <select id="birth-year" aria-label="Year"></select>
+                </div>
+                <div className="mobile-only">
+                  <WheelDatePicker />
+                </div>
+              </div>
+            </div>
+            <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
+              <div className="form-group">
+                <label htmlFor="birth-hour">Time</label>
+                <div className="time-row hide-mobile">
+                  <select id="birth-hour" aria-label="Hour"></select>
+                  <select id="birth-minute" aria-label="Minute"></select>
+                </div>
+                <div className="mobile-only">
+                  <WheelTimePicker />
+                </div>
+              </div>
+            </div>
+            <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
+              <div className="form-group">
+                <label htmlFor="location">Place</label>
+                <div className="location-input-wrap">
+                  <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
+                  <div id="location-dropdown" className="dropdown"></div>
+                </div>
+                <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
+              </div>
+            </div>
+            <div id="error"></div>
+          </div>
+
+          <div className="cfg-actions">
+            {/* Phones: one field at a time. */}
+            <div className="btn-row mobile-only">
+              {birthStep !== 'date' && (
+                <button className="btn btn-ghost cfg-back" onClick={() => setBirthStep(birthStep === 'location' ? 'time' : 'date')} aria-label="Back">
+                  <span aria-hidden="true">&larr;</span>
+                </button>
+              )}
+              {birthStep !== 'location' ? (
+                <button className="btn cfg-cta" onClick={() => setBirthStep(birthStep === 'date' ? 'time' : 'location')}>
+                  Next <span className="btn-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+              ) : (
+                <button className="btn cfg-cta" onClick={() => goTo('reading')}>
+                  Read my chart <span className="btn-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+              )}
+            </div>
+            <button className="btn cfg-cta hide-mobile" onClick={() => goTo('reading')}>
+              Read my chart <span className="btn-arrow" aria-hidden="true">&rarr;</span>
+            </button>
+          </div>
+        </section>
+
+        {/* ── 02 Reading ── */}
+        <section className="cfg-section" hidden={step !== 'reading'}>
           {/* Keep aspect-filters in DOM for chart-engine bindings */}
-          <div style={{ display: 'none' }}>
-            <div className="aspect-filters" id="aspect-filters"></div>
-          </div>
+          <div hidden><div className="aspect-filters" id="aspect-filters"></div></div>
+          {enabled.length > 0 ? (
+            <Reading
+              aspects={enabled}
+              active={step === 'reading'}
+              onFocus={onReadingFocus}
+              onDone={() => goTo('shape')}
+            />
+          ) : (
+            <p className="cfg-sub">Drawing your chart…</p>
+          )}
+        </section>
 
-          <div className="aspects-list">
-            {Object.entries(grouped).map(([key, items]) => (
-              <div key={key} className="aspect-category">
-                <h4 className="aspect-category-title">
-                  {ASPECT_INFO[key]?.label || key}
-                  <span className="aspect-category-degrees">{ASPECT_INFO[key]?.degrees}°</span>
-                </h4>
-                <p className="aspect-category-desc">{ASPECT_INFO[key]?.description}</p>
-                <ul className="aspect-items">
-                  {items.map((a, i) => (
-                    <li
-                      key={i}
-                      className={`aspect-item${a.enabled ? '' : ' disabled'}${hoveredKey === `${a.point1Key}-${a.point2Key}-${a.aspectKey}` ? ' highlighted' : ''}`}
-                      onMouseEnter={() => dispatchAspectHover(a)}
-                      onMouseLeave={() => dispatchAspectHover(null)}
-                    >
-                      <span className="aspect-item-planets">
-                        {PLANET_NAMES[a.point1Key] || a.point1Key}
-                        {' '}
-                        <span className="aspect-item-sep">&amp;</span>
-                        {' '}
-                        {PLANET_NAMES[a.point2Key] || a.point2Key}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+        {/* ── 03 Shape ── */}
+        <section className="cfg-section" hidden={step !== 'shape'}>
+          <div className="cfg-head">
+            <p className="eyebrow reveal">The metal</p>
+            <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>How should the gold move?</h2>
           </div>
-
-          <div className="btn-row">
-            <button className="controls-back-btn-mobile mobile-only" onClick={() => setStep('birth')}>
-              &larr; Back
-            </button>
-            <button className="controls-step-btn" onClick={() => setStep('waitlist')}>
-              Next &rarr;
-            </button>
+          <OutlineControls variant="panel" />
+          <div className="cfg-actions">
+            <div className="btn-row">
+              <button className="btn btn-ghost cfg-back" onClick={() => goTo('reading')} aria-label="Back to the reading">
+                <span aria-hidden="true">&larr;</span>
+              </button>
+              <button className="btn cfg-cta" onClick={() => goTo('reserve')}>
+                {SHOP_ENABLED ? 'Make it yours' : 'Reserve this pendant'} <span className="btn-arrow" aria-hidden="true">&rarr;</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
+        {/* ── 04 Reserve ── */}
+        <section className="cfg-section" hidden={step !== 'reserve'}>
           {SHOP_ENABLED ? (
-            <AddToBagPanel canvasRef={canvasRef} active={step === 'waitlist'} />
+            <div className="cfg-shop">
+              <div className="cfg-head">
+                <p className="eyebrow reveal">Almost yours</p>
+                <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>Your pendant.</h2>
+              </div>
+              <AddToBagPanel canvasRef={canvasRef} active={step === 'reserve'} />
+              <button className="btn btn-ghost cfg-back cfg-shop-back" onClick={() => goTo('shape')} aria-label="Back to the shape">
+                <span aria-hidden="true">&larr;</span>
+              </button>
+            </div>
           ) : submitted ? (
-            <div className="waitlist-thanks">
-              <p>Thank you for signing up! We&apos;ll be in touch.</p>
+            <div className="cfg-head waitlist-thanks">
+              <p className="eyebrow reveal">Reserved</p>
+              <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>It is written.</h2>
+              <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
+                We will email your design when casting opens.
+              </p>
             </div>
           ) : (
-            <WaitlistForm onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} />
+            <WaitlistForm active={step === 'reserve'} onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} onBack={() => goTo('shape')} />
           )}
-        </div>
-      </div>
-      <div id="main">
-        <div className="chart-wrapper">
-          <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
-          <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
-        </div>
-        <SettingsPanel />
-        <OutlineControls />
-      </div>
+        </section>
+      </aside>
     </div>
   );
 }
@@ -277,39 +344,57 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 // Replace with your Formspree form ID from https://formspree.io
 const FORMSPREE_ID = 'xjgeozgv';
 
-function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
+function getBirthMeta() {
+  const val = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value || '';
+  const year = val('birth-year');
+  const month = val('birth-month');
+  const day = val('birth-day');
+  const hour = val('birth-hour');
+  const minute = val('birth-minute');
+  const location = val('location');
+  const monthName = MONTHS[parseInt(month) - 1] || '';
+  const h = parseInt(hour);
+  const mm = parseInt(minute);
+  const time = Number.isFinite(h) && Number.isFinite(mm)
+    ? `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+    : '';
+  return {
+    // Empty strings when the form isn't filled yet, so nothing shows half-done.
+    birthdate: monthName && day && year ? `${monthName} ${day}, ${year}` : '',
+    birthtime: hour && minute ? `${hour}:${minute}` : '',
+    time,
+    location,
+  };
+}
+
+function WaitlistForm({ active, onSubmitted, onBack }: { active: boolean; onSubmitted: () => void; onBack: () => void }) {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [meta, setMeta] = useState<ReturnType<typeof getBirthMeta> | null>(null);
 
-  function getBirthMeta() {
-    const year = (document.getElementById('birth-year') as HTMLInputElement)?.value || '';
-    const month = (document.getElementById('birth-month') as HTMLInputElement)?.value || '';
-    const day = (document.getElementById('birth-day') as HTMLInputElement)?.value || '';
-    const hour = (document.getElementById('birth-hour') as HTMLSelectElement)?.value || '';
-    const minute = (document.getElementById('birth-minute') as HTMLSelectElement)?.value || '';
-    const location = (document.getElementById('location') as HTMLInputElement)?.value || '';
-    const monthName = MONTHS[parseInt(month) - 1] || month;
-    return {
-      birthdate: `${monthName} ${day}, ${year}`,
-      birthtime: `${hour}:${minute}`,
-      location,
-    };
-  }
+  // Read the form when the step opens; the engine fills the selects after mount.
+  useEffect(() => {
+    if (!active) return;
+    setMeta(getBirthMeta());
+    const t1 = setTimeout(() => setMeta(getBirthMeta()), 400);
+    const t2 = setTimeout(() => setMeta(getBirthMeta()), 1500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [active]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || sending) return;
     setSending(true);
-    const meta = getBirthMeta();
+    const m = getBirthMeta();
     try {
       await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          birthdate: meta.birthdate,
-          birthtime: meta.birthtime,
-          location: meta.location,
+          birthdate: m.birthdate,
+          birthtime: m.birthtime,
+          location: m.location,
         }),
       });
       onSubmitted();
@@ -320,14 +405,24 @@ function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
 
   return (
     <div className="waitlist-form">
-      <p className="waitlist-intro">
-        Constelier is a work in progress. Sign up to be notified when we launch
-        and to receive your personalized pendant design.
-      </p>
+      <div className="cfg-head">
+        <p className="eyebrow reveal">Almost yours</p>
+        <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>Reserve your pendant.</h2>
+        <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
+          Constelier is still in the studio. Leave your email and we will send your design when casting opens.
+        </p>
+      </div>
+      {meta && (meta.birthdate || meta.location) && (
+        <dl className="cfg-summary reveal" style={{ ['--d' as string]: '180ms' }}>
+          {meta.birthdate && <div><dt>Born</dt><dd>{meta.birthdate}{meta.time && <span className="cfg-summary-time">{meta.time}</span>}</dd></div>}
+          {meta.location && <div><dt>Place</dt><dd>{meta.location.split(',')[0]}</dd></div>}
+        </dl>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>Email</label>
+          <label htmlFor="waitlist-email">Email</label>
           <input
+            id="waitlist-email"
             type="email"
             required
             placeholder="you@example.com"
@@ -335,9 +430,14 @@ function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <button type="submit" className="controls-step-btn" disabled={sending}>
-          {sending ? 'Submitting...' : 'Join Waitlist'}
-        </button>
+        <div className="btn-row">
+          <button type="button" className="btn btn-ghost cfg-back" onClick={onBack} aria-label="Back to the shape">
+            <span aria-hidden="true">&larr;</span>
+          </button>
+          <button type="submit" className="btn cfg-cta" disabled={sending}>
+            {sending ? 'Sending…' : 'Join the waitlist'}
+          </button>
+        </div>
       </form>
       <p className="waitlist-disclosure">
         Your birth date, time, and location will be shared with Constelier

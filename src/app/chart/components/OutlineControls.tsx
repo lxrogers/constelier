@@ -10,18 +10,21 @@ import './OutlineControls.css';
 
 type Style = 'current' | 'liquid' | 'pebble';
 
-const STYLES: { id: Style; label: string }[] = [
-  { id: 'current', label: 'Today' },
-  { id: 'liquid', label: 'Liquid' },
-  { id: 'pebble', label: 'Pebble' },
+// Must match the engine's default (chart-engine.ts).
+const DEFAULT_STYLE: Style = 'liquid';
+
+const STYLES: { id: Style; label: string; note: string }[] = [
+  { id: 'liquid', label: 'Liquid', note: 'Molten lines that pool where they meet. Drag to set how far the gold flows.' },
+  { id: 'pebble', label: 'Pebble', note: 'Soft, rounded openings, like stones worn smooth by water.' },
+  { id: 'current', label: 'Crisp', note: 'Clean geometric openings, closest to the chart itself.' },
 ];
 
 function send(detail: Record<string, unknown>) {
   window.dispatchEvent(new CustomEvent('pendant-outline', { detail }));
 }
 
-export default function OutlineControls() {
-  const [style, setStyle] = useState<Style>('current');
+export default function OutlineControls({ variant = 'float' }: { variant?: 'float' | 'panel' }) {
+  const [style, setStyle] = useState<Style>(DEFAULT_STYLE);
   const [liquidity, setLiquidity] = useState<number>(LIQUIDITY.default);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -29,7 +32,7 @@ export default function OutlineControls() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const s = p.get('outline');
-    if (s === 'liquid' || s === 'pebble') setStyle(s);
+    if (s === 'liquid' || s === 'pebble' || s === 'current') setStyle(s);
     const v = parseFloat(p.get('liq') || '');
     if (Number.isFinite(v)) setLiquidity(Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)));
     const onState = (e: Event) => {
@@ -66,7 +69,7 @@ export default function OutlineControls() {
   const pct = ((liquidity - LIQUIDITY.min) / (LIQUIDITY.max - LIQUIDITY.min)) * 100;
 
   return (
-    <div className="outline-controls" role="group" aria-label="Pendant outline">
+    <div className={`outline-controls outline-${variant}`} role="group" aria-label="Pendant outline">
       <div className="outline-seg">
         {STYLES.map((s) => (
           <button
@@ -80,9 +83,12 @@ export default function OutlineControls() {
           </button>
         ))}
       </div>
+      {variant === 'panel' && (
+        <p className="outline-note" key={style}>{STYLES.find((x) => x.id === style)?.note}</p>
+      )}
       {style === 'liquid' && (
         <label className="outline-liquidity">
-          <span className="outline-liquidity-end">Crisp</span>
+          <span className="outline-liquidity-end">Taut</span>
           <input
             type="range"
             min={LIQUIDITY.min}
