@@ -9,7 +9,7 @@ import './atelier.css';
 
 export const metadata: Metadata = { title: 'Constelier · Wear the sky you were born under' };
 
-const CTA = '/chart?theme=paper&from=atelier';
+const CTA = '/chart?theme=paper';
 
 const GALLERY = [
   { src: '/renders/pendant-front-1.webp', sky: 'June 21, 1994', time: '2:30 PM', place: 'New York' },
@@ -21,7 +21,7 @@ export default function Atelier() {
   return (
     <div className="theme-root theme-paper atl">
       <header className="atl-nav">
-        <Link href="/atelier" className="atl-home" aria-label="Constelier home"><Wordmark /></Link>
+        <Link href="/" className="atl-home" aria-label="Constelier home"><Wordmark /></Link>
         <nav className="atl-links" aria-label="Sections">
           <a href="#skies">Skies</a>
           <a href="#process">Process</a>

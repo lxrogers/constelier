@@ -10,7 +10,7 @@ import './nocturne.css';
 
 export const metadata: Metadata = { title: 'Constelier · Your birth chart, cast in gold' };
 
-const CTA = '/chart?from=nocturne';
+const CTA = '/chart?theme=night&from=nocturne';
 
 export default function Nocturne() {
   return (
