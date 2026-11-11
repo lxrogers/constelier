@@ -6,10 +6,10 @@ export const DEFAULT_BIRTH: BirthData = {
 };
 
 export const DEFAULT_DESIGN: RingDesign = {
-  asc: 'bar', sun: 'halo', moon: 'full',
-  width: 1.4, thickness: 0.8, size: 0.8, relief: 0, tiltDeg: 58, tiltDir: 90,
+  asc: 'bar', sun: 'rays', moon: 'side',
+  width: 1.2, thickness: 0.8, size: 1, relief: 0, tiltDeg: 58, tiltDir: 90,
 };
 
 export const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const SETTINGS_KEY = 'constelier.prototype.big3-ring.v7';
+export const SETTINGS_KEY = 'constelier.prototype.big3-ring.v8';

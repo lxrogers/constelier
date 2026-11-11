@@ -48,7 +48,7 @@ export default function Big3Ring() {
         <h3>Ring</h3>
         <SliderField label="Band width" value={design.width} min={1} max={3} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
         <SliderField label="Band thickness" value={design.thickness} min={0.5} max={1.5} step={0.05} format={v => `${v.toFixed(2)} mm`} onChange={thickness => setDesign({ thickness })} />
-        <SliderField label="Marker size" value={design.size} min={0.5} max={1.1} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
+        <SliderField label="Marker size" value={design.size} min={0.5} max={1.6} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
 
         <h3>View</h3>
         <p className="b3-hint">Drag the ring to orbit, scroll to zoom. Changing a marker turns the ring to face it.</p>

@@ -12,7 +12,7 @@ import { easeInOutCubic } from '@/modules/easing';
 import {
   SIGN_NAMES, RING, ringOuterR,
   lerpAngle, layoutOffsets, offsetToAngle, formatPosition, formatHouse,
-  markerProfile, ringHalfHeight, bandFollowsSun, buildBandMesh, buildMarkerMesh, buildWholeMesh,
+  markerProfile, ringHalfHeight, bandMotion, layoutGaps, buildBandMesh, buildMarkerMesh, buildWholeMesh,
 } from '@/modules/prototypes/big3-ring';
 import type { Big3, RingDesign, ViewMode } from './types';
 
@@ -105,8 +105,9 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   type Profile = { outer: number[][]; holes: number[][][]; halfU: number } | null;
   const profiles: Record<'asc' | 'sun' | 'moon', Profile> = { asc: null, sun: null, moon: null };
   let halfHeight = 1;        // mm, the ring's reach either side of the band's centre line
-  let bandRebuilds = false;  // the band's mesh depends on where the sun is (gap + a sun with a hole)
-  let bandBuiltAt = NaN;
+  // how the band follows the bodies while they move: see bandMotion()
+  let bandMode: 'still' | 'sun' | 'moon' | 'rebuild' = 'still';
+  let bandBuiltAt = '';
   let builtKey = '';
 
   // Flush markers share their faces with the band exactly: bias their depth a
@@ -137,9 +138,9 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     const key = [design.asc, design.sun, design.moon, design.width, design.thickness, design.size, design.relief].join('|');
     if (key === builtKey) return;
     builtKey = key;
-    bandRebuilds = bandFollowsSun(design);
-    bandBuiltAt = NaN;
-    if (!bandRebuilds) setPart('band', buildBandMesh(design, 180));
+    bandMode = bandMotion(design) as typeof bandMode;
+    bandBuiltAt = '';
+    if (bandMode !== 'rebuild') setPart('band', buildBandMesh(design, 180, 180));
     for (const kind of ['asc', 'sun', 'moon'] as const) {
       setPart(kind, buildMarkerMesh(kind, design));
       profiles[kind] = markerProfile(kind, design[kind], design.size, design.width);
@@ -178,14 +179,15 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       if (parts.band) parts.band.visible = false;
       return;
     }
-    if (bandRebuilds) {
-      if (p.sunOff !== bandBuiltAt) {
-        setPart('band', buildBandMesh(design, p.sunOff));
-        bandBuiltAt = p.sunOff;
+    if (bandMode === 'rebuild') {
+      const at = `${p.sunOff}|${p.moonOff}`;
+      if (at !== bandBuiltAt) {
+        setPart('band', buildBandMesh(design, p.sunOff, p.moonOff));
+        bandBuiltAt = at;
       }
     } else if (parts.band) {
-      // without a gap the band is the same all the way round, so its sun just turns with it
-      parts.band.rotation.z = design.asc === 'gap' ? 0 : turnTo(p.sunOff);
+      // one opening, under one body: the band is otherwise the same all the way round, so it just turns with that body
+      parts.band.rotation.z = bandMode === 'sun' ? turnTo(p.sunOff) : bandMode === 'moon' ? turnTo(p.moonOff) : 0;
     }
     if (parts.band) parts.band.visible = true;
   }
@@ -224,7 +226,8 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   }
 
   function targetPose(b: Big3): Pose {
-    const off = layoutOffsets(b);
+    const gaps = layoutGaps(design);
+    const off = layoutOffsets(b, gaps.bodyGap, gaps.ascGap);
     return { asc: b.asc.deg, sun: b.sun.deg, moon: b.moon.deg, sunOff: off.sun, moonOff: off.moon };
   }
 
@@ -706,6 +709,9 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       const restyled = (['asc', 'sun', 'moon'] as const).find(kind => next[kind] !== design[kind]);
       design = next;
       rebuildMeshes();
+      // bigger or smaller shapes need more or less room between them
+      if (big3 && pose && !move) pose = targetPose(big3);
+      else if (big3 && move) move.to = targetPose(big3);
       if (restyled) {
         focusOn(restyled); // show the new shape face-on
       } else if (tiltChanged && wantTilt) {
