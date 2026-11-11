@@ -1,0 +1,28 @@
+.param { display: flex; flex-direction: column; gap: 6px; }
+.param-head { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.param-label {
+  font-size: 11px; color: #7a7568; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.param-label[title] { cursor: help; }
+.param-spacer { flex: 1; }
+.param-row { display: flex; align-items: center; gap: 10px; }
+.param-row input[type="range"] { flex: 1; }
+.param-row input[type="number"] {
+  width: 62px; padding: 4px 6px; border: 1px solid #d4cfc5; border-radius: 6px;
+  font: inherit; font-size: 13px; color: #3a3630; background: #faf7f0; text-align: right;
+}
+.param-unit { font-size: 12px; color: #9a9488; margin-left: -6px; }
+
+.param-seg { display: flex; background: #f0ebe0; border-radius: 8px; padding: 2px; gap: 2px; }
+.param-seg-btn {
+  flex: 1; border: 0; background: transparent; border-radius: 6px; padding: 6px 8px;
+  font: inherit; font-size: 12px; color: #7a7568; cursor: pointer;
+}
+.param-seg-btn.active { background: white; color: #3a3630; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+.param-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.param-chip {
+  border: 1px solid #d4cfc5; background: white; border-radius: 999px; padding: 4px 10px;
+  font: inherit; font-size: 12px; color: #7a7568; cursor: pointer;
+}
+.param-chip.active { background: #3a3630; border-color: #3a3630; color: #f5f0e6; }

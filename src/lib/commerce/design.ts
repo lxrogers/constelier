@@ -16,6 +16,18 @@ export interface DesignSpec {
   borderThickness: number;
   lineThickness: number;
   filletRadius: number;
+  // 3D slab. Optional: designs bagged before these existed use MESH_DEFAULTS.
+  thickness?: number;
+  edgeFillet?: number;
+  rimRoundness?: number;
+  // Outer diameter in mm. Optional: older designs use PENDANT_DIAMETER_MM.
+  diameterMm?: number;
+  // Bail (mm). Optional: older designs have none.
+  bailEnabled?: boolean;
+  bailInnerMm?: number;
+  bailBand?: number;   // x rim width
+  bailGapMm?: number;
+  bailBlend?: number;  // x rim width
 }
 
 export interface DesignGeometry {
@@ -70,7 +82,7 @@ export function designQuery(spec: DesignSpec) {
   p.set('lon', String(spec.birth.lon));
   p.set('loc', spec.birth.location);
   p.set('a', [...spec.aspects].sort().join(','));
-  if (spec.outlineStyle !== 'current') p.set('outline', spec.outlineStyle);
+  p.set('outline', spec.outlineStyle);
   if (spec.outlineStyle === 'liquid') p.set('liq', String(spec.liquidity));
   return p.toString();
 }
@@ -91,6 +103,22 @@ export function parseDesign(input: unknown): PendantDesign | null {
   for (const k of ['liquidity', 'borderThickness', 'lineThickness', 'filletRadius'] as const) {
     if (!finite(spec[k])) return null;
   }
+  for (const k of ['thickness', 'edgeFillet', 'rimRoundness', 'diameterMm', 'bailInnerMm', 'bailBand', 'bailGapMm', 'bailBlend'] as const) {
+    if (spec[k] !== undefined && !finite(spec[k])) return null;
+  }
+  const slab = {
+    ...(finite(spec.thickness) ? { thickness: Math.min(30, Math.max(2, spec.thickness)) } : {}),
+    ...(finite(spec.edgeFillet) ? { edgeFillet: Math.min(15, Math.max(0, spec.edgeFillet)) } : {}),
+    ...(finite(spec.rimRoundness) ? { rimRoundness: Math.min(3, Math.max(0, spec.rimRoundness)) } : {}),
+    ...(finite(spec.diameterMm) ? { diameterMm: Math.min(50, Math.max(10, spec.diameterMm)) } : {}),
+    ...(spec.bailEnabled === true ? {
+      bailEnabled: true,
+      ...(finite(spec.bailInnerMm) ? { bailInnerMm: Math.min(8, Math.max(1, spec.bailInnerMm)) } : {}),
+      ...(finite(spec.bailBand) ? { bailBand: Math.min(2.5, Math.max(0.4, spec.bailBand)) } : {}),
+      ...(finite(spec.bailGapMm) ? { bailGapMm: Math.min(4, Math.max(0, spec.bailGapMm)) } : {}),
+      ...(finite(spec.bailBlend) ? { bailBlend: Math.min(3, Math.max(0, spec.bailBlend)) } : {}),
+    } : {}),
+  };
   const { chords } = geometry;
   if (!Array.isArray(chords) || chords.length === 0 || chords.length > 60) return null;
   if (!chords.every((c) => c && finite(c.a1) && finite(c.a2))) return null;
@@ -104,6 +132,7 @@ export function parseDesign(input: unknown): PendantDesign | null {
       borderThickness: spec.borderThickness,
       lineThickness: spec.lineThickness,
       filletRadius: spec.filletRadius,
+      ...slab,
     },
     geometry: {
       chords: chords.map((c) => ({ a1: c.a1, a2: c.a2 })),

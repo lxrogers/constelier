@@ -85,10 +85,38 @@ function signedArea(pts) {
   return s / 2;
 }
 
-// Outer circle (metal inside) plus voids (metal outside), all CCW.
+// The outer edge with a bail: the disc (radius A, centred on the origin)
+// joined to a ring-shaped tab (outer radius B, centred at (0, cy), cy < 0 so
+// it sits at the top on screen) by two concave arcs of radius f, all tangent.
+// Returned as arc links, CCW: disc the long way round, neck, around the far
+// side of the tab, neck back.
+export function bailOuterLinks(A, { cy, outerR: B, blend }) {
+  const f = Math.max(0, blend);
+  const a = A + f, b = B + f;
+  const py = (cy * cy - b * b + a * a) / (2 * cy);
+  const px = Math.sqrt(Math.max(0, a * a - py * py));
+  const deg = (r) => r * 180 / Math.PI;
+  const arc = (origin, radius, start, end, reversed = false) =>
+    ({ type: 'arc', origin, radius, startAngle: deg(start), endAngle: deg(end), reversed });
+  const links = [arc([0, 0], A, Math.atan2(py, px), Math.atan2(py, -px))];
+  if (f > 1e-3) links.push(arc([-px, py], f, Math.atan2(cy - py, px), Math.atan2(-py, px), true));
+  links.push(arc([0, cy], B, Math.atan2(py - cy, -px), Math.atan2(py - cy, px)));
+  if (f > 1e-3) links.push(arc([px, py], f, Math.atan2(-py, -px), Math.atan2(cy - py, -px), true));
+  return links;
+}
+
+// Outer edge (metal inside) plus voids (metal outside), all CCW. With
+// `data.bail` the outer edge includes the bail tab and its hole is a void, so
+// the bail gets the same thickness and edge rounding as the rest.
 export function outlineLoops(data, tol = 0.01, maxStep = 6 * DEG) {
   const outerR = data.circleRadius + data.borderThickness;
-  const loops = [{ hole: false, pts: sampleChain([{ type: 'arc', origin: [0, 0], radius: outerR, startAngle: 0, endAngle: 360, reversed: false }], tol, maxStep) }];
+  const outerLinks = data.bail
+    ? bailOuterLinks(outerR, data.bail)
+    : [{ type: 'arc', origin: [0, 0], radius: outerR, startAngle: 0, endAngle: 360, reversed: false }];
+  const loops = [{ hole: false, pts: sampleChain(outerLinks, tol, maxStep) }];
+  if (data.bail) {
+    loops.push({ hole: true, pts: sampleChain([{ type: 'arc', origin: [0, data.bail.cy], radius: data.bail.innerR, startAngle: 0, endAngle: 360, reversed: false }], tol, maxStep) });
+  }
   for (const ch of data.voidChains) {
     const pts = sampleChain(ch.links, tol, maxStep);
     if (pts.length >= 3) loops.push({ hole: true, pts });
@@ -190,21 +218,52 @@ function contoursValid(contours) {
 
 // ── Mesh ─────────────────────────────────────────────────────────────────
 
-function chooseRadius(loopsFrames, rStart) {
-  // Same step-down as replicad-pipeline's filletShape: x0.65, at most 8 tries.
-  let r = rStart;
-  for (let attempt = 0; attempt < 8 && r >= 0.3; attempt++) {
-    const contours = loopsFrames.map(fr => fr.map(f => [f.p[0] + f.inset[0] * r, f.p[1] + f.inset[1] * r]));
-    if (contoursValid(contours)) return r;
-    r *= 0.65;
+// Step the radii down until the flat faces' outlines are valid. Loop 0 is the
+// outer rim (radius rOuter), the rest are voids (radius rHole). Order of
+// giving way: first any stretch of the rim beyond `rOuterKeep` (its
+// elliptical part), then the voids (same x0.65 step as replicad-pipeline's
+// filletShape), and the rim itself only once the voids are flat.
+function chooseRadii(loopsFrames, rOuter, rHole, rOuterKeep = 0) {
+  const step = (r) => (r * 0.65 < 0.3 ? 0 : r * 0.65);
+  for (let attempt = 0; attempt < 32; attempt++) {
+    const contours = loopsFrames.map((fr, li) => {
+      const r = li === 0 ? rOuter : rHole;
+      return fr.map(f => [f.p[0] + f.inset[0] * r, f.p[1] + f.inset[1] * r]);
+    });
+    if (contoursValid(contours)) return [rOuter, rHole];
+    if (rOuter > rOuterKeep + 1e-6) rOuter = Math.max(rOuterKeep, rOuter * 0.85);
+    else if (rHole > 0) rHole = step(rHole);
+    else if (rOuter > 0) rOuter = step(rOuter);
+    else break;
   }
-  return 0;
+  return [0, 0];
+}
+
+// Quarter-ellipse profile columns: bottom fillet (phi 90 -> 0), wall, top
+// fillet (phi 0 -> 90). `rx` is how far the rounding reaches in from the
+// edge, `rz` how far up/down it reaches. rx = rz is a true circular fillet;
+// rz = thickness / 2 leaves no wall (a full half-round when rx = rz too).
+// (c, s) are the unnormalised outward normal in (radial, z).
+function edgeProfile(rx, rz, thickness, profileSteps) {
+  const prof = [];
+  const steps = rx > 0 && rz > 0 ? profileSteps : 0;
+  for (let k = steps; k >= 0; k--) {
+    const phi = (k / Math.max(1, steps)) * Math.PI / 2;
+    prof.push({ off: rx * (1 - Math.cos(phi)), z: rz - rz * Math.sin(phi), c: Math.cos(phi) * (rz || 1), s: -Math.sin(phi) * (rx || 1) });
+  }
+  for (let k = 0; k <= steps; k++) {
+    const phi = (k / Math.max(1, steps)) * Math.PI / 2;
+    prof.push({ off: rx * (1 - Math.cos(phi)), z: thickness - rz + rz * Math.sin(phi), c: Math.cos(phi) * (rz || 1), s: Math.sin(phi) * (rx || 1) });
+  }
+  return prof;
 }
 
 function roundedSlab(data, options, forExport) {
   const {
     thickness = 5,
-    filletR = 2,
+    filletR = 2,             // void edges
+    outerFilletR = filletR,  // outer rim: how far in the rounding reaches
+    outerFilletZ,            // outer rim: how far up it reaches (default: circular, max thickness / 2)
     minFeature = Infinity,   // narrowest wire/border if known; caps r up front
     tolerance = forExport ? 0.005 : 0.01,
     maxArcStep = 6 * DEG,
@@ -215,27 +274,28 @@ function roundedSlab(data, options, forExport) {
   const loops = outlineLoops(data, tolerance, maxArcStep);
   const creaseCos = forExport ? -2 : Math.cos(creaseDeg * DEG); // export: one normal per point, so it welds
   const frames = loops.map(L => loopFrames(L.pts, L.hole, creaseCos));
-  const r0 = Math.max(0, Math.min(filletR, thickness / 2 - 0.1, minFeature * 0.45));
-  const rf = r0 > 0 ? chooseRadius(frames, r0) : 0;
+  const rH0 = Math.max(0, Math.min(filletR, thickness / 2 - 0.1, minFeature * 0.45));
+  const border = data.borderThickness > 0 ? data.borderThickness : Infinity;
+  const rO0 = Math.max(0, Math.min(outerFilletR, border * 0.9));
+  const rZ0 = Math.max(0, Math.min(outerFilletZ ?? outerFilletR, thickness / 2));
+  const [rOuter, rHole] = (rH0 > 0 || rO0 > 0) ? chooseRadii(frames, rO0, rH0, Math.min(rO0, rZ0)) : [0, 0];
+  // A stretched rim that had to give way keeps its full height; one that
+  // shrank below circular shrinks in height too.
+  const rOuterZ = Math.min(rZ0, rOuter);
+  // The outer rim is finer than the voids' edges: it is the silhouette.
+  const profiles = [
+    edgeProfile(rOuter, rOuterZ, thickness, forExport ? Math.max(profileSteps, 24) : Math.max(profileSteps, 14)),
+    edgeProfile(rHole, rHole, thickness, profileSteps),
+  ];
 
   const pos = [], nor = [], idx = [];
   const addV = (x, y, z, nx, ny, nz) => { pos.push(x, y, z); nor.push(nx, ny, nz); return pos.length / 3 - 1; };
 
-  // profile: bottom fillet (phi 90 -> 0), wall, top fillet (phi 0 -> 90)
-  const prof = [];
-  const steps = rf > 0 ? profileSteps : 0;
-  for (let k = steps; k >= 0; k--) {
-    const phi = (k / Math.max(1, steps)) * Math.PI / 2;
-    prof.push({ off: rf * (1 - Math.cos(phi)), z: rf - rf * Math.sin(phi), c: Math.cos(phi), s: -Math.sin(phi) });
-  }
-  for (let k = 0; k <= steps; k++) {
-    const phi = (k / Math.max(1, steps)) * Math.PI / 2;
-    prof.push({ off: rf * (1 - Math.cos(phi)), z: thickness - rf + rf * Math.sin(phi), c: Math.cos(phi), s: Math.sin(phi) });
-  }
-
   const capContours = [];
   loops.forEach((L, li) => {
     const fr = frames[li];
+    const prof = li === 0 ? profiles[0] : profiles[1];
+    const rf = li === 0 ? rOuter : rHole;
     const cols = [];
     for (const f of fr) {
       for (let j = 0; j < f.d.length; j++) {
@@ -275,13 +335,13 @@ function roundedSlab(data, options, forExport) {
       idx.push(base + a, base + b, base + c);
     }
   }
-  return { pos, nor, idx, filletR: rf };
+  return { pos, nor, idx, filletR: rHole, outerFilletR: rOuter };
 }
 
 // Indexed mesh with normals for the Three.js viewer.
 export function buildPreviewMesh(data, options = {}) {
   const m = roundedSlab(data, options, false);
-  return { vertices: new Float32Array(m.pos), normals: new Float32Array(m.nor), triangles: new Uint32Array(m.idx), filletR: m.filletR };
+  return { vertices: new Float32Array(m.pos), normals: new Float32Array(m.nor), triangles: new Uint32Array(m.idx), filletR: m.filletR, outerFilletR: m.outerFilletR };
 }
 
 // Welded, closed mesh for export (vertices closer than 0.0001 merged, degenerate
@@ -301,7 +361,7 @@ export function buildPendantMesh(data, options = {}) {
     const a = remap[m.idx[t]], b = remap[m.idx[t + 1]], c = remap[m.idx[t + 2]];
     if (a !== b && b !== c && a !== c) T.push(a, b, c);
   }
-  return { vertices: new Float32Array(V), triangles: new Uint32Array(T), filletR: m.filletR };
+  return { vertices: new Float32Array(V), triangles: new Uint32Array(T), filletR: m.filletR, outerFilletR: m.outerFilletR };
 }
 
 // Binary STL. `scale` converts model units to millimetres if needed.

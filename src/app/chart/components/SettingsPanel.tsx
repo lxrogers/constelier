@@ -1,24 +1,19 @@
 'use client';
 
+// Customer-facing settings on /chart: only the params marked `prod: true` in
+// src/config/pendant-params.ts. Everything else lives in /lab.
+
 import { useState, useRef, useEffect } from 'react';
+import ParamControl from '@/components/params/ParamControl';
+import { PROD_PARAMS, type PendantParams } from '@/config/pendant-params';
 import './SettingsPanel.css';
 
-interface SliderParam {
-  id: string;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  defaultValue: number;
+interface Props {
+  params: PendantParams;
+  onChange: (next: Partial<PendantParams>, draft: boolean) => void;
 }
 
-const PARAMS: SliderParam[] = [
-  { id: 'border-thickness', label: 'Border Thickness', min: 0, max: 20, step: 0.5, defaultValue: 8 },
-  { id: 'line-thickness', label: 'Line Thickness', min: 0.5, max: 8, step: 0.1, defaultValue: 3 },
-  { id: 'fillet-radius', label: '2D Fillet Radius', min: 0, max: 20, step: 0.5, defaultValue: 5 },
-];
-
-export default function SettingsPanel() {
+export default function SettingsPanel({ params, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -38,12 +33,10 @@ export default function SettingsPanel() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  if (PROD_PARAMS.length === 0) return null;
+
   return (
     <div className="settings-wrapper">
-      {/* Hidden inputs always in DOM so chart-engine can bind listeners on init */}
-      {PARAMS.map((p) => (
-        <input key={p.id} type="hidden" id={p.id} defaultValue={p.defaultValue} />
-      ))}
 
       <button
         ref={buttonRef}
@@ -59,57 +52,12 @@ export default function SettingsPanel() {
       {open && (
         <div ref={panelRef} className="settings-panel">
           <h3>Pendant Settings</h3>
-          {PARAMS.map((param) => (
-            <ParamRow key={param.id} param={param} />
+          {PROD_PARAMS.filter((d) => !d.showIf || d.showIf(params)).map((def) => (
+            <ParamControl key={def.key} def={def} value={params[def.key]}
+              onChange={(v, draft) => onChange({ [def.key]: v } as Partial<PendantParams>, draft)} />
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function ParamRow({ param }: { param: SliderParam }) {
-  const [value, setValue] = useState(param.defaultValue);
-
-  function handleChange(next: number) {
-    // Clamp to valid range
-    const clamped = Math.min(param.max, Math.max(param.min, next));
-    // Snap to step
-    const snapped = Math.round(clamped / param.step) * param.step;
-    // Fix floating point
-    const decimals = (param.step.toString().split('.')[1] || '').length;
-    const final = parseFloat(snapped.toFixed(decimals));
-    setValue(final);
-
-    // Dispatch to hidden input so chart-engine picks it up
-    const hidden = document.getElementById(param.id) as HTMLInputElement | null;
-    if (hidden) {
-      hidden.value = String(final);
-      hidden.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  }
-
-  return (
-    <div className="settings-param">
-      <label>{param.label}</label>
-      <div className="settings-param-row">
-        <input
-          type="range"
-          min={param.min}
-          max={param.max}
-          step={param.step}
-          value={value}
-          onChange={(e) => handleChange(parseFloat(e.target.value))}
-        />
-        <input
-          type="number"
-          min={param.min}
-          max={param.max}
-          step={param.step}
-          value={value}
-          onChange={(e) => handleChange(parseFloat(e.target.value) || param.min)}
-        />
-      </div>
     </div>
   );
 }

@@ -26,6 +26,11 @@ export function encodeDesignMetadata(design: PendantDesign, quote: Quote): Recor
     bt: spec.borderThickness,
     lt: spec.lineThickness,
     fr: spec.filletRadius,
+    th: spec.thickness,
+    ef: spec.edgeFillet,
+    rr: spec.rimRoundness,
+    mm: spec.diameterMm,
+    bl: spec.bailEnabled ? [spec.bailInnerMm, spec.bailBand, spec.bailGapMm, spec.bailBlend] : undefined,
     r: geometry.circleRadius,
     ma: geometry.minArea,
     mg: geometry.minAngle,
@@ -57,6 +62,11 @@ export function decodeDesignMetadata(meta: Record<string, string>): PendantDesig
       spec: {
         birth: s.b, aspects: s.a, outlineStyle: s.o, liquidity: s.q,
         borderThickness: s.bt, lineThickness: s.lt, filletRadius: s.fr,
+        thickness: s.th, edgeFillet: s.ef, rimRoundness: s.rr, diameterMm: s.mm,
+        ...(Array.isArray(s.bl) ? {
+          bailEnabled: true,
+          bailInnerMm: s.bl[0], bailBand: s.bl[1], bailGapMm: s.bl[2], bailBlend: s.bl[3],
+        } : {}),
       },
       geometry: { chords, circleRadius: s.r, minArea: s.ma, minAngle: s.mg },
     };

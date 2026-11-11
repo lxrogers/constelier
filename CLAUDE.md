@@ -28,6 +28,12 @@ The project has two parallel entry points for the same core logic:
 - `src/lib/horoscope.ts` re-exports from the root `horoscope-bundle.js`.
 - Tailwind CSS v4 via `@tailwindcss/postcss`. Custom fonts (Graphik, Moulin) in `public/fonts/`.
 
+### Pendant settings and the lab (`/lab`)
+- `src/config/pendant-params.ts` defines every tunable setting (range, group, label). `src/config/pendant-defaults.json` holds the saved defaults that both `/chart` and `/lab` start from.
+- `/chart` shows only params marked `prod: true` (none today). `/lab` shows all of them, previews 4 sample charts (`src/config/lab-samples.ts`), and has a 3D-print cart that downloads a zip of mm-scale STLs + `manifest.json`.
+- "Save as default" in the lab POSTs to `/api/lab/defaults`, which rewrites the JSON file (dev only; commit the file to ship new defaults).
+- The chart engine takes params via `initChartEngine(..., { params })` and `engine.setParams(partial, { draft })`.
+
 ### Shared ES Modules (`modules/`)
 These are plain JS ES modules imported by both the standalone HTML files and the Next.js app:
 
