@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import BagLink from '@/components/BagLink';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -47,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <nav className="site-nav">
-          <span className="logo">
+          <Link href="/chart" className="logo">
             <svg className="logo-icon" width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
               <polygon points="50,2 57,40 50,50 43,40" fill="currentColor"/>
               <polygon points="98,50 60,57 50,50 60,43" fill="currentColor"/>
@@ -59,7 +61,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <polygon points="38,45 24,24 45,38 50,50" fill="currentColor"/>
             </svg>
             Constelier
-          </span>
+          </Link>
+          <BagLink />
         </nav>
         {children}
       </body>

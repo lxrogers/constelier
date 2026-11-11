@@ -3,3 +3,5 @@ node_modules/
 .next/
 commercial-type-2601-MFENSZ-web/
 .vercel
+
+.env*.local

@@ -1,0 +1,40 @@
+.add-to-bag {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.atb-price-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.atb-price {
+  font-family: 'Moulin', serif;
+  font-size: 32px;
+  color: #3a3630;
+  line-height: 1.1;
+}
+.atb-metal {
+  font-size: 12px;
+  color: #7a7568;
+}
+.atb-note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5a5548;
+}
+.atb-error {
+  font-size: 13px;
+  color: #a3412f;
+}
+.atb-added p {
+  font-size: 13px;
+  color: #3a3630;
+  margin-bottom: 8px;
+}
+.atb-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}

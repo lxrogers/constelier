@@ -1698,6 +1698,62 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     }
   }
   window.addEventListener('pendant-outline', onOutlineEvent);
+
+  // The current design, for the bag. The React side asks with
+  // `design-snapshot` and gets the answer through `detail.respond`.
+  function snapshotThumbnail() {
+    const src = (pendantViewer && _3dModelReady) ? chart3dCanvas : canvas;
+    try {
+      if (src === chart3dCanvas) pendantViewer.renderOnce();
+      const size = 320;
+      const out = document.createElement('canvas');
+      out.width = size; out.height = size;
+      const octx = out.getContext('2d');
+      octx.fillStyle = '#f5f0e6';
+      octx.fillRect(0, 0, size, size);
+      // Crop to the pendant (outer radius + border) around the canvas centre.
+      const half = src.width / 2;
+      // Circle (r=100) is drawn at ASPECT_R-10; border adds 8%, plus a margin.
+      const r = src.width * ((ASPECT_R - 10) * 1.16 / SIZE);
+      octx.drawImage(src, half - r, half - r, 2 * r, 2 * r, 0, 0, size, size);
+      return out.toDataURL('image/jpeg', 0.82);
+    } catch {
+      return null;
+    }
+  }
+
+  function onDesignSnapshot(e) {
+    const respond = e.detail?.respond;
+    if (typeof respond !== 'function') return;
+    if (!pendantModelData?.chords?.length) { respond(null); return; }
+    const val = (id) => (document.getElementById(id) as HTMLSelectElement | HTMLInputElement)?.value || '';
+    respond({
+      design: {
+        spec: {
+          birth: {
+            year: val('birth-year'), month: val('birth-month'), day: val('birth-day'),
+            hour: val('birth-hour'), minute: val('birth-minute'),
+            lat: selectedLat, lon: selectedLon, location: val('location'),
+          },
+          aspects: [...enabledAspects].sort(),
+          outlineStyle,
+          liquidity,
+          borderThickness,
+          lineThickness,
+          filletRadius,
+        },
+        geometry: {
+          chords: pendantModelData.chords.map((c) => ({ a1: c.a1, a2: c.a2 })),
+          circleRadius: pendantModelData.r,
+          minArea: 185,
+          minAngle: 5,
+        },
+      },
+      thumbnail: snapshotThumbnail(),
+    });
+  }
+  canvas.addEventListener('design-snapshot', onDesignSnapshot);
+
   window.dispatchEvent(new CustomEvent('pendant-outline-state', { detail: { style: outlineStyle, liquidity } }));
 
   function crossFadeToRing(duration) {
@@ -1805,6 +1861,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     }
 
     window.removeEventListener('pendant-outline', onOutlineEvent);
+    canvas.removeEventListener('design-snapshot', onDesignSnapshot);
     if (worker) { try { worker.terminate(); } catch {} worker = null; }
 
     if (pendantViewer) {

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
 import OutlineControls from './components/OutlineControls';
+import AddToBagPanel from './components/AddToBagPanel';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -22,6 +23,9 @@ const PLANET_NAMES: Record<string, string> = {
 };
 
 const ASPECT_ORDER = ['opposition', 'trine', 'square', 'sextile'];
+
+// Off until launch: the last step stays the waitlist unless this is 'true'.
+const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
 
 const ASPECT_INFO: Record<string, { label: string; degrees: number; description: string }> = {
   conjunction: { label: 'Conjunctions', degrees: 0, description: 'Planets merge their energies, intensifying and blending their qualities.' },
@@ -122,7 +126,7 @@ export default function NatalChart() {
         )}
         {step !== 'aspects' && (
           <h3 className="controls-subheading">
-            {step === 'birth' ? 'Birth Details' : 'Join the Waitlist'}
+            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Join the Waitlist'}
           </h3>
         )}
 
@@ -236,7 +240,9 @@ export default function NatalChart() {
         </div>
 
         <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
-          {submitted ? (
+          {SHOP_ENABLED ? (
+            <AddToBagPanel canvasRef={canvasRef} active={step === 'waitlist'} />
+          ) : submitted ? (
             <div className="waitlist-thanks">
               <p>Thank you for signing up! We&apos;ll be in touch.</p>
             </div>
