@@ -21,7 +21,7 @@
 // 0 = right, 90 = down the screen, 180 = left.
 
 import polygonClipping from 'polygon-clipping';
-import { buildMeshFromLoops } from '../fast-pendant-mesh.js';
+import { buildMeshFromLoops, buildPendantMesh } from '../fast-pendant-mesh.js';
 
 const DEG = Math.PI / 180;
 
@@ -644,4 +644,67 @@ export function buildWholeMesh(design, sunOffDeg, moonOffDeg) {
     if (mesh) return { mesh, merged: kinds };
   }
   return null;
+}
+
+// ── Printing ─────────────────────────────────────────────────────────────
+
+// The ring as one closed solid for a slicer or a caster: the band and every
+// shape merged into a single outline (holes cut, the band left out inside
+// open shapes), given the band's thickness and wrapped. Unlike the meshes
+// for the screen it is welded (shared vertices, no normals) and has no
+// overlapping parts. Returns { vertices, triangles }, millimetres, the ring's
+// axis along z; feed it to meshToSTL().
+//
+// The edges get only a light rounding: fine rays leave no room for more, and
+// it is below what a printer resolves anyway.
+export function buildPrintMesh(design, sunOffDeg, moonOffDeg) {
+  const outerR = ringOuterR(design), LENGTH = 2 * Math.PI * outerR;
+  const offsets = { asc: 0, sun: sunOffDeg, moon: moonOffDeg };
+  const solids = bandStrips(design, sunOffDeg, moonOffDeg).map(st => [st.outer]), holes = [];
+  for (const kind of ['asc', 'sun', 'moon']) {
+    const p = markerProfile(kind, design[kind], design.size, design.width);
+    if (!p) continue;
+    const x0 = normDeg(offsets[kind]) * DEG * outerR;
+    // a shape that crosses the seam at the ascendant is drawn at both ends
+    const shifts = [0];
+    if (x0 - p.halfU < 1.2) shifts.push(LENGTH);
+    if (x0 + p.halfU > LENGTH - 1.2) shifts.push(-LENGTH);
+    for (const dx of shifts) {
+      solids.push([p.outer.map(q => [q[0] + x0 + dx, q[1]])]);
+      for (const h of p.holes) holes.push([h.map(q => [q[0] + x0 + dx, q[1]])]);
+    }
+  }
+  let metal = polygonClipping.union(...solids);
+  if (holes.length) metal = polygonClipping.difference(metal, ...holes);
+
+  const dense = ring => {
+    const out = [];
+    for (let i = 0; i < ring.length - 1; i++) { // polygon-clipping repeats the first point
+      const a = ring[i], b = ring[i + 1];
+      const k = Math.max(1, Math.ceil(Math.abs(b[0] - a[0]) / BEND_STEP));
+      for (let j = 0; j < k; j++) out.push([a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k]);
+    }
+    return out;
+  };
+  const ccw = pts => (pts.reduce((a, q, i) => a + q[0] * pts[(i + 1) % pts.length][1] - pts[(i + 1) % pts.length][0] * q[1], 0) < 0 ? pts.slice().reverse() : pts);
+
+  const pos = [], nor = [];
+  let tris = [];
+  for (const poly of metal) {
+    const loops = [{ hole: false, pts: ccw(dense(poly[0])) }, ...poly.slice(1).map(h => ({ hole: true, pts: ccw(dense(h)) }))];
+    const m = buildPendantMesh(null, { loops, thickness: design.thickness, filletR: 0.1, minFilletR: 0.03, tolerance: 0.004, profileSteps: 4 });
+    const base = pos.length / 3;
+    for (let i = 0; i < m.vertices.length; i++) { pos.push(m.vertices[i]); nor.push(0); }
+    for (let i = 0; i < m.triangles.length; i++) tris.push(m.triangles[i] + base);
+  }
+  tris = splitForBend(pos, nor, tris, BEND_STEP * 1.05);
+
+  const vertices = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length / 3; i++) {
+    const a = Math.PI - pos[3 * i] / outerR, rho = RING.innerR + pos[3 * i + 2];
+    vertices[3 * i] = rho * Math.cos(a); vertices[3 * i + 1] = rho * Math.sin(a); vertices[3 * i + 2] = pos[3 * i + 1];
+  }
+  const triangles = new Uint32Array(tris.length);
+  for (let t = 0; t < tris.length; t += 3) { triangles[t] = tris[t]; triangles[t + 1] = tris[t + 2]; triangles[t + 2] = tris[t + 1]; }
+  return { vertices, triangles };
 }
