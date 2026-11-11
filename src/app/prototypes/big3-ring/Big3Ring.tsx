@@ -46,10 +46,9 @@ export default function Big3Ring() {
         <StyleCycler label="Moon" options={MOON_STYLES} value={design.moon} onChange={moon => setDesign({ moon })} />
 
         <h3>Ring</h3>
-        <SliderField label="Band width" value={design.width} min={1.4} max={5} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
-        <SliderField label="Band thickness" value={design.thickness} min={0.8} max={2} step={0.05} format={v => `${v.toFixed(2)} mm`} onChange={thickness => setDesign({ thickness })} />
-        <SliderField label="Marker relief" value={design.relief} min={0} max={0.6} step={0.05} format={v => (v === 0 ? 'flush' : `${v.toFixed(2)} mm`)} onChange={relief => setDesign({ relief })} />
-        <SliderField label="Marker size" value={design.size} min={0.6} max={1.2} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
+        <SliderField label="Band width" value={design.width} min={1} max={3} step={0.1} format={v => `${v.toFixed(1)} mm`} onChange={width => setDesign({ width })} />
+        <SliderField label="Band thickness" value={design.thickness} min={0.5} max={1.5} step={0.05} format={v => `${v.toFixed(2)} mm`} onChange={thickness => setDesign({ thickness })} />
+        <SliderField label="Marker size" value={design.size} min={0.5} max={1.1} step={0.05} format={v => `${Math.round(v * 100)}%`} onChange={size => setDesign({ size })} />
 
         <h3>View</h3>
         <p className="b3-hint">Drag the ring to orbit, scroll to zoom. Changing a marker turns the ring to face it.</p>

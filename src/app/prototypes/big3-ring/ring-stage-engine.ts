@@ -12,7 +12,7 @@ import { easeInOutCubic } from '@/modules/easing';
 import {
   SIGN_NAMES, RING, ringOuterR,
   lerpAngle, layoutOffsets, offsetToAngle, formatPosition, formatHouse,
-  markerProfile, ringHalfHeight, bandFollowsSun, buildBandMesh, buildMarkerMesh,
+  markerProfile, ringHalfHeight, bandFollowsSun, buildBandMesh, buildMarkerMesh, buildWholeMesh,
 } from '@/modules/prototypes/big3-ring';
 import type { Big3, RingDesign, ViewMode } from './types';
 
@@ -96,8 +96,12 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   camera.near = CAM_DIST - 700;
   camera.far = CAM_DIST + 700;
 
-  type PartName = 'band' | 'asc' | 'sun' | 'moon';
-  const parts: Record<PartName, THREE.Mesh | null> = { band: null, asc: null, sun: null, moon: null };
+  // `whole` is the band and its smooth shapes as one piece, shown at rest in
+  // place of the separate, overlapping parts that are used while things move.
+  type PartName = 'band' | 'asc' | 'sun' | 'moon' | 'whole';
+  const parts: Record<PartName, THREE.Mesh | null> = { band: null, asc: null, sun: null, moon: null, whole: null };
+  let wholeKey = '';
+  let wholeHas: string[] = [];
   type Profile = { outer: number[][]; holes: number[][][]; halfU: number } | null;
   const profiles: Record<'asc' | 'sun' | 'moon', Profile> = { asc: null, sun: null, moon: null };
   let halfHeight = 1;        // mm, the ring's reach either side of the band's centre line
@@ -116,7 +120,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
     parts[name] = null;
     if (!meshData) return;
     const mesh: THREE.Mesh = viewer.createMesh(meshData);
-    if (name !== 'band') {
+    if (name !== 'band' && name !== 'whole') {
       if (!markerMat) {
         markerMat = (mesh.material as THREE.Material).clone();
         markerMat.polygonOffset = true;
@@ -150,9 +154,30 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   const turnTo = (offDeg: number) => offsetToAngle(offDeg);
 
   function placeParts(p: Pose) {
-    if (parts.asc) parts.asc.rotation.z = turnTo(0);
-    if (parts.sun) parts.sun.rotation.z = turnTo(p.sunOff);
-    if (parts.moon) parts.moon.rotation.z = turnTo(p.moonOff);
+    // at rest: one continuous piece, built once for where everything has landed
+    const atRest = !move;
+    if (atRest) {
+      const key = `${builtKey}|${p.sunOff}|${p.moonOff}`;
+      if (key !== wholeKey) {
+        wholeKey = key;
+        const built = buildWholeMesh(design, p.sunOff, p.moonOff);
+        setPart('whole', built?.mesh);
+        wholeHas = built ? built.merged : [];
+      }
+    }
+    const whole = atRest ? parts.whole : null;
+    if (parts.whole) parts.whole.visible = !!whole;
+
+    for (const kind of ['asc', 'sun', 'moon'] as const) {
+      const mesh = parts[kind];
+      if (!mesh) continue;
+      mesh.rotation.z = turnTo(kind === 'asc' ? 0 : kind === 'sun' ? p.sunOff : p.moonOff);
+      mesh.visible = !(whole && wholeHas.includes(kind));
+    }
+    if (whole) {
+      if (parts.band) parts.band.visible = false;
+      return;
+    }
     if (bandRebuilds) {
       if (p.sunOff !== bandBuiltAt) {
         setPart('band', buildBandMesh(design, p.sunOff));
@@ -162,6 +187,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       // without a gap the band is the same all the way round, so its sun just turns with it
       parts.band.rotation.z = design.asc === 'gap' ? 0 : turnTo(p.sunOff);
     }
+    if (parts.band) parts.band.visible = true;
   }
 
   // ── Animation state ────────────────────────────────────────

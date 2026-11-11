@@ -11,10 +11,16 @@
 // thickness with fast-pendant-mesh (rounded edges, no OpenCascade), then
 // wrapped round the ring's axis.
 //
+// Two ways to draw the same ring. While the sun and moon move, the band and
+// each shape are separate meshes that only turn about the axis (cheap, but
+// they overlap, and overlapping faces never match to the micron). At rest,
+// buildWholeMesh() makes the band and its shapes one continuous piece.
+//
 // Pure geometry and chart maths: no DOM, no React, no Three.js scene.
 // Lengths are millimetres. Angles on the ring use the chart canvas convention:
 // 0 = right, 90 = down the screen, 180 = left.
 
+import polygonClipping from 'polygon-clipping';
 import { buildMeshFromLoops } from '../fast-pendant-mesh.js';
 
 const DEG = Math.PI / 180;
@@ -162,6 +168,7 @@ function roundCorners(pts, r, steps = 5) {
     if (theta > Math.PI - 0.05) { out.push(B); continue; }
     const tan = Math.tan(theta / 2);
     const want = Array.isArray(r) ? r[i] : r;
+    if (!(want > 0)) { out.push(B); continue; }
     const t = Math.min(want / tan, 0.45 * Math.min(la, lc)), rr = t * tan;
     let bx = u[0] + v[0], by = u[1] + v[1];
     const bl = Math.hypot(bx, by);
@@ -344,7 +351,7 @@ function splitForBend(pos, nor, tris, maxDx) {
 // rounded by `filletR`, less where a shape is too fine for it.
 function wrapPattern(polygons, { outerR, filletR, thickness, baseR = RING.innerR }) {
   const pos = [], nor = [];
-  let tris = [];
+  let tris = [], rounded = Infinity; // the edge radius actually used: less than asked if a shape is too fine
   for (const poly of polygons) {
     // points along long edges first, so the walls bend smoothly
     const dense = ring => {
@@ -362,6 +369,7 @@ function wrapPattern(polygons, { outerR, filletR, thickness, baseR = RING.innerR
     const base = pos.length / 3;
     for (let i = 0; i < m.vertices.length; i++) { pos.push(m.vertices[i]); nor.push(m.normals[i]); }
     for (let i = 0; i < m.triangles.length; i++) tris.push(m.triangles[i] + base);
+    rounded = Math.min(rounded, m.filletR);
   }
   tris = splitForBend(pos, nor, tris, BEND_STEP * 1.05);
 
@@ -377,7 +385,7 @@ function wrapPattern(polygons, { outerR, filletR, thickness, baseR = RING.innerR
   // the wrap mirrors the pattern, so the triangles turn the other way
   const triangles = new Uint32Array(tris.length);
   for (let t = 0; t < tris.length; t += 3) { triangles[t] = tris[t]; triangles[t + 1] = tris[t + 2]; triangles[t + 2] = tris[t + 1]; }
-  return { vertices, normals, triangles };
+  return { vertices, normals, triangles, filletR: rounded };
 }
 
 // Half the length of band left out under a sun with a hole, so the hole is
@@ -400,19 +408,25 @@ export function bandFollowsSun(design) {
 // otherwise the same all the way round, so build it once with the sun
 // anywhere and turn the mesh to move the sun.
 export function buildBandMesh(design, sunOffDeg = 180) {
+  return wrapPattern(bandStrips(design, sunOffDeg), {
+    outerR: ringOuterR(design), filletR: bandFillet(design), thickness: design.thickness,
+  });
+}
+
+// The band laid flat, as polygons: one strip, or the pieces between openings.
+function bandStrips(design, sunOffDeg) {
   const hw = design.width / 2, outerR = ringOuterR(design), LENGTH = 2 * Math.PI * outerR;
-  const shell = { outerR, filletR: bandFillet(design), thickness: design.thickness };
   const openings = [];
   // [centre, half-length, how round the band's ends are there]: fully round at
-  // the gap, where they show; nearly square under the sun, so that they stay
-  // tucked under its disc
+  // the gap, where they show; square under the sun, so that they stay tucked
+  // under its disc
   if (design.asc === 'gap') openings.push([0, GAP_MM / 2, hw * 0.98]);
   const sunHalf = sunOpening(design);
-  if (sunHalf > 0) openings.push([normDeg(sunOffDeg) * DEG * outerR, sunHalf, Math.min(0.3, hw * 0.5)]);
+  if (sunHalf > 0) openings.push([normDeg(sunOffDeg) * DEG * outerR, sunHalf, 0]);
 
   if (!openings.length) {
     // the ends overlap, so the join is buried
-    return wrapPattern([{ outer: [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]], holes: [] }], shell);
+    return [{ outer: [[-1.2, -hw], [LENGTH + 1.2, -hw], [LENGTH + 1.2, hw], [-1.2, hw]], holes: [] }];
   }
 
   // metal runs from the end of each opening to the start of the next
@@ -424,7 +438,7 @@ export function buildBandMesh(design, sunOffDeg = 180) {
     if (x1 - x0 < design.width * 1.1) continue; // too short to be more than a bead: leave it out
     strips.push({ outer: roundCorners([[x0, -hw], [x1, -hw], [x1, hw], [x0, hw]], [r0, r1, r1, r0], 8), holes: [] });
   }
-  return wrapPattern(strips, shell);
+  return strips;
 }
 
 // One marker as its own mesh, lying on the band at 180 degrees past the
@@ -445,4 +459,57 @@ export function buildMarkerMesh(kind, design) {
   return wrapPattern([{ outer: shifted(p.outer), holes: p.holes.map(shifted) }], {
     outerR, filletR: bandFillet(design), thickness: design.thickness + relief,
   });
+}
+
+// Shapes whose outline can take the band's own edge rounding, so they can be
+// merged into it without making the band any less round.
+const MERGEABLE = { asc: ['bar', 'triangle'], sun: ['halo'], moon: ['full', 'hex'] };
+
+// The ring at rest as one piece of metal: the band with its smooth shapes
+// merged into it (holes cut through), so there is no overlap and nothing to
+// mismatch, inside or out. Returns { mesh, merged } where `merged` lists the
+// kinds ('asc' | 'sun' | 'moon') that are part of it; the others still need
+// their own mesh on top. A shape is left out if merging it would cost the
+// band its rounding (two shapes meeting at a sliver, say). null if none fit.
+export function buildWholeMesh(design, sunOffDeg, moonOffDeg) {
+  const outerR = ringOuterR(design), LENGTH = 2 * Math.PI * outerR;
+  const offsets = { asc: 0, sun: sunOffDeg, moon: moonOffDeg };
+  const candidates = ['sun', 'moon', 'asc'].filter(kind => MERGEABLE[kind].includes(design[kind]));
+  const want = bandFillet(design), full = Math.min(want, design.thickness / 2 - 0.1);
+  const open = ring => ring.slice(0, -1); // polygon-clipping repeats the first point
+
+  const attempt = kinds => {
+    // the band stays open under a holed sun either way, merged or not
+    const strips = bandStrips(design, sunOffDeg);
+    const solids = strips.map(st => [st.outer]), holes = [];
+    for (const kind of kinds) {
+      const p = markerProfile(kind, design[kind], design.size, design.width);
+      const x0 = normDeg(offsets[kind]) * DEG * outerR;
+      // a shape that crosses the seam at the ascendant is drawn at both ends
+      const shifts = [0];
+      if (x0 - p.halfU < 1.2) shifts.push(LENGTH);
+      if (x0 + p.halfU > LENGTH - 1.2) shifts.push(-LENGTH);
+      for (const dx of shifts) {
+        solids.push([p.outer.map(q => [q[0] + x0 + dx, q[1]])]);
+        for (const h of p.holes) holes.push([h.map(q => [q[0] + x0 + dx, q[1]])]);
+      }
+    }
+    let metal = polygonClipping.union(...solids);
+    if (holes.length) metal = polygonClipping.difference(metal, ...holes);
+    const mesh = wrapPattern(metal.map(poly => ({ outer: open(poly[0]), holes: poly.slice(1).map(open) })), {
+      outerR, filletR: want, thickness: design.thickness,
+    });
+    return mesh.filletR < full - 1e-6 ? null : mesh;
+  };
+
+  // all of them if possible, else the most that will go
+  const n = candidates.length;
+  const subsets = [];
+  for (let mask = (1 << n) - 1; mask > 0; mask--) subsets.push(candidates.filter((_, i) => mask & (1 << i)));
+  subsets.sort((a, b) => b.length - a.length);
+  for (const kinds of subsets) {
+    const mesh = attempt(kinds);
+    if (mesh) return { mesh, merged: kinds };
+  }
+  return null;
 }

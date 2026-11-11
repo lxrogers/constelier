@@ -28,7 +28,7 @@ export function useSavedSetup() {
     let design = DEFAULT_DESIGN, mode: ViewMode = 'flat-first';
     try {
       const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
-      if (saved?.design) design = { ...DEFAULT_DESIGN, ...saved.design };
+      if (saved?.design) design = { ...DEFAULT_DESIGN, ...saved.design, relief: 0 }; // flush only, for now
       if (saved?.mode === 'always-3d') mode = 'always-3d';
     } catch {}
     const view = q.get('view');
