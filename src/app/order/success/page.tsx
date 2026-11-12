@@ -4,6 +4,8 @@ import { fulfillCheckout } from '@/lib/commerce/fulfillment';
 import { formatUSD } from '@/lib/commerce/format';
 import { formatOrderNumber } from '@/lib/commerce/orders';
 import ClearBag from './ClearBag';
+import LegalLinks from '@/components/LegalLinks';
+import { SHIP_WITHIN_TEXT } from '@/lib/commerce/shop-terms';
 import '../../bag/bag.css';
 
 export const metadata: Metadata = { title: 'Order confirmed · Constelier' };
@@ -36,7 +38,7 @@ export default async function OrderSuccessPage({ searchParams }: {
         {orderNumber && <p className="order-label">Order {orderNumber}</p>}
         <p className="order-lead">
           {fulfilled
-            ? `We’ve emailed a receipt to ${session.customer_details?.email ?? 'you'}. Your pendant will be cast to order and ships within 3 weeks.`
+            ? `We’ve emailed a receipt to ${session.customer_details?.email ?? 'you'}. Your pendant will be cast to order and ships within ${SHIP_WITHIN_TEXT}.`
             : 'Your payment is still being confirmed. We’ll email you as soon as it clears.'}
         </p>
 
@@ -79,6 +81,7 @@ export default async function OrderSuccessPage({ searchParams }: {
         )}
 
         <Link href="/chart" className="shop-btn">Back to Constelier</Link>
+        <LegalLinks />
       </div>
     </main>
   );
@@ -91,6 +94,7 @@ function Missing() {
         <h1 className="shop-title">Order not found</h1>
         <p className="order-lead">We couldn’t find that order. If you were charged, your receipt email has the details.</p>
         <Link href="/chart" className="shop-btn">Back to Constelier</Link>
+        <LegalLinks />
       </div>
     </main>
   );

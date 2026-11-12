@@ -127,3 +127,4 @@
   .shop-card { padding: 20px; }
   .bag-thumb { flex-basis: 72px; height: 72px; }
 }
+.bag-fineprint a { color: inherit; text-underline-offset: 2px; }

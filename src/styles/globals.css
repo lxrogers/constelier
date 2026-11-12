@@ -112,3 +112,17 @@ nav.site-nav .logo-icon {
     height: 28px;
   }
 }
+
+/* Policy links under the bag, order and policy pages (LegalLinks). */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+}
+.legal-links a {
+  font-size: 12px;
+  color: #7a7568;
+  text-decoration: none;
+}
+.legal-links a:hover { color: #3a3630; text-decoration: underline; text-underline-offset: 2px; }
