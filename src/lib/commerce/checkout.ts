@@ -36,6 +36,9 @@ export const SHIPPING_OPTIONS: Stripe.Checkout.SessionCreateParams.ShippingOptio
 // treats jewelry differently and Stripe adds one.
 export const PENDANT_TAX_CODE = 'txcd_99999999';
 
+// Promised production time, also used for each order's ship-by date.
+export const SHIP_WITHIN_DAYS = 21;
+
 export const PRODUCTION_NOTE =
   'Each pendant is cast to order and ships within 3 weeks. Delivery times above start once it ships.';
 

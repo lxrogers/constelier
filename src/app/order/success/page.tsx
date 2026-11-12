@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { fulfillCheckout } from '@/lib/commerce/fulfillment';
 import { formatUSD } from '@/lib/commerce/format';
+import { formatOrderNumber } from '@/lib/commerce/orders';
 import ClearBag from './ClearBag';
 import '../../bag/bag.css';
 
@@ -16,12 +17,13 @@ export default async function OrderSuccessPage({ searchParams }: {
 
   let result;
   try {
-    result = await fulfillCheckout(session_id);
+    result = await fulfillCheckout(session_id, { source: 'success_page', onRecordError: 'log' });
   } catch (err) {
     console.error('Order lookup failed:', err);
     return <Missing />;
   }
-  const { session, fulfilled } = result;
+  const { session, fulfilled, order } = result;
+  const orderNumber = order && order.status !== 'skipped' ? formatOrderNumber(order.number) : null;
   const shipping = session.collected_information?.shipping_details;
   const addr = shipping?.address;
   const items = session.line_items?.data ?? [];
@@ -31,6 +33,7 @@ export default async function OrderSuccessPage({ searchParams }: {
       <ClearBag />
       <div className="shop-card">
         <h1 className="shop-title">{fulfilled ? 'Thank you, your order is in' : 'Your order is processing'}</h1>
+        {orderNumber && <p className="order-label">Order {orderNumber}</p>}
         <p className="order-lead">
           {fulfilled
             ? `We’ve emailed a receipt to ${session.customer_details?.email ?? 'you'}. Your pendant will be cast to order and ships within 3 weeks.`

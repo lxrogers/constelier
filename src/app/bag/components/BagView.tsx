@@ -18,7 +18,7 @@ export default function BagView() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity })) }),
+        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity, thumbnail: i.thumbnail })) }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.');
