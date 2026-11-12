@@ -4,6 +4,7 @@ import { getStripe } from './stripe';
 import { decodeDesignMetadata } from './order-metadata';
 import { recordPaidOrder, type RecordResult } from './orders';
 import { getDb } from '@/lib/db/client';
+import { sendAlert } from '@/lib/alerts';
 
 // Called from both the webhook and the success page (whichever arrives first),
 // as Stripe recommends. Safe to call repeatedly.
@@ -34,9 +35,11 @@ export async function fulfillCheckout(
     try {
       order = await recordPaidOrder(await dbReady, session, source);
       if (order.status === 'created') console.log('[order] saved', session.id, 'as', order.number);
-      if (order.status === 'skipped') console.error('[order] not saved', session.id, order.reason);
+      if (order.status === 'skipped') {
+        await sendAlert({ title: 'Paid order not saved', detail: `${session.id}: ${order.reason}`, key: `order:${session.id}` });
+      }
     } catch (err) {
-      console.error('[order] could not save', session.id, (err as Error).message);
+      await sendAlert({ title: 'Paid order could not be saved', detail: `${session.id}: ${(err as Error).message}`, key: `order:${session.id}` });
       if (onRecordError === 'throw') throw err;
     }
     return { session, fulfilled: true, order };

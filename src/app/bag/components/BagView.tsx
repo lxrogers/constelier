@@ -6,6 +6,7 @@ import { bag, useBag, formatUSD } from '@/hooks/useBag';
 import { designQuery, MAX_QUANTITY } from '@/lib/commerce/design';
 import { SHIP_WITHIN_TEXT } from '@/lib/commerce/shop-terms';
 import LegalLinks from '@/components/LegalLinks';
+import { trackFunnel } from '@/lib/analytics';
 import { FINAL_SALE_SHORT } from '@/app/legal/policy';
 import '../bag.css';
 
@@ -17,6 +18,7 @@ export default function BagView() {
   async function handleCheckout() {
     setCheckingOut(true);
     setError('');
+    trackFunnel('checkout_started', { items: items.length, subtotal });
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',

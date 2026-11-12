@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
 import OutlineControls from './components/OutlineControls';
 import AddToBagPanel from './components/AddToBagPanel';
+import { trackFunnel } from '@/lib/analytics';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -45,9 +46,17 @@ export default function NatalChart() {
   const [aspects, setAspects] = useState<AspectData[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const chartTracked = useRef(false);
+
+  useEffect(() => {
+    if (step !== 'aspects' || aspects.length === 0 || chartTracked.current) return;
+    chartTracked.current = true;
+    trackFunnel('chart_shown', { aspects: aspects.length });
+  }, [step, aspects.length]);
 
   useEffect(() => {
     controlsRef.current?.scrollTo(0, 0);
+    if (step === 'aspects') trackFunnel('birth_details_entered');
     if (step === 'aspects' && aspects.length > 0) {
       // Select the first aspect as it appears in the grouped list
       const first = ASPECT_ORDER.reduce<AspectData | null>((found, key) => {
@@ -247,7 +256,7 @@ export default function NatalChart() {
               <p>Thank you for signing up! We&apos;ll be in touch.</p>
             </div>
           ) : (
-            <WaitlistForm onSubmitted={() => setSubmitted(true)} />
+            <WaitlistForm onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} />
           )}
         </div>
       </div>
