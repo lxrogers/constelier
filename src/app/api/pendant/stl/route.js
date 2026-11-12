@@ -1,4 +1,4 @@
-import { buildExportMesh, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
+import { buildExportMesh, meshOptionsFor, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
 import { meshToSTL } from '@/modules/fast-pendant-mesh.js';
 
 // Casting export without OpenCascade: same body as /api/pendant/generate,
@@ -8,7 +8,7 @@ export async function POST(request) {
     const {
       chords, expansion, circleRadius, borderThickness,
       minArea = 10, minAngle = 15, filletRadius = 2,
-      thickness = 5, filletRadius3D = 2, scale = 1,
+      thickness = 5, filletRadius3D = 2, rimRoundness, scale = 1,
       outlineStyle = 'current', liquidity,
     } = await request.json();
 
@@ -24,7 +24,7 @@ export async function POST(request) {
 
     const mesh = buildExportMesh(
       { style: outlineStyle, chords, circleRadius, borderThickness, expansion, minArea, minAngle, filletRadius, liquidity },
-      { thickness, filletR: filletRadius3D },
+      meshOptionsFor({ thickness, edgeFillet: filletRadius3D, rimRoundness }),
     );
 
     return new Response(meshToSTL(mesh, { scale }), {

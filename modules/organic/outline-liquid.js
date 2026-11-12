@@ -24,23 +24,23 @@ export const LIQUID_DEFAULTS = {
 };
 
 export function liquidField(chords, circleRadius, o) {
-  const segs = chordSegments(chords, circleRadius).map(([p, q]) => {
+  const segs = chordSegments(chords, circleRadius).map(([p, q, w]) => {
     const dx = q[0] - p[0], dy = q[1] - p[1];
     const len = Math.hypot(dx, dy);
     const e = o.barOvershoot ?? 0;
     // taperedHalfWidth() inlined below: mid + extra * |2t - 1|^power
     const extra = (o.endHalfWidth - o.midHalfWidth) * Math.min(1, len / circleRadius);
-    return { px0: p[0], py0: p[1], dx, dy, len, len2: len * len, t0: -e / len, t1: 1 + e / len, extra };
+    // w < 1 (grow-in animations) thins the bar and how far it pools.
+    return { px0: p[0], py0: p[1], dx, dy, len, len2: len * len, t0: -e / len, t1: 1 + e / len, extra: extra * w, mid: o.midHalfWidth * w, k: o.blend * w };
   });
   const h = o.resolution;
   const ext = circleRadius + 2;
   const nx = Math.ceil((2 * ext) / h) + 1;
   const ny = nx;
   const field = new Float64Array(nx * ny);
-  const k = o.blend;
   const ns = segs.length;
   const ds = new Float64Array(ns);
-  const mid = o.midHalfWidth, pw = o.taperPower ?? 2;
+  const pw = o.taperPower ?? 2;
 
   function evalAt(x, y) {
     const rim = circleRadius - Math.hypot(x, y);
@@ -54,15 +54,15 @@ export function liquidField(chords, circleRadius, o) {
       const px = s.px0 + s.dx * tc - x, py = s.py0 + s.dy * tc - y;
       const tw = t < 0 ? 0 : t > 1 ? 1 : t;
       const u = Math.abs(2 * tw - 1);
-      const hw = mid + s.extra * (pw === 2 ? u * u : Math.pow(u, pw));
+      const hw = s.mid + s.extra * (pw === 2 ? u * u : Math.pow(u, pw));
       ds[si] = Math.hypot(px, py) - hw;
     }
     // Order matters with a pairwise smooth min; rim first, then bars.
     let m = rim;
     for (let si = 0; si < ns; si++) {
-      const d = ds[si];
-      if (d - m > k) continue; // too far to blend: no influence
-      m = smin3(m, d, k);
+      const d = ds[si], ks = segs[si].k;
+      if (d - m > ks) continue; // too far to blend: no influence
+      m = smin3(m, d, ks);
     }
     return m;
   }

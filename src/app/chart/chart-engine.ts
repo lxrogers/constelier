@@ -6,7 +6,9 @@ import { Horoscope, Origin } from '@/lib/horoscope';
 import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
 import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
 import { buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
-import { buildPreview, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
+import { buildPreview, buildOutlineLoops, meshOptionsFor, pendantExtent, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
+import { chordsFromHoroscope } from '@/lib/natal-chords';
+import type { PendantParams } from '@/config/pendant-params';
 import makerjs from 'makerjs';
 
 const m = makerjs;
@@ -56,55 +58,66 @@ const ASPECT_STYLES = {
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasElement) {
+export interface ChartEngineOptions {
+  params: PendantParams;
+  // Prod: the URL may override aspects/outline (shared links, reopened bag
+  // designs) and is kept in sync. The lab drives every setting itself.
+  urlOverrides?: boolean;
+  // Drag to orbit the 3D pendant, scroll to zoom, double-click to reset
+  // (lab only). Emits `pendant-camera` on window with the view direction.
+  orbit?: boolean;
+}
+
+// What the reading is currently about: these aspect lines (and planets) are
+// highlighted, the 3D pendant fades so they show through, and with `zoom`
+// the chart eases in toward them.
+export interface FocusSpec {
+  aspects: { point1Key: string; point2Key: string; aspectKey: string }[];
+  planets?: string[];
+  zoom?: boolean;
+}
+
+export interface ChartEngine {
+  destroy(): void;
+  setFocus(spec: FocusSpec | null): void;
+  // `draft`: a slider is mid-drag, so a quick build is fine; a call with
+  // draft false afterwards settles it at full quality.
+  setParams(next: Partial<PendantParams>, opts?: { draft?: boolean }): void;
+}
+
+export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasElement, options: ChartEngineOptions): ChartEngine {
+  const urlOverrides = options.urlOverrides !== false;
+  let P: PendantParams = { ...options.params, aspects: [...options.params.aspects] };
+
   // ── URL Params ────────────────────────────────────────────────
 
   const urlParams = new URLSearchParams(window.location.search);
 
-  // ── Aspect Filter Checkboxes ────────────────────────────────
+  // ── Enabled aspects ─────────────────────────────────────────
 
-  const defaultAspects = Object.keys(ASPECT_STYLES).filter(k => k !== 'conjunction');
-  const urlAspects = urlParams.get('a');
-  const enabledAspects = new Set(
-    urlAspects ? urlAspects.split(',').filter(a => ASPECT_STYLES[a]) : defaultAspects
+  const urlAspects = urlOverrides ? urlParams.get('a') : null;
+  let enabledAspects = new Set<string>(
+    urlAspects ? urlAspects.split(',').filter(a => ASPECT_STYLES[a]) : P.aspects
   );
 
-  {
-    const container = document.getElementById('aspect-filters');
-    for (const [key, style] of Object.entries(ASPECT_STYLES)) {
-      if (key === 'conjunction') continue;
-      const label = document.createElement('label');
-      label.className = 'aspect-filter';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = enabledAspects.has(key);
-      cb.dataset.aspect = key;
-      cb.addEventListener('change', () => {
-        if (cb.checked) enabledAspects.add(key);
-        else enabledAspects.delete(key);
-        // Cancel any in-progress animations
-        if (aspectAnimId) { cancelAnimationFrame(aspectAnimId); aspectAnimId = null; }
-        if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
-        if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
-        // Fade out old pendant + crossfade 3D back to ring
-        pendantAlpha = 0;
-        pendantModelData = null;
-        aspectAnimLines = [];
-        aspectAnimDone = false;
-        if (pendantViewer && chart3dCanvas.style.opacity === '1') {
-          crossFadeToRing(400);
-        }
-        if (displayState) drawChartState(displayState);
-        startAspectAnim();
-        syncURL();
-      });
-      const swatch = document.createElement('span');
-      swatch.className = 'swatch';
-      swatch.style.background = style.color;
-      const name = key.charAt(0).toUpperCase() + key.slice(1);
-      label.append(cb, swatch, document.createTextNode(name));
-      container.appendChild(label);
+  function onAspectsChanged() {
+    // Cancel any in-progress animations
+    if (aspectAnimId) { cancelAnimationFrame(aspectAnimId); aspectAnimId = null; }
+    if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
+    if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
+    stopGrowIn();
+    stopGrowth();
+    // Fade out old pendant + crossfade 3D back to ring
+    pendantAlpha = 0;
+    pendantModelData = null;
+    aspectAnimLines = [];
+    aspectAnimDone = false;
+    if (pendantViewer && shown3d) {
+      crossFadeToRing(400);
     }
+    if (displayState) drawChartState(displayState);
+    startAspectAnim();
+    syncURL();
   }
 
   // ── Canvas Setup ───────────────────────────────────────────
@@ -124,16 +137,20 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const PLANET_R = (OUTER_R + ASPECT_R) / 2;
   const PLANET_INNER_R = 205;
   const INNER_R = 145;
-  const PENDANT_R = 100 * (ASPECT_R - 10) / 108;
+  // Model units that fit inside the aspect ring (ASPECT_R - 10 px). Chosen so
+  // the default rim (r 100 + ~12 border) sits just inside the zodiac ring;
+  // the 2D outline, aspect lines and 3D camera all scale from it.
+  const FIT_R = 114;
+  const PENDANT_R = 100 * (ASPECT_R - 10) / FIT_R;
 
   // ── State ──────────────────────────────────────────────────
 
   let selectedLat = urlParams.has('lat') ? parseFloat(urlParams.get('lat')!) : 38.0464;
   let selectedLon = urlParams.has('lon') ? parseFloat(urlParams.get('lon')!) : -84.4970;
   let chartOpacity = 0.6;
-  let filletRadius = 5;
-  let borderThickness = 8;
-  let lineThickness = 3;
+  let filletRadius = P.filletRadius;
+  let borderThickness = P.borderThickness;
+  let lineThickness = P.lineThickness;
   let scale3d = 1.0;
 
   let displayState = null;
@@ -161,6 +178,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let drawnAspects = [];
   const HOVER_THRESHOLD = 6;
 
+  // Reading focus (see FocusSpec). Pairs are stored both ways round.
+  let focus: { pairs: Set<string>; planets: Set<string>; zoom: boolean } | null = null;
+  let shown3d = false; // the 3D pendant has faded in at least once
+  const pairKey = (a: string, b: string) => a + '|' + b;
+  const isFocusedPair = (a: string, b: string) => !!focus && focus.pairs.has(pairKey(a, b));
+
   // DOM tooltip — renders above both 2D and 3D canvases
   const tooltip = document.createElement('div');
   tooltip.id = 'aspect-tooltip';
@@ -174,8 +197,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
     'pointer-events:none;z-index:1;display:none;';
   const hoverLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  hoverLine.setAttribute('stroke', 'rgba(0,0,0,0.4)');
-  hoverLine.setAttribute('stroke-width', '30');
+  hoverLine.setAttribute('stroke', 'none');
+  hoverLine.setAttribute('stroke-width', '0');
   hoverLine.setAttribute('stroke-linecap', 'round');
   hoverSvg.appendChild(hoverLine);
   canvas.parentElement!.appendChild(hoverSvg);
@@ -185,8 +208,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   hoverSvgFg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
     'pointer-events:none;z-index:3;display:none;';
   const hoverLineFg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  hoverLineFg.setAttribute('stroke', 'rgba(255,255,255,0.8)');
-  hoverLineFg.setAttribute('stroke-width', '1');
+  hoverLineFg.setAttribute('stroke', 'rgba(44,42,38,0.75)');
+  hoverLineFg.setAttribute('stroke-width', '1.5');
   hoverLineFg.setAttribute('stroke-linecap', 'round');
   hoverSvgFg.appendChild(hoverLineFg);
   canvas.parentElement!.appendChild(hoverSvgFg);
@@ -198,6 +221,75 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
     t = Math.max(0, Math.min(1, t));
     return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+
+  function focusedSegments() {
+    if (!focus || !aspectAnimDone) return [];
+    return drawnAspects.filter(a => isFocusedPair(a.point1Key, a.point2Key));
+  }
+
+  // The 3D pendant dims to half while a reading line grows in on the 2D
+  // canvas beneath it; otherwise it stays fully visible.
+  function apply3DFade(seconds = 0.15) {
+    if (!shown3d) return;
+    chart3dCanvas.style.transition = `opacity ${seconds}s ease`;
+    chart3dCanvas.style.opacity = growth?.hide3d ? '0.5' : '1';
+  }
+
+  // Ease the whole chart (2D + 3D together) toward the focused lines.
+  function applyZoom() {
+    const wrapper = canvas.parentElement!;
+    wrapper.style.transition = 'transform 1.4s cubic-bezier(.22,.7,.2,1)';
+    const segs = focus?.zoom ? focusedSegments() : [];
+    if (!segs.length) {
+      wrapper.style.transform = 'scale(1) translate(0%, 0%)';
+      delete wrapper.dataset.zoomed;
+      return;
+    }
+    // Lets the page soften whatever the zoomed chart slides under.
+    wrapper.dataset.zoomed = '';
+    const xs = segs.flatMap(a => [a.x1, a.x2]);
+    const ys = segs.flatMap(a => [a.y1, a.y2]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const extent = Math.max(maxX - minX, maxY - minY, 1);
+    // Kept subtle: long lines (oppositions) barely zoom; short ones get up to 1.4x.
+    const s = Math.max(1.08, Math.min(1.4, (PENDANT_R * 1.6) / extent));
+    // Pull most of the way toward the lines, keeping some context.
+    const pull = 0.85;
+    const tx = (CX - (minX + maxX) / 2) / SIZE * 100 * pull;
+    const ty = (CY - (minY + maxY) / 2) / SIZE * 100 * pull;
+    wrapper.style.transform = `scale(${s.toFixed(3)}) translate(${tx.toFixed(2)}%, ${ty.toFixed(2)}%)`;
+  }
+
+  function refreshFocus() {
+    if (displayState) drawChartState(displayState);
+    applyZoom();
+    // One line being read: replay it drawing in and thickening.
+    const segs = focus?.zoom ? focusedSegments() : [];
+    if (segs.length === 1) {
+      const key = pairKey(segs[0].point1Key, segs[0].point2Key);
+      if (growth?.key !== key) startGrowth(segs[0].point1Key, segs[0].point2Key);
+    } else {
+      stopGrowth();
+    }
+  }
+
+  function setFocus(spec: FocusSpec | null) {
+    if (!spec || (!spec.aspects.length && !spec.planets?.length)) {
+      focus = null;
+    } else {
+      const pairs = new Set<string>();
+      const planets = new Set<string>(spec.planets || []);
+      for (const a of spec.aspects) {
+        pairs.add(pairKey(a.point1Key, a.point2Key));
+        pairs.add(pairKey(a.point2Key, a.point1Key));
+        planets.add(a.point1Key);
+        planets.add(a.point2Key);
+      }
+      focus = { pairs, planets, zoom: !!spec.zoom };
+    }
+    refreshFocus();
   }
 
   function updateHoverOverlays() {
@@ -241,8 +333,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
                      prev?.point2Key !== hoveredAspect?.point2Key);
     if (changed && displayState) drawChartState(displayState);
     if (changed) {
-      chart3dCanvas.style.transition = 'opacity 0.15s ease';
-      chart3dCanvas.style.opacity = hoveredAspect ? T.dim : '1';
+      apply3DFade(0.15);
       canvas.dispatchEvent(new CustomEvent('hover-changed', {
         detail: hoveredAspect ? {
           point1Key: hoveredAspect.point1Key,
@@ -457,7 +548,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (aspectAnimId) { cancelAnimationFrame(aspectAnimId); aspectAnimId = null; }
     if (pendantFadeId) { cancelAnimationFrame(pendantFadeId); pendantFadeId = null; }
     if (expansionAnimId) { cancelAnimationFrame(expansionAnimId); expansionAnimId = null; }
-    if (pendantViewer && chart3dCanvas.style.opacity === '1') {
+    stopGrowIn();
+    stopGrowth();
+    if (pendantViewer && shown3d) {
       crossFadeToRing(400);
     }
     spreadT = 0;
@@ -556,13 +649,23 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       collected.push({ d1, d2, style, aspectKey: key, point1Key: asp.point1Key, point2Key: asp.point2Key, enabled: enabledAspects.has(key) });
     }
 
-    // Dispatch aspects to React UI
+    applyZoom();
+
+    // Dispatch the chart and its aspects to the React UI
+    canvas.dispatchEvent(new CustomEvent('chart-updated', {
+      detail: {
+        ascDeg,
+        planets: displayState.planets.map(p => ({ key: p.key, deg: p.deg })),
+      },
+    }));
     canvas.dispatchEvent(new CustomEvent('aspects-updated', {
       detail: collected.map(a => ({
         aspectKey: a.aspectKey,
         point1Key: a.point1Key,
         point2Key: a.point2Key,
         enabled: a.enabled,
+        deg1: a.d1,
+        deg2: a.d2,
       })),
     }));
 
@@ -606,6 +709,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       aspectAnimDone = true;
       drawChartState(displayState);
       renderPendantOnCanvas();
+      refreshFocus();
     }
   }
 
@@ -733,10 +837,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     p.set('lat', String(selectedLat));
     p.set('lon', String(selectedLon));
     p.set('loc', (document.getElementById('location') as HTMLInputElement).value);
-    const aspects = [...enabledAspects].sort().join(',');
-    p.set('a', aspects);
-    if (outlineStyle !== 'liquid') p.set('outline', outlineStyle);
-    if (outlineStyle === 'liquid' && liquidity !== LIQUIDITY.default) p.set('liq', String(liquidity));
+    if (urlOverrides) {
+      const aspects = [...enabledAspects].sort().join(',');
+      p.set('a', aspects);
+      if (outlineStyle !== options.params.outlineStyle) p.set('outline', outlineStyle);
+      if (outlineStyle === 'liquid' && liquidity !== options.params.liquidity) p.set('liq', String(liquidity));
+    }
     history.replaceState(null, '', '?' + p.toString());
   }
 
@@ -768,67 +874,13 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     chartOpacity = v / 100;
     if (displayState) drawChartState(displayState);
   });
-  let settings3dTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function rebuildPendantFromSettings() {
-    if (displayState && pendantChords) {
-      const r = 100;
-      pendantExpansion = lineThickness;
-      const model = buildPendantModel(pendantChords, lineThickness, r, borderThickness, 185, 5, filletRadius);
-      pendantModelData = { model, r, chords: pendantChords, expansion: lineThickness };
-      pendantAlpha = 1;
-      _3dModelReady = false;
-      _startDotAnim();
-
-      // Fade out 3D model immediately
-      chart3dCanvas.style.transition = 'opacity 0.2s ease';
-      chart3dCanvas.style.opacity = '0';
-
-      drawChartState(displayState);
-
-      if (settings3dTimer) clearTimeout(settings3dTimer);
-      settings3dTimer = setTimeout(() => {
-        settings3dTimer = null;
-        chart3dCanvas.style.transition = 'opacity 0.8s ease';
-        start3DTransition();
-      }, 120);
-    }
-  }
-
-  addListener('fillet-radius', 'input', () => {
-    filletRadius = parseFloat((document.getElementById('fillet-radius') as HTMLInputElement).value);
-    rebuildPendantFromSettings();
-  });
-  addListener('border-thickness', 'input', () => {
-    borderThickness = parseFloat((document.getElementById('border-thickness') as HTMLInputElement).value);
-    rebuildPendantFromSettings();
-  });
-  addListener('line-thickness', 'input', () => {
-    lineThickness = parseFloat((document.getElementById('line-thickness') as HTMLInputElement).value);
-    rebuildPendantFromSettings();
-  });
-  addListener('scale-3d', 'input', () => {
-    const v = parseInt((document.getElementById('scale-3d') as HTMLInputElement).value);
-    document.getElementById('scale-3d-val').textContent = v + '%';
-    scale3d = v / 100;
-    if (pendantViewer && pendantModelData) {
-      update3DCamera();
-    }
-  });
-
-  function updateHdriRotation() {
+  function applyHdri() {
     if (!pendantViewer) return;
-    const rx = parseInt((document.getElementById('hdri-rx') as HTMLInputElement).value) * Math.PI / 180;
-    const ry = parseInt((document.getElementById('hdri-ry') as HTMLInputElement).value) * Math.PI / 180;
-    document.getElementById('hdri-rx-val').textContent = (document.getElementById('hdri-rx') as HTMLInputElement).value + '°';
-    document.getElementById('hdri-ry-val').textContent = (document.getElementById('hdri-ry') as HTMLInputElement).value + '°';
     if (pendantViewer.scene.environmentRotation !== undefined) {
-      pendantViewer.scene.environmentRotation.set(rx, ry, 0);
+      pendantViewer.scene.environmentRotation.set(P.hdriRx * Math.PI / 180, P.hdriRy * Math.PI / 180, 0);
     }
     pendantViewer.renderOnce();
   }
-  addListener('hdri-rx', 'input', updateHdriRotation);
-  addListener('hdri-ry', 'input', updateHdriRotation);
 
   // ── FPS Counter ───────────────────────────────────────────
 
@@ -900,7 +952,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     ctx.clearRect(0, 0, SIZE, SIZE);
 
     if (showPendantRing) {
-      const outerR = ASPECT_R - 10;
+      const outerR = PENDANT_R * 1.08; // the default 8-unit border
       const innerR = PENDANT_R;
       ctx.save();
       ctx.beginPath();
@@ -1189,12 +1241,29 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       }
 
       const glyphP = eclToXY(renderDeg, PLANET_R, ascDeg);
-      const isHighlighted = hoveredAspect &&
-        (p.key === hoveredAspect.point1Key || p.key === hoveredAspect.point2Key);
+      const isHighlighted = hoveredAspect
+        ? (p.key === hoveredAspect.point1Key || p.key === hoveredAspect.point2Key)
+        : !!focus?.planets.has(p.key);
       const fontSize = p.key === 'sun' ? 28 : 22;
       const weight = isHighlighted ? 600 : 400;
+      const reading = isHighlighted && !hoveredAspect;
+      if (reading) {
+        // A short gold tick where the planet meets the ring, so the eye can
+        // run from the glyph to the bar it anchors.
+        const a = eclToXY(p.deg, ASPECT_R - 12, ascDeg);
+        const b = eclToXY(p.deg, ASPECT_R + 8, ascDeg);
+        const prev = ctx.globalAlpha;
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#a07a26';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        const dot = eclToXY(p.deg, ASPECT_R, ascDeg);
+        ctx.fillStyle = '#a07a26';
+        ctx.beginPath(); ctx.arc(dot.x, dot.y, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = prev;
+      }
       ctx.font = weight + ' ' + fontSize + 'px Graphik Web, system-ui, sans-serif';
-      ctx.fillStyle = isHighlighted ? T.glyphHi : T.glyph;
+      ctx.fillStyle = reading ? '#8a6416' : isHighlighted ? T.glyphHi : T.glyph;
       const prevAlpha = ctx.globalAlpha;
       if (isHighlighted) ctx.globalAlpha = 1.0;
       ctx.textAlign = 'center';
@@ -1240,6 +1309,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         const isHovered = hoveredAspect &&
           hoveredAspect.point1Key === asp.point1Key &&
           hoveredAspect.point2Key === asp.point2Key;
+        // While reading, the lines not being read step back. (The line being
+        // read is shown by the pendant animation, not drawn heavier here.)
+        const dimmed = !isHovered && (focus?.pairs.size ?? 0) > 0 && !isFocusedPair(asp.point1Key, asp.point2Key);
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
@@ -1247,7 +1319,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.strokeStyle = isHovered ? T.aspectHi : T.aspect;
         ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
         ctx.setLineDash(style.dash);
-        ctx.globalAlpha = isHovered ? 0.95 : style.opacity * chartOpacity;
+        ctx.globalAlpha = isHovered ? 0.95 : style.opacity * chartOpacity * (dimmed ? 0.35 : 1);
         ctx.stroke();
         ctx.globalAlpha = chartOpacity;
         ctx.setLineDash([]);
@@ -1363,34 +1435,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let expansionAnimStart = null;
 
   function buildPendantFromChart(horoscope, ascDeg, expansion) {
-    const planetAngles = {};
-    for (const key of PLANET_KEYS) {
-      const body = horoscope.CelestialBodies[key] || (horoscope.CelestialPoints && horoscope.CelestialPoints[key]);
-      if (body?.ChartPosition?.Ecliptic) {
-        const ecl = body.ChartPosition.Ecliptic.DecimalDegrees;
-        planetAngles[key] = normDeg(180 - ecl + ascDeg) * Math.PI / 180;
-      }
-    }
-
-    let aspects = [];
-    try {
-      if (horoscope.Aspects?.all) aspects = horoscope.Aspects.all;
-      else if (Array.isArray(horoscope.Aspects)) aspects = horoscope.Aspects;
-    } catch {}
-
-    const chords = [];
-    for (const asp of aspects) {
-      const key = asp.aspectKey || asp.key || '';
-      if (!enabledAspects.has(key)) continue;
-      const a1 = planetAngles[asp.point1Key];
-      const a2 = planetAngles[asp.point2Key];
-      if (a1 === undefined || a2 === undefined) continue;
-      chords.push({ a1, a2 });
-    }
+    const chords = chordsFromHoroscope(horoscope, ascDeg, enabledAspects);
     if (chords.length === 0) return null;
-
     const r = 100;
-    const model = buildPendantModel(chords, expansion, r, borderThickness, 185, 5, filletRadius);
+    const model = buildPendantModel(chords, expansion, r, borderThickness, P.minArea, P.minAngle, filletRadius);
     return { model, r, chords };
   }
 
@@ -1409,7 +1457,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // time the 2 s expansion animation ends instead of starting then.
       ensureViewer().catch(() => {});
 
-      startExpansionAnim();
+      if (outlineStyle === 'current') startExpansionAnim();
+      else startGrowIn(result.model);
     } catch (err) {
       console.error('Pendant build error:', err);
       pendantModelData = null;
@@ -1436,7 +1485,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       pendantExpansion = quantized;
       try {
         const r = 100;
-        const model = buildPendantModel(pendantChords, pendantExpansion, r, borderThickness, 185, 5, filletRadius);
+        const model = buildPendantModel(pendantChords, pendantExpansion, r, borderThickness, P.minArea, P.minAngle, filletRadius);
         pendantModelData = { model, r, chords: pendantChords, expansion: pendantExpansion };
         drawChartState(displayState);
       } catch {}
@@ -1448,6 +1497,200 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       expansionAnimId = null;
       start3DTransition();
     }
+  }
+
+  // ── Grow-in frames with the real outline smoothing ─────────
+  // The MakerJS expansion animation above only knows today's outline. For
+  // Liquid and Pebble each step is built by the same code as the final
+  // pendant (in a worker), so the metal pools at the junctions as it grows.
+
+  function outlineParams(chords, draft) {
+    return {
+      style: outlineStyle,
+      chords,
+      circleRadius: 100,
+      borderThickness,
+      expansion: lineThickness,
+      minArea: P.minArea,
+      minAngle: P.minAngle,
+      filletRadius,
+      liquidity,
+      draft,
+    };
+  }
+
+  // Liquid scales each bar (width and how far it pools) by chord.w; Pebble
+  // only has one width, so its frames grow the expansion instead.
+  function grownParams(chords, scale) {
+    if (outlineStyle === 'liquid') return outlineParams(chords.map(c => ({ ...c, w: scale })), true);
+    return { ...outlineParams(chords, true), expansion: Math.max(0.3, lineThickness * scale) };
+  }
+
+  // A second worker just for frame lists, so animations never displace the
+  // mesh builds queued on the main one.
+  let framesWorker = null;
+  let framesBroken = false;
+  let framesSeq = 0;
+  let framesJob = null;
+
+  function getFramesWorker() {
+    if (framesWorker || framesBroken || typeof Worker === 'undefined') return framesWorker;
+    try {
+      framesWorker = new Worker(new URL('./pendant.worker.ts', import.meta.url), { type: 'module' });
+      framesWorker.onmessage = (e) => {
+        const d = e.data;
+        if (!framesJob || d.id !== framesJob.id) return;
+        if (d.loops) framesJob.onFrame(d.index, d.loops);
+        else if (d.error) console.warn('[pendant frames]', d.error);
+      };
+      framesWorker.onerror = () => {
+        framesBroken = true;
+        try { framesWorker.terminate(); } catch {}
+        framesWorker = null;
+        if (framesJob) runFramesOnMain(framesJob);
+      };
+    } catch {
+      framesBroken = true;
+      framesWorker = null;
+    }
+    return framesWorker;
+  }
+
+  function runFramesOnMain(job) {
+    let i = 0;
+    const step = () => {
+      if (framesJob !== job || i >= job.paramsList.length) return;
+      try { job.onFrame(i, buildOutlineLoops(job.paramsList[i])); } catch (err) { console.warn(err); }
+      i++;
+      setTimeout(step, 0);
+    };
+    setTimeout(step, 0);
+  }
+
+  // Frames arrive one by one through onFrame(index, loops); a newer request
+  // replaces this one.
+  function requestOutlineFrames(paramsList, onFrame) {
+    const job = { id: ++framesSeq, paramsList, onFrame };
+    framesJob = job;
+    const w = getFramesWorker();
+    if (w) w.postMessage({ kind: 'frames', id: job.id, paramsList });
+    else runFramesOnMain(job);
+  }
+
+  function cancelOutlineFrames() {
+    framesJob = null;
+    framesWorker?.postMessage({ kind: 'cancel' });
+  }
+
+  // Each frame is held at least this long; a slow build just holds longer.
+  const GROW_STEPS = [0.08, 0.16, 0.25, 0.35, 0.46, 0.58, 0.7, 0.82, 0.92, 1];
+
+  let growInId = null;
+
+  function stopGrowIn() {
+    if (growInId) { cancelAnimationFrame(growInId); growInId = null; cancelOutlineFrames(); }
+  }
+
+  function startGrowIn(finalModel) {
+    stopGrowIn();
+    const chords = pendantChords;
+    const frames = [];
+    const hold = EXPANSION_DURATION / GROW_STEPS.length;
+    let shown = -1;
+    let lastSwitch = 0;
+    requestOutlineFrames(GROW_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
+    const tick = (now) => {
+      if (pendantChords !== chords) { growInId = null; return; }
+      if (frames[shown + 1] && now - lastSwitch >= hold) {
+        shown++;
+        lastSwitch = now;
+        pendantExpansion = lineThickness * GROW_STEPS[shown];
+        pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
+        if (displayState) drawChartState(displayState);
+      }
+      if (shown < GROW_STEPS.length - 1) {
+        growInId = requestAnimationFrame(tick);
+      } else {
+        growInId = null;
+        start3DTransition();
+      }
+    };
+    growInId = requestAnimationFrame(tick);
+  }
+
+  // ── Reading: one line draws in, then thickens ──────────────
+  // The 3D pendant fades out to the 2D outline without that bar, a thin line
+  // draws between the two planets, the bar grows in frame by frame (Liquid
+  // smoothing at every step), and the 3D pendant fades back.
+
+  let growth = null;
+  let growthId = null;
+  const GROWTH_FADE_MS = 350;
+  const GROWTH_DRAW_MS = 650;
+  const GROWTH_HOLD_MS = 130;
+  const GROWTH_REST_MS = 250;
+  const GROWTH_PULSE_MS = 1800; // one full fade in and out of the line
+
+  function stopGrowth(restore3D = true) {
+    if (growthId) { cancelAnimationFrame(growthId); growthId = null; }
+    if (!growth) return;
+    growth = null;
+    cancelOutlineFrames();
+    if (displayState) drawChartState(displayState);
+    if (restore3D) apply3DFade(0.5);
+  }
+
+  function startGrowth(p1, p2) {
+    stopGrowth(false);
+    const chords = pendantModelData?.chords;
+    const idx = chords ? chords.findIndex(c => (c.p1 === p1 && c.p2 === p2) || (c.p1 === p2 && c.p2 === p1)) : -1;
+    if (idx < 0 || !shown3d || !_3dModelReady || outlineStyle === 'current') { apply3DFade(0.5); return; }
+
+    const steps = [0, ...GROW_STEPS];
+    const frames = [];
+    const g = {
+      key: pairKey(p1, p2), chord: chords[idx], phase: 'wait', start: 0, lastSwitch: 0, shown: 0,
+      loops: null, lineT: 0, lineAlpha: 1, hide3d: false,
+    };
+    growth = g;
+    const paramsList = steps.map(sc =>
+      outlineStyle === 'liquid'
+        ? outlineParams(chords.map((c, i) => (i === idx ? { ...c, w: sc } : c)), true)
+        // Pebble: only one width, so leave the bar out, then put it back.
+        : outlineParams(sc === 0 ? chords.filter((_, i) => i !== idx) : chords, true));
+    requestOutlineFrames(paramsList, (i, loops) => { frames[i] = loops; });
+
+    const tick = (now) => {
+      if (growth !== g) return;
+      if (g.phase === 'wait') {
+        if (frames[0]) {
+          g.phase = 'fade'; g.start = now; g.loops = frames[0]; g.hide3d = true;
+          apply3DFade(GROWTH_FADE_MS / 1000);
+        }
+      } else if (g.phase === 'fade') {
+        if (now - g.start >= GROWTH_FADE_MS) { g.phase = 'draw'; g.start = now; }
+      } else if (g.phase === 'draw') {
+        g.lineT = Math.min(1, (now - g.start) / GROWTH_DRAW_MS);
+        if (g.lineT >= 1) { g.phase = 'grow'; g.lastSwitch = now; }
+      } else if (g.phase === 'grow') {
+        const last = steps.length - 1;
+        if (g.shown < last && frames[g.shown + 1] && now - g.lastSwitch >= GROWTH_HOLD_MS) {
+          g.shown++;
+          g.lastSwitch = now;
+          g.loops = frames[g.shown];
+          g.lineAlpha = 1 - g.shown / last;
+        }
+        if (g.shown >= last && now - g.lastSwitch >= GROWTH_REST_MS) { g.phase = 'pulse'; g.start = now; }
+      } else if (g.phase === 'pulse') {
+        // Stay on the grown outline with the 3D dimmed, and keep the line
+        // breathing in and out until the reader moves on (stopGrowth).
+        const t = (now - g.start) / GROWTH_PULSE_MS;
+        g.lineAlpha = 0.85 * (0.5 - 0.5 * Math.cos(t * Math.PI * 2));
+      }
+      if (displayState) drawChartState(displayState);
+      growthId = requestAnimationFrame(tick);
+    };
+    growthId = requestAnimationFrame(tick);
   }
 
   function startPendantFade() {
@@ -1509,11 +1752,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function drawPendant() {
     if (!pendantModelData || pendantAlpha <= 0) { _stopDotAnim(); return; }
     const { model, r } = pendantModelData;
-    const b = 8;
-    const outerR = r + b;
+    // Scale is fixed by FIT_R so the r=100 circle always lines up with the
+    // chart; a wider rim just draws larger.
+    const outerR = r + borderThickness;
 
     const drawR = ASPECT_R - 10;
-    const scale = drawR / outerR;
+    const scale = drawR / FIT_R * viewScale();
 
     ctx.save();
     ctx.beginPath();
@@ -1525,7 +1769,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
     // Organic outlines (Liquid, Pebble) only exist once the 3D build has
     // run; until then the 2D view shows today's outline growing in.
-    const cutouts = pendantModelData.loops || modelCutouts(model, r);
+    const cutouts = growth?.loops || pendantModelData.loops || modelCutouts(model, r);
 
     ctx.save();
     ctx.beginPath();
@@ -1537,11 +1781,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     }
     ctx.clip('evenodd');
 
-    if (_3dModelReady) {
+    if (_3dModelReady && !growth?.loops) {
       // 3D model is visible — skip dot grid, just fill solid background
+      // (unless orbited off top-down, where the backdrop no longer lines up)
       ctx.globalAlpha = pendantAlpha;
       ctx.fillStyle = T.paper;
-      ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
+      if (!orbited) ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
       ctx.restore();
       ctx.restore();
       return;
@@ -1583,6 +1828,22 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       ctx.closePath();
       ctx.stroke();
     }
+
+    // The line being read, drawn across before its bar thickens in.
+    if (growth && growth.lineT > 0) {
+      const c = growth.chord;
+      const px = Math.cos(c.a1) * r, py = Math.sin(c.a1) * r;
+      const qx = Math.cos(c.a2) * r, qy = Math.sin(c.a2) * r;
+      const e = easeOutQuartic(growth.lineT);
+      ctx.globalAlpha = pendantAlpha * growth.lineAlpha;
+      ctx.strokeStyle = '#2c2a26';
+      ctx.lineWidth = 1.5 / scale;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + (qx - px) * e, py + (qy - py) * e);
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
     ctx.restore();
 
@@ -1594,6 +1855,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const chart3dCanvas = canvas3d;
   let pendantViewer = null;
   let viewerPromise = null;
+  let resizeObserver: ResizeObserver | null = null;
 
   // ── Outline style + liquidity (preview branch) ───────────────────
   // Every 3D build is a plain-JS mesh straight from the 2D outline, with
@@ -1601,28 +1863,16 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // OpenCascade anywhere. The build runs in a Web Worker so dragging the
   // liquidity slider never blocks the page.
 
-  // Liquid is the default look (Nov 10); ?outline=current brings back the crisp outline.
-  let outlineStyle = OUTLINE_STYLE_IDS.includes(urlParams.get('outline')) ? urlParams.get('outline') : 'liquid';
+  let outlineStyle = urlOverrides && OUTLINE_STYLE_IDS.includes(urlParams.get('outline')) ? urlParams.get('outline') : P.outlineStyle;
   let liquidity = (() => {
-    const v = parseFloat(urlParams.get('liq'));
-    return Number.isFinite(v) ? Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)) : LIQUIDITY.default;
+    const v = urlOverrides ? parseFloat(urlParams.get('liq')) : NaN;
+    return Number.isFinite(v) ? Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)) : P.liquidity;
   })();
 
-  const PREVIEW_OPTS = { thickness: 5, filletR: 2 };
+  const previewOpts = () => meshOptionsFor(P);
 
   function previewParams(draft = false) {
-    return {
-      style: outlineStyle,
-      chords: pendantModelData.chords,
-      circleRadius: pendantModelData.r,
-      borderThickness,
-      expansion: lineThickness,
-      minArea: 185,
-      minAngle: 5,
-      filletRadius,
-      liquidity,
-      draft,
-    };
+    return { ...outlineParams(pendantModelData.chords, draft), circleRadius: pendantModelData.r };
   }
 
   // Latest-wins scheduler: at most one build in flight. A request made while
@@ -1663,7 +1913,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       if (runningJob !== job) return;
       try {
         const t0 = performance.now();
-        const res = buildPreview(job.params, PREVIEW_OPTS);
+        const res = buildPreview(job.params, job.meshOpts);
         finishJob(job, { ...res, ms: performance.now() - t0 });
       } catch (err) {
         console.error('Pendant build error:', err);
@@ -1675,7 +1925,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function startJob(job) {
     runningJob = job;
     const w = getWorker();
-    if (w) w.postMessage({ id: job.id, params: job.params, meshOpts: PREVIEW_OPTS });
+    if (w) w.postMessage({ id: job.id, params: job.params, meshOpts: job.meshOpts });
     else runOnMainThread(job);
   }
 
@@ -1690,7 +1940,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   function requestPreview(params) {
     return new Promise((resolve) => {
-      const job = { id: ++jobSeq, params, resolve };
+      const job = { id: ++jobSeq, params, meshOpts: previewOpts(), resolve };
       if (runningJob) {
         if (queuedJob) queuedJob.resolve(null);
         queuedJob = job;
@@ -1706,15 +1956,16 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   function applyPreviewLoops(loops) {
     if (!pendantModelData) return;
-    pendantModelData.loops = outlineStyle === 'current' ? null : loops;
+    pendantModelData.loops = loops;
   }
 
-  // Reshape the pendant already on screen to the current style/liquidity.
+  // Reshape the pendant already on screen to the current settings.
   // `mode`: 'swap' replaces the mesh instantly (slider drag), 'fade' cross-fades.
-  let liveDraftPending = false;
+  let lastBuildWasDraft = false;
   function refreshLivePendant(mode, draft) {
     if (!pendantModelData || !pendantViewer || !_3dModelReady) return;
     const gen = previewGen;
+    lastBuildWasDraft = draft;
     requestPreview(previewParams(draft)).then((res) => {
       if (!res || gen !== previewGen || !pendantViewer || !_3dModelReady) return;
       if (mode === 'swap') pendantViewer.swapMeshFromData(res.mesh);
@@ -1724,25 +1975,57 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     });
   }
 
-  function onOutlineEvent(e) {
-    const d = e.detail || {};
-    if (d.style && OUTLINE_STYLE_IDS.includes(d.style) && d.style !== outlineStyle) {
-      outlineStyle = d.style;
-      if (pendantModelData) pendantModelData.loops = null;
-      syncURL();
-      refreshLivePendant('fade', false);
+  // Bumped on every geometry change, so a 3D build that started before the
+  // change knows to redo itself when it lands.
+  let paramsVersion = 0;
+  let lastViewScale = 1;
+
+  const GEOMETRY_KEYS = ['outlineStyle', 'liquidity', 'lineThickness', 'filletRadius', 'minArea', 'minAngle',
+    'borderThickness', 'rimRoundness', 'thickness', 'edgeFillet', 'diameterMm',
+    'bailEnabled', 'bailInnerMm', 'bailBand', 'bailGapMm', 'bailBlend'];
+
+  function setParams(next, { draft = false } = {}) {
+    const prev = P;
+    P = { ...P, ...next, aspects: [...(next.aspects || P.aspects)] };
+    const changed = (k) => {
+      const a = prev[k], b = P[k];
+      if (Array.isArray(a)) return a.length !== b.length || a.some((v) => !b.includes(v));
+      return a !== b;
+    };
+
+    if (changed('roughness') && pendantViewer) { pendantViewer.setRoughness(P.roughness); pendantViewer.renderOnce(); }
+    if (changed('hdriRx') || changed('hdriRy')) applyHdri();
+    if (changed('thickness') && pendantViewer) pendantViewer.setShadowPlaneY(-(P.thickness + 2));
+    // A bail change can change how much the view has to zoom out.
+    const scaleBefore = lastViewScale;
+    lastViewScale = viewScale();
+    if (Math.abs(lastViewScale - scaleBefore) > 1e-4 && pendantViewer && _3dModelReady) {
+      update3DCamera(); // back to top-down at the new zoom
+      emitCamera();
+      if (displayState) drawChartState(displayState);
+    }
+
+    filletRadius = P.filletRadius;
+    borderThickness = P.borderThickness;
+    lineThickness = P.lineThickness;
+    outlineStyle = P.outlineStyle;
+    liquidity = P.liquidity;
+
+    if (changed('aspects')) {
+      enabledAspects = new Set(P.aspects);
+      onAspectsChanged(); // rebuilds from scratch with the new settings
       return;
     }
-    if (typeof d.liquidity === 'number') {
-      const v = Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, d.liquidity));
-      const changed = v !== liquidity;
-      liquidity = v;
-      if (outlineStyle !== 'liquid') return;
-      if (d.final) { syncURL(); refreshLivePendant('swap', false); }
-      else if (changed) refreshLivePendant('swap', true);
+    const geometryChanged = GEOMETRY_KEYS.some(changed);
+    if (geometryChanged) {
+      paramsVersion++;
+      if (changed('outlineStyle') && pendantModelData) pendantModelData.loops = null;
+      if (changed('outlineStyle') || changed('liquidity')) syncURL();
+      refreshLivePendant(changed('outlineStyle') ? 'fade' : 'swap', draft);
+    } else if (!draft && lastBuildWasDraft) {
+      refreshLivePendant('swap', false);
     }
   }
-  window.addEventListener('pendant-outline', onOutlineEvent);
 
   // The current design, for the bag. The React side asks with
   // `design-snapshot` and gets the answer through `detail.respond`.
@@ -1759,7 +2042,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // Crop to the pendant (outer radius + border) around the canvas centre.
       const half = src.width / 2;
       // Circle (r=100) is drawn at ASPECT_R-10; border adds 8%, plus a margin.
-      const r = src.width * ((ASPECT_R - 10) * 1.16 / SIZE);
+      const reach = Math.max(1.16, (pendantExtent(previewOpts(), borderThickness) + 6) / FIT_R);
+      const r = src.width * ((ASPECT_R - 10) * viewScale() * reach / SIZE);
       octx.drawImage(src, half - r, half - r, 2 * r, 2 * r, 0, 0, size, size);
       return out.toDataURL('image/jpeg', 0.82);
     } catch {
@@ -1786,12 +2070,21 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
           borderThickness,
           lineThickness,
           filletRadius,
+          thickness: P.thickness,
+          edgeFillet: P.edgeFillet,
+          rimRoundness: P.rimRoundness,
+          diameterMm: P.diameterMm,
+          bailEnabled: P.bailEnabled,
+          bailInnerMm: P.bailInnerMm,
+          bailBand: P.bailBand,
+          bailGapMm: P.bailGapMm,
+          bailBlend: P.bailBlend,
         },
         geometry: {
           chords: pendantModelData.chords.map((c) => ({ a1: c.a1, a2: c.a2 })),
           circleRadius: pendantModelData.r,
-          minArea: 185,
-          minAngle: 5,
+          minArea: P.minArea,
+          minAngle: P.minAngle,
         },
       },
       thumbnail: snapshotThumbnail(),
@@ -1799,27 +2092,34 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
   canvas.addEventListener('design-snapshot', onDesignSnapshot);
 
-  window.dispatchEvent(new CustomEvent('pendant-outline-state', { detail: { style: outlineStyle, liquidity } }));
-
   function crossFadeToRing(duration) {
     if (!pendantViewer) return;
     previewGen++;
-    pendantViewer.crossFadeMeshFromData(buildRingPreviewMesh(100, borderThickness, PREVIEW_OPTS), duration);
+    pendantViewer.crossFadeMeshFromData(buildRingPreviewMesh(100, borderThickness, previewOpts()), duration);
+  }
+
+  // Below 1 when a bail reaches past the canvas: the pendant (2D and 3D
+  // together) is drawn smaller so all of it fits.
+  function viewScale() {
+    const fullHalf = (SIZE / 2) / (ASPECT_R - 10) * FIT_R; // model units visible at scale 1
+    const reach = pendantExtent(previewOpts(), borderThickness) + 4;
+    return Math.min(1, fullHalf / reach);
   }
 
   function compute3DHalf() {
-    const outerR = (pendantModelData?.r || 100) + 8;
+    const outerR = FIT_R;
     const drawR = ASPECT_R - 10;
     const canvasHalf = SIZE / 2;
-    return (canvasHalf / drawR) * outerR;
+    return (canvasHalf / drawR) * outerR / viewScale();
   }
 
   function update3DCamera() {
     if (!pendantViewer || !pendantModelData) return;
-    const outerR = pendantModelData.r + 8;
+    orbited = false;
+    const outerR = FIT_R;
     pendantViewer.fitToRegionExact(compute3DHalf(), outerR);
     pendantViewer.pendantGroup.scale.setScalar(scale3d);
-    pendantViewer.setShadowPlaneY(-7);
+    pendantViewer.setShadowPlaneY(-(P.thickness + 2));
   }
 
   function ensureViewer() {
@@ -1838,7 +2138,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       hdriPath: '/softbox-2k.hdr',
       enablePostProcessing: true,
       background: null,
-      roughness: 0,
+      roughness: P.roughness,
     });
     viewer.scene.background = null;
     // Pages can tune the gold (e.g. a warmer, less saturated alloy on dark
@@ -1848,12 +2148,32 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const rough = parseFloat(getComputedStyle(canvas.parentElement || canvas).getPropertyValue('--pendant-roughness'));
     if (Number.isFinite(rough)) viewer._faceMat.roughness = rough;
 
+    // The renderer pinned the canvas to its size at creation, so it stopped
+    // following the 2D chart when the page resized. Let CSS size it and
+    // resize the drawing buffer to match.
+    chart3dCanvas.style.width = '';
+    chart3dCanvas.style.height = '';
+    const fit3D = () => {
+      const w = chart3dCanvas.clientWidth, h = chart3dCanvas.clientHeight;
+      if (!w || !h) return;
+      viewer.renderer.setSize(w, h, false);
+      viewer.composer?.setSize(w, h);
+      viewer.camera.aspect = w / h;
+      viewer.camera.updateProjectionMatrix();
+      // It only renders on demand, and a resize clears the canvas.
+      viewer.renderOnce();
+    };
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(fit3D);
+      resizeObserver.observe(chart3dCanvas);
+    }
+
     if (viewer.scene.environmentRotation !== undefined) {
-      viewer.scene.environmentRotation.set(344 * Math.PI / 180, 308 * Math.PI / 180, 0);
+      viewer.scene.environmentRotation.set(P.hdriRx * Math.PI / 180, P.hdriRy * Math.PI / 180, 0);
     }
 
     if (viewer.hdriReady) await viewer.hdriReady;
-    viewer.addShadowPlane(-7);
+    viewer.addShadowPlane(-(P.thickness + 2));
     viewer.start();
     pendantViewer = viewer;
     // ?capture: expose the viewer so a script can pose the pendant for
@@ -1862,6 +2182,49 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       (window as any).__pendantViewer = viewer;
       (window as any).__THREE = await import('three');
     }
+    if (options.orbit) await setupOrbit(viewer);
+  }
+
+  // ── Orbit (lab) ────────────────────────────────────────────
+
+  let orbitControls = null;
+  let orbited = false;
+
+  function emitCamera() {
+    if (!pendantViewer) return;
+    const p = pendantViewer.camera.position;
+    const len = Math.hypot(p.x, p.y, p.z) || 1;
+    window.dispatchEvent(new CustomEvent('pendant-camera', {
+      detail: { dir: [p.x / len, p.y / len, p.z / len], orbited },
+    }));
+  }
+
+  async function setupOrbit(viewer) {
+    const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+    const controls = new OrbitControls(viewer.camera, chart3dCanvas);
+    controls.enablePan = false;
+    controls.enableDamping = false; // renders on demand, no loop needed
+    controls.rotateSpeed = 0.6;
+    controls.minDistance = 900;
+    controls.maxDistance = 4000;
+    controls.addEventListener('change', () => {
+      if (!orbited) { orbited = true; if (displayState) drawChartState(displayState); }
+      viewer.renderOnce();
+      emitCamera();
+    });
+    chart3dCanvas.addEventListener('dblclick', resetView);
+    orbitControls = controls;
+  }
+
+  function resetView() {
+    if (!pendantViewer) return;
+    if (pendantModelData) update3DCamera();
+    else pendantViewer.fitToRegionExact(compute3DHalf(), FIT_R);
+    orbitControls?.update(); // fires 'change', which marks the view orbited
+    orbited = false;
+    pendantViewer.renderOnce();
+    if (displayState) drawChartState(displayState);
+    emitCamera();
   }
 
   async function start3DTransition() {
@@ -1869,22 +2232,27 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     _3dModelReady = false;
     const gen = ++previewGen;
     const data = pendantModelData;
+    const version = paramsVersion;
     try {
       await ensureViewer();
+      lastBuildWasDraft = false;
       const res = await requestPreview(previewParams(false));
       if (!res || gen !== previewGen || data !== pendantModelData) return;
 
       const r = data.r;
-      if (chart3dCanvas.style.opacity !== '1') {
-        pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, PREVIEW_OPTS));
+      if (!shown3d) {
+        pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, previewOpts()));
         update3DCamera();
-        chart3dCanvas.style.opacity = '1';
+        shown3d = true;
+        apply3DFade(0.8);
       }
       pendantViewer.crossFadeMeshFromData(res.mesh, 800);
       applyPreviewLoops(res.loops);
       _3dModelReady = true;
       _stopDotAnim();
       if (displayState) drawChartState(displayState);
+      // Settings moved while this was building.
+      if (version !== paramsVersion) refreshLivePendant('swap', false);
     } catch (err) {
       console.error('3D transition error:', err);
     }
@@ -1892,11 +2260,16 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   // ── Boot ───────────────────────────────────────────────────
 
+  lastViewScale = viewScale();
+
   generateChart();
 
   // ── Cleanup ────────────────────────────────────────────────
 
-  return function destroy() {
+
+  return { destroy, setParams, setFocus };
+
+  function destroy() {
     if (animFrameId) cancelAnimationFrame(animFrameId);
     if (spreadAnimId) cancelAnimationFrame(spreadAnimId);
     if (aspectAnimId) cancelAnimationFrame(aspectAnimId);
@@ -1910,6 +2283,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     tooltip.remove();
     hoverSvg.remove();
     hoverSvgFg.remove();
+    stopGrowth(false);
+    stopGrowIn();
+    resizeObserver?.disconnect();
+    canvas.parentElement?.style.removeProperty('transform');
     locationInput.removeEventListener('input', onLocationInput);
     locationInput.removeEventListener('blur', onLocationBlur);
 
@@ -1917,13 +2294,14 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       el.removeEventListener(event, handler);
     }
 
-    window.removeEventListener('pendant-outline', onOutlineEvent);
     canvas.removeEventListener('design-snapshot', onDesignSnapshot);
     themeObserver.disconnect();
+    chart3dCanvas.removeEventListener('dblclick', resetView);
+    orbitControls?.dispose();
     if (worker) { try { worker.terminate(); } catch {} worker = null; }
 
     if (pendantViewer) {
       try { pendantViewer.dispose?.(); } catch {}
     }
-  };
+  }
 }

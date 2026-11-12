@@ -11,6 +11,8 @@ import BagLink from '@/components/BagLink';
 import { Wordmark } from '@/components/Logo';
 import type { AspectLike } from '@/lib/reading';
 import { trackFunnel } from '@/lib/analytics';
+import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
+import type { ChartEngine } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -44,7 +46,10 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<(() => void) | null>(null);
+  const engineRef = useRef<ChartEngine | null>(null);
+  // Pendant settings: the saved lab defaults, changed by the outline
+  // controls and the developer settings panel (?dev).
+  const [params, setParams] = useState<PendantParams>(PENDANT_DEFAULTS);
   const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [step, setStep] = useState<Step>(initialStep);
   const [visited, setVisited] = useState<Set<Step>>(() => new Set(STEPS.slice(0, STEPS.findIndex((s) => s.id === initialStep) + 1).map((s) => s.id)));
@@ -109,7 +114,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
     (async () => {
       const { initChartEngine } = await import('./chart-engine');
       if (destroyed) return;
-      engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!);
+      engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!, { params, urlOverrides: true });
       // Apply the starting step's chart opacity once the engine listens.
       const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
       op?.dispatchEvent(new Event('input', { bubbles: true }));
@@ -121,11 +126,19 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
       canvas.removeEventListener('hover-changed', handleHoverChanged);
       if (focusTimer.current) clearTimeout(focusTimer.current);
       if (engineRef.current) {
-        engineRef.current();
+        engineRef.current.destroy();
         engineRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Only the changed settings go to the engine, so values it took from the
+  // URL (a shared link, a reopened bag design) stay unless changed here.
+  function changeParams(next: Partial<PendantParams>, draft: boolean) {
+    setParams((p) => ({ ...p, ...next }));
+    engineRef.current?.setParams(next, { draft });
+  }
 
   function dispatchAspectHover(aspect: AspectLike | null) {
     canvasRef.current?.dispatchEvent(new CustomEvent('aspect-hover', {
@@ -177,7 +190,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
             <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
           </div>
         </div>
-        <SettingsPanel showGear={showDev} />
+        <SettingsPanel showGear={showDev} params={params} onChange={changeParams} />
         {/* Engine bindings: chart opacity is driven by the step. */}
         <input type="hidden" id="chart-opacity" defaultValue={CHART_OPACITY[initialStep]} />
         <span id="chart-opacity-val" hidden />
@@ -296,7 +309,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
             <p className="eyebrow reveal">The metal</p>
             <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>How should the gold move?</h2>
           </div>
-          <OutlineControls variant="panel" />
+          <OutlineControls variant="panel" params={params} onChange={changeParams} />
           <div className="cfg-actions">
             <div className="btn-row">
               <button className="btn btn-ghost cfg-back" onClick={() => goTo('reading')} aria-label="Back to the reading">

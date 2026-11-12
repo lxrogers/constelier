@@ -1,14 +1,13 @@
 import 'server-only';
-import { buildExportMesh, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
+import { buildExportMesh, meshOptionsFor, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
 import type { PendantDesign } from './design';
 
 // ── Pricing knobs (placeholders: set real numbers before launch) ──────────
 //
 // Physical size: the model's outer edge (circleRadius + border) maps to this
-// diameter. Thickness in the model is 5 units, so at 25 mm it casts ~1.2 mm.
+// diameter unless the design sets its own. Thickness is in model units: the
+// default 5 on a 108-unit radius casts ~0.58 mm at 25 mm.
 export const PENDANT_DIAMETER_MM = 25;
-export const MESH_THICKNESS = 5;
-export const MESH_FILLET = 2;
 
 export const METAL = {
   name: '14k yellow gold',
@@ -45,11 +44,11 @@ export function quoteDesign(design: PendantDesign): Quote {
       filletRadius: spec.filletRadius,
       liquidity: spec.liquidity,
     },
-    { thickness: MESH_THICKNESS, filletR: MESH_FILLET },
+    meshOptionsFor({ ...spec, diameterMm: spec.diameterMm ?? PENDANT_DIAMETER_MM }),
   );
 
   const outerR = geometry.circleRadius + spec.borderThickness;
-  const mmPerUnit = PENDANT_DIAMETER_MM / 2 / outerR;
+  const mmPerUnit = (spec.diameterMm ?? PENDANT_DIAMETER_MM) / 2 / outerR;
   const volumeMm3 = Math.abs(meshVolume(mesh.vertices, mesh.triangles)) * mmPerUnit ** 3;
   const grams = (volumeMm3 / 1000) * METAL.densityGPerCm3;
   const raw = BASE_PRICE_CENTS + grams * METAL.pricePerGramCents;

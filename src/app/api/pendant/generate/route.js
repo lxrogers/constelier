@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { buildExportMesh, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
+import { buildExportMesh, meshOptionsFor, OUTLINE_STYLE_IDS } from '@/modules/pendant-build.js';
 
 // Mesh-only build (no OpenCascade): rolling-ball rounding of the top and
 // bottom edges, a few tens of ms for any outline style.
@@ -11,7 +11,7 @@ export async function POST(request) {
     const {
       chords, expansion, circleRadius, borderThickness,
       minArea = 10, minAngle = 15, filletRadius = 2,
-      thickness = 5, filletRadius3D = 2,
+      thickness = 5, filletRadius3D = 2, rimRoundness,
       outlineStyle = 'current', liquidity,
     } = params;
 
@@ -27,7 +27,7 @@ export async function POST(request) {
 
     const mesh = buildExportMesh(
       { style: outlineStyle, chords, circleRadius, borderThickness, expansion, minArea, minAngle, filletRadius, liquidity },
-      { thickness, filletR: filletRadius3D },
+      meshOptionsFor({ thickness, edgeFillet: filletRadius3D, rimRoundness }),
     );
     const normals = vertexNormals(mesh.vertices, mesh.triangles);
 

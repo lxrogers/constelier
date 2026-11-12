@@ -1,17 +1,15 @@
 'use client';
 
-// Preview-branch controls: switch the pendant outline between Today, Liquid
-// and Pebble, and drag Liquid's liquidity. Talks to chart-engine through
-// window events, like the settings panel does through hidden inputs.
+// The outline choice (Liquid, Pebble, Crisp) and Liquid's liquidity slider.
+// Controlled: the configurator owns the pendant settings and passes them to
+// the chart engine.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { LIQUIDITY } from '@/modules/pendant-build';
+import type { OutlineStyle, PendantParams } from '@/config/pendant-params';
 import './OutlineControls.css';
 
-type Style = 'current' | 'liquid' | 'pebble';
-
-// Must match the engine's default (chart-engine.ts).
-const DEFAULT_STYLE: Style = 'liquid';
+type Style = OutlineStyle;
 
 const STYLES: { id: Style; label: string; note: string }[] = [
   { id: 'liquid', label: 'Liquid', note: 'Molten lines that pool where they meet. Drag to set how far the gold flows.' },
@@ -19,37 +17,30 @@ const STYLES: { id: Style; label: string; note: string }[] = [
   { id: 'current', label: 'Crisp', note: 'Clean geometric openings, closest to the chart itself.' },
 ];
 
-function send(detail: Record<string, unknown>) {
-  window.dispatchEvent(new CustomEvent('pendant-outline', { detail }));
-}
-
-export default function OutlineControls({ variant = 'float' }: { variant?: 'float' | 'panel' }) {
-  const [style, setStyle] = useState<Style>(DEFAULT_STYLE);
-  const [liquidity, setLiquidity] = useState<number>(LIQUIDITY.default);
+export default function OutlineControls({ variant = 'float', params, onChange }: {
+  variant?: 'float' | 'panel';
+  params: PendantParams;
+  onChange: (next: Partial<PendantParams>, draft: boolean) => void;
+}) {
+  const style = params.outlineStyle;
+  const liquidity = params.liquidity;
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Pick up the starting values the engine read from the URL.
+  // Show the values a shared link opened with (the engine reads the URL too).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
+    const next: Partial<PendantParams> = {};
     const s = p.get('outline');
-    if (s === 'liquid' || s === 'pebble' || s === 'current') setStyle(s);
+    if (s === 'liquid' || s === 'pebble' || s === 'current') next.outlineStyle = s;
     const v = parseFloat(p.get('liq') || '');
-    if (Number.isFinite(v)) setLiquidity(Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v)));
-    const onState = (e: Event) => {
-      const d = (e as CustomEvent).detail || {};
-      if (d.style) setStyle(d.style);
-      if (typeof d.liquidity === 'number') setLiquidity(d.liquidity);
-    };
-    window.addEventListener('pendant-outline-state', onState);
-    return () => {
-      window.removeEventListener('pendant-outline-state', onState);
-      if (settleTimer.current) clearTimeout(settleTimer.current);
-    };
+    if (Number.isFinite(v)) next.liquidity = Math.min(LIQUIDITY.max, Math.max(LIQUIDITY.min, v));
+    if (Object.keys(next).length) onChange(next, false);
+    return () => { if (settleTimer.current) clearTimeout(settleTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function pickStyle(next: Style) {
-    setStyle(next);
-    send({ style: next });
+    onChange({ outlineStyle: next }, false);
   }
 
   // While dragging: quick draft builds. When the thumb rests (released, or
@@ -57,11 +48,10 @@ export default function OutlineControls({ variant = 'float' }: { variant?: 'floa
   function settle(v: number) {
     if (settleTimer.current) clearTimeout(settleTimer.current);
     settleTimer.current = null;
-    send({ liquidity: v, final: true });
+    onChange({ liquidity: v }, false);
   }
   function onSlide(v: number) {
-    setLiquidity(v);
-    send({ liquidity: v, final: false });
+    onChange({ liquidity: v }, true);
     if (settleTimer.current) clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => settle(v), 250);
   }

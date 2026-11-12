@@ -1,0 +1,27 @@
+{
+  "diameterMm": 25,
+  "outlineStyle": "liquid",
+  "liquidity": 12,
+  "lineThickness": 4.5,
+  "filletRadius": 5,
+  "borderThickness": 11.75,
+  "rimRoundness": 1.08,
+  "thickness": 10.75,
+  "edgeFillet": 2.5,
+  "bailEnabled": true,
+  "bailInnerMm": 1.7,
+  "bailBand": 0.75,
+  "bailGapMm": 0,
+  "bailBlend": 0.5,
+  "aspects": [
+    "opposition",
+    "trine",
+    "square",
+    "sextile"
+  ],
+  "minArea": 185,
+  "minAngle": 5,
+  "roughness": 0,
+  "hdriRx": 344,
+  "hdriRy": 308
+}
