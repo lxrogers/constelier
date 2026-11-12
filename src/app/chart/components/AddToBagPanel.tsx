@@ -9,6 +9,9 @@ import './AddToBagPanel.css';
 interface Snapshot { design: PendantDesign; thumbnail: string | null }
 interface Quote { unitAmount: number; grams: number; metal: string }
 
+const RETRY_MS = 500;
+const RETRY_LIMIT = 30; // ~15 s before concluding there is no pendant
+
 // Asks the chart engine (which owns the canvas) for the current design.
 function requestSnapshot(canvas: HTMLCanvasElement | null): Snapshot | null {
   let result: Snapshot | null = null;
@@ -21,14 +24,28 @@ export default function AddToBagPanel({ canvasRef, active }: {
   active: boolean;
 }) {
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [status, setStatus] = useState<'idle' | 'pricing' | 'error' | 'added'>('idle');
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'pricing' | 'error' | 'added'>('idle');
   const [error, setError] = useState('');
   const seq = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const refreshQuote = useCallback(async () => {
-    const snap = requestSnapshot(canvasRef.current);
-    if (!snap) { setQuote(null); setStatus('error'); setError('Pick at least one aspect to make a pendant.'); return; }
+  // `attempt` counts retries while the chart is still building the pendant
+  // (it finishes a couple of seconds after the aspects animate in).
+  const refreshQuote = useCallback(async (attempt = 0) => {
+    if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     const id = ++seq.current;
+    const snap = requestSnapshot(canvasRef.current);
+    if (!snap) {
+      setQuote(null);
+      if (attempt < RETRY_LIMIT) {
+        setStatus('waiting');
+        retryTimer.current = setTimeout(() => refreshQuote(attempt + 1), RETRY_MS);
+      } else {
+        setStatus('error');
+        setError('Pick at least one aspect to make a pendant.');
+      }
+      return;
+    }
     setStatus('pricing');
     try {
       const res = await fetch('/api/quote', {
@@ -54,10 +71,14 @@ export default function AddToBagPanel({ canvasRef, active }: {
     // Re-price when the outline style or liquidity settles.
     const onOutline = (e: Event) => {
       const d = (e as CustomEvent).detail || {};
-      if (d.style || d.final) setTimeout(refreshQuote, 50);
+      if (d.style || d.final) setTimeout(() => refreshQuote(), 50);
     };
     window.addEventListener('pendant-outline', onOutline);
-    return () => window.removeEventListener('pendant-outline', onOutline);
+    return () => {
+      window.removeEventListener('pendant-outline', onOutline);
+      if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
+      seq.current++; // drop any quote still in flight
+    };
   }, [active, refreshQuote]);
 
   async function handleAdd() {
@@ -77,7 +98,9 @@ export default function AddToBagPanel({ canvasRef, active }: {
     <div className="add-to-bag">
       <div className="atb-price-row">
         <span className="atb-price">
-          {quote ? formatUSD(quote.unitAmount) : status === 'pricing' ? 'Pricing…' : '—'}
+          {quote ? formatUSD(quote.unitAmount)
+            : status === 'pricing' ? 'Pricing…'
+            : status === 'waiting' ? 'Preparing…' : '—'}
         </span>
         {quote && <span className="atb-metal">{quote.metal} · approx. {quote.grams.toFixed(1)} g</span>}
       </div>
@@ -96,7 +119,7 @@ export default function AddToBagPanel({ canvasRef, active }: {
           </div>
         </div>
       ) : (
-        <button className="controls-step-btn" onClick={handleAdd} disabled={!quote || status === 'pricing'}>
+        <button className="controls-step-btn" onClick={handleAdd} disabled={!quote || status === 'pricing' || status === 'waiting'}>
           Add to bag
         </button>
       )}

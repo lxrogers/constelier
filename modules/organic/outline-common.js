@@ -43,13 +43,17 @@ export function circlePolygon(r, n = 256, cx = 0, cy = 0) {
 }
 
 // Chord endpoints on the circle of radius r.
+// [p, q, w] per chord. `w` (default 1) scales a bar's width, for the
+// grow-in animations; bars at w <= 0 are left out.
 export function chordSegments(chords, r) {
   const segs = [];
   for (const c of chords) {
+    const w = c.w ?? 1;
+    if (!(w > 0)) continue;
     const p = [Math.cos(c.a1) * r, Math.sin(c.a1) * r];
     const q = [Math.cos(c.a2) * r, Math.sin(c.a2) * r];
     if (Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-6) continue;
-    segs.push([p, q]);
+    segs.push([p, q, w]);
   }
   return segs;
 }

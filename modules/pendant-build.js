@@ -143,6 +143,11 @@ export function buildPreview(params, meshOpts = meshOptionsFor()) {
   return { mesh, loops };
 }
 
+// Just the void outlines (no mesh), for animation frames on the 2D canvas.
+export function buildOutlineLoops(params) {
+  return outlineDataToLoops(outlineData(params), 0.6);
+}
+
 // Watertight mesh for export.
 export function buildExportMesh(params, meshOpts = meshOptionsFor()) {
   const data = outlineData(params);

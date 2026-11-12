@@ -9,7 +9,8 @@ export interface BirthData {
   lat: number; lon: number;
 }
 
-export interface Chord { a1: number; a2: number }
+// p1/p2 name the two planets; w (grow-in animations only) scales the bar width.
+export interface Chord { a1: number; a2: number; p1?: string; p2?: string; w?: number }
 
 export const PLANET_KEYS = [
   'sun', 'moon', 'mercury', 'venus', 'mars',
@@ -60,7 +61,7 @@ export function chordsFromHoroscope(h: any, ascDeg: number, enabled: Set<string>
     if (!on.has(key)) continue;
     const a1 = angles[asp.point1Key], a2 = angles[asp.point2Key];
     if (a1 === undefined || a2 === undefined) continue;
-    chords.push({ a1, a2 });
+    chords.push({ a1, a2, p1: asp.point1Key, p2: asp.point2Key });
   }
   return chords;
 }

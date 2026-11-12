@@ -494,3 +494,161 @@ input[type="range"]::-moz-range-thumb {
     clip-path: circle(calc(50% * 310 / 350) at center);
   }
 }
+
+/* ── Flow layout (birth details + reading) ──────────────────
+   Desktop follows the design file: the model large on the left, the
+   text open on the right (no card). The zoomed model may slide under the
+   text column, which blurs whatever passes behind it. */
+@media (min-width: 769px) {
+  body:has(.chart-page.is-flow) { overflow: hidden; }
+  nav.site-nav { position: relative; z-index: 20; }
+  .chart-page.is-flow {
+    max-width: 1360px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px 40px 40px;
+    gap: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+  .chart-page.is-flow #main {
+    order: 1;
+    flex: 1 1 520px;
+    height: 100%;
+    padding: 0;
+    overflow: visible;
+  }
+  .chart-page.is-flow .chart-wrapper {
+    --chart-size: min(100cqw, 100cqh, 680px);
+  }
+  .chart-page.is-flow #controls {
+    order: 2;
+    position: relative;
+    z-index: 5;
+    flex: 0 1 584px;
+    width: auto;
+    min-width: 424px;
+    max-width: 584px;
+    height: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0 0 0 64px;
+    justify-content: center;
+  }
+  .chart-page.is-flow #controls::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: rgba(245, 240, 230, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 64px),
+      linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent, #000 64px),
+      linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+    mask-composite: intersect;
+    opacity: 0;
+    transition: opacity 0.9s ease;
+  }
+  .chart-page.is-flow:has(.chart-wrapper[data-zoomed]) #controls::before { opacity: 1; }
+  .chart-page.is-flow #controls > div { flex: 0 0 auto; }
+  .chart-page.is-flow .controls-back-btn,
+  .chart-page.is-flow .controls-subheading { display: none; }
+
+  /* Birth details */
+  .chart-page.is-flow #controls h2 {
+    font-family: 'Moulin', serif;
+    font-weight: 400;
+    font-size: 48px;
+    line-height: 1.04;
+    color: #2c2c2c;
+    padding: 0;
+    border: 0;
+  }
+  .chart-page.is-flow .controls-intro {
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: #3a3630;
+  }
+  .chart-page.is-flow #controls > div:has(.birth-field) {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .chart-page.is-flow .birth-field .form-group { gap: 8px; }
+  .chart-page.is-flow .date-row select,
+  .chart-page.is-flow .time-row select,
+  .chart-page.is-flow .location-input-wrap input[type="text"] {
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .chart-page.is-flow #controls > div > .controls-step-btn,
+  .chart-page.is-reading .reading-nav .controls-step-btn,
+  .chart-page.is-reading .reading-nav .controls-back-btn-mobile {
+    flex: 0 0 auto;
+    width: auto;
+    align-self: flex-start;
+    min-height: 48px;
+    padding: 0 28px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+  .chart-page.is-flow #controls > div > .controls-step-btn { margin-top: 8px; }
+
+  /* Reading */
+  .chart-page.is-reading #controls h2 { display: none; }
+  .chart-page.is-reading .reading { gap: 28px; }
+  .chart-page.is-reading .reading-body { gap: 20px; }
+  .chart-page.is-reading .reading-title { font-size: 48px; line-height: 1.04; }
+  .chart-page.is-reading .reading-text { font-size: 17px; }
+  .chart-page.is-reading .reading-text-lg { font-size: 19px; line-height: 1.6; }
+  .chart-page.is-reading .reading-where { font-size: 14px; }
+  .chart-page.is-reading .reading-nav { margin-top: 8px; }
+}
+
+/* Mobile: a smaller model (it zooms anyway) and a compact sheet, so each
+   line reads without scrolling. The two may overlap a little. */
+@media (max-width: 768px) {
+  /* Let the zoomed model run past its box (under the nav and the sheet)
+     instead of being cut off; the sheet blurs what passes behind it. */
+  body:has(.chart-page.is-reading) { overflow: hidden; }
+  nav.site-nav { position: relative; z-index: 20; }
+  .chart-page.is-reading { overflow: visible; }
+  .chart-page.is-reading #main { padding-top: 0; overflow: visible; }
+  .chart-page.is-reading .chart-wrapper {
+    width: 92%;
+    margin: 0 auto;
+  }
+  /* Taller than the birth-details sheet; it overlaps the bottom of the
+     model a little, which is fine since the reading zooms toward the line. */
+  .chart-page.is-reading #controls {
+    height: 54%;
+    max-height: 54%;
+    padding-top: 18px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+  .chart-page.is-reading #controls h2 { display: none; }
+  .chart-page.is-reading .reading { gap: 10px; }
+  .chart-page.is-reading .reading-body { gap: 8px; }
+  .chart-page.is-reading .reading-big3-glyph { font-size: 16px; line-height: 20px; }
+  .chart-page.is-reading .reading-themes { gap: 4px; font-size: 13px; }
+  .chart-page.is-reading .reading-title { font-size: 24px; }
+  .chart-page.is-reading .reading-text { font-size: 13px; line-height: 1.5; }
+  .chart-page.is-reading .reading-text-lg { font-size: 14px; line-height: 1.5; }
+  .chart-page.is-reading .reading-dot { height: 18px; }
+  .chart-page.is-reading .reading-big3-cell { padding: 6px 10px; }
+}
