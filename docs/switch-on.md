@@ -8,7 +8,8 @@ up in your accounts.
    Production, Preview and Development. That sets `DATABASE_URL`.
 2. Vercel project → Storage → Create → Blob. Connect it the same way. That
    sets `BLOB_READ_WRITE_TOKEN` (design thumbnails).
-3. On your Mac: `vercel env pull .env.local`, then `npm run db:migrate`.
+3. Nothing to run by hand: every deploy applies new migrations first
+   (`scripts/migrate-on-deploy.ts`, the first step of `npm run build`).
 4. Redeploy, run one test-mode checkout, and check one row lands in `orders`
    (Neon console → Tables). Resend the webhook event from the Stripe
    dashboard and check no second row appears.

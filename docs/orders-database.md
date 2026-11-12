@@ -56,7 +56,7 @@ seed script against the same folder.
 ```
 # edit src/lib/db/schema.ts, then
 npm run db:generate          # writes drizzle/000N_*.sql
-npm run db:migrate           # applies it to DATABASE_URL
+npm run db:migrate           # applies it to DATABASE_URL now (deploys also do this)
 ```
 
 Commit the generated SQL and `drizzle/meta` with the schema change.
@@ -67,9 +67,15 @@ Commit the generated SQL and `drizzle/meta` with the schema change.
    Production, Preview and Development. This sets `DATABASE_URL`.
 2. Storage → Create → Blob. Connect it the same way. This sets
    `BLOB_READ_WRITE_TOKEN`.
-3. Locally: `vercel env pull .env.local`, then `npm run db:migrate` once.
-   (Neon can give previews their own branch; migrate those too, or let
-   them share the development branch.)
+3. Nothing to run by hand. `npm run build` starts with
+   `scripts/migrate-on-deploy.ts`, which applies any new migration before
+   Next builds. It uses `DATABASE_URL_UNPOOLED` (direct connection) or else
+   `DATABASE_URL`, holds a Postgres advisory lock so parallel preview builds
+   take turns, does nothing when no URL is set (local and fork builds), and
+   fails the build if a migration fails. `SKIP_DB_MIGRATE=1` skips it.
+   If Preview and Production share one database, a preview build of a branch
+   with a new migration changes the production schema before the branch is
+   merged. Give previews their own Neon branch to avoid that.
 4. Redeploy. Start a test-mode checkout and check that one row appears in
    `orders` (Neon's console has a table viewer). Use Stripe's "Resend" on the
    webhook event and check that nothing new appears.
