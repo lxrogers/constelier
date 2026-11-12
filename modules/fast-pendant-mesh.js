@@ -190,10 +190,10 @@ function contoursValid(contours) {
 
 // ── Mesh ─────────────────────────────────────────────────────────────────
 
-function chooseRadius(loopsFrames, rStart) {
+function chooseRadius(loopsFrames, rStart, rMin = 0.3) {
   // Same step-down as replicad-pipeline's filletShape: x0.65, at most 8 tries.
   let r = rStart;
-  for (let attempt = 0; attempt < 8 && r >= 0.3; attempt++) {
+  for (let attempt = 0; attempt < 8 && r >= rMin; attempt++) {
     const contours = loopsFrames.map(fr => fr.map(f => [f.p[0] + f.inset[0] * r, f.p[1] + f.inset[1] * r]));
     if (contoursValid(contours)) return r;
     r *= 0.65;
@@ -210,13 +210,16 @@ function roundedSlab(data, options, forExport) {
     maxArcStep = 6 * DEG,
     profileSteps = forExport ? 16 : 8,
     creaseDeg = 30,
+    minFilletR = 0.3,        // give up on the fillet below this (model units)
   } = options;
 
-  const loops = outlineLoops(data, tolerance, maxArcStep);
+  // `options.loops` skips the pendant outline: any counter-clockwise loops,
+  // the outer boundary first and its holes after (see buildMeshFromLoops).
+  const loops = options.loops || outlineLoops(data, tolerance, maxArcStep);
   const creaseCos = forExport ? -2 : Math.cos(creaseDeg * DEG); // export: one normal per point, so it welds
   const frames = loops.map(L => loopFrames(L.pts, L.hole, creaseCos));
   const r0 = Math.max(0, Math.min(filletR, thickness / 2 - 0.1, minFeature * 0.45));
-  const rf = r0 > 0 ? chooseRadius(frames, r0) : 0;
+  const rf = r0 > 0 ? chooseRadius(frames, r0, minFilletR) : 0;
 
   const pos = [], nor = [], idx = [];
   const addV = (x, y, z, nx, ny, nz) => { pos.push(x, y, z); nor.push(nx, ny, nz); return pos.length / 3 - 1; };
@@ -330,4 +333,13 @@ export function buildRingPreviewMesh(circleRadius, borderThickness, options = {}
     circleRadius, borderThickness,
     voidChains: [{ links: [{ type: 'arc', origin: [0, 0], radius: circleRadius, startAngle: 0, endAngle: 360, reversed: false }] }],
   }, { minFeature: borderThickness, ...options });
+}
+
+// A rounded slab from plain polygons instead of pendant outline data: `outer`
+// is the boundary, `holes` go through it (each a list of [x, y], any winding).
+// Same options and output as buildPreviewMesh.
+export function buildMeshFromLoops(outer, holes = [], options = {}) {
+  const ccw = pts => (signedArea(pts) < 0 ? pts.slice().reverse() : pts);
+  const loops = [{ hole: false, pts: ccw(outer) }, ...holes.map(h => ({ hole: true, pts: ccw(h) }))];
+  return buildPreviewMesh(null, { ...options, loops });
 }

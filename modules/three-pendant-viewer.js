@@ -344,6 +344,15 @@ export class PendantViewer {
     return mesh;
   }
 
+  // A gold mesh that is not added to the scene: for callers that place and
+  // move several parts themselves (add it to `pendantGroup`).
+  createMesh(meshData) {
+    var mesh = this._buildMeshFromData(meshData);
+    mesh.material.dispose();
+    mesh.material = this._faceMat;
+    return mesh;
+  }
+
   updateMeshFromData(meshData) {
     while (this.pendantGroup.children.length > 0) {
       var child = this.pendantGroup.children[0];
