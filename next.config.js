@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Local dev database (DATABASE_URL=pglite:…): loaded from node_modules at
+  // runtime instead of bundled, because it ships its own WebAssembly.
+  serverExternalPackages: ['@electric-sql/pglite'],
   // Turbopack config (Next.js 16 default bundler)
   turbopack: {
     resolveAlias: {

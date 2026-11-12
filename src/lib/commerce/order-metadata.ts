@@ -3,12 +3,14 @@ import { createHash } from 'node:crypto';
 import type { PendantDesign } from './design';
 import type { Quote } from './pricing';
 
-// Until there is an orders database, each line item's Stripe product carries
-// its full design in metadata, so a paid order can be rebuilt from Stripe
-// alone. Stripe allows 50 keys of up to 500 characters each.
+// Each line item's Stripe product carries `design_id`, `metal` and
+// `est_grams`. With a database (DATABASE_URL set) that is all: the design,
+// with its birth date, time and place, is saved in our own designs table when
+// checkout starts, because Stripe advises against personal data in metadata.
 //
-// TODO: move designs to our own database and keep only `design_id` here.
-// Birth date and place are personal data and Stripe advises against PII in metadata.
+// Without a database the full design rides along in metadata as before, so a
+// paid order can still be rebuilt from Stripe alone. Stripe allows 50 keys of
+// up to 500 characters each.
 
 const CHUNK = 490;
 
@@ -16,7 +18,18 @@ export function designId(design: PendantDesign) {
   return 'dsn_' + createHash('sha256').update(JSON.stringify(design)).digest('hex').slice(0, 16);
 }
 
-export function encodeDesignMetadata(design: PendantDesign, quote: Quote): Record<string, string> {
+export function encodeDesignMetadata(
+  design: PendantDesign,
+  quote: Quote,
+  { includeDesign }: { includeDesign: boolean },
+): Record<string, string> {
+  const base: Record<string, string> = {
+    design_id: designId(design),
+    metal: quote.metal,
+    est_grams: quote.grams.toFixed(2),
+  };
+  if (!includeDesign) return base;
+
   const { spec, geometry } = design;
   const specJson = JSON.stringify({
     b: { ...spec.birth, location: spec.birth.location.slice(0, 80) },
@@ -31,12 +44,7 @@ export function encodeDesignMetadata(design: PendantDesign, quote: Quote): Recor
     mg: geometry.minAngle,
   });
   const chords = geometry.chords.map((c) => `${c.a1.toFixed(6)},${c.a2.toFixed(6)}`).join(';');
-  const meta: Record<string, string> = {
-    design_id: designId(design),
-    metal: quote.metal,
-    est_grams: quote.grams.toFixed(2),
-    spec: specJson.slice(0, 500),
-  };
+  const meta: Record<string, string> = { ...base, spec: specJson.slice(0, 500) };
   for (let i = 0, n = 0; i < chords.length; i += CHUNK, n++) {
     meta[`chords_${n}`] = chords.slice(i, i + CHUNK);
   }

@@ -5,3 +5,5 @@ commercial-type-2601-MFENSZ-web/
 .vercel
 
 .env*.local
+.data/
+tsconfig.tsbuildinfo
