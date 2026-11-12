@@ -87,7 +87,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
   viewer.addShadowPlane(-0.5);
   viewer.pendantGroup.scale.setScalar(K);
 
-  const taaPass = viewer.composer?.passes.find((pass: any) => 'sampleLevel' in pass) as { sampleLevel: number } | undefined;
+  const taaPass = viewer.composer?.passes.find((pass: any) => 'sampleLevel' in pass) as unknown as { sampleLevel: number } | undefined;
 
   const camera: THREE.PerspectiveCamera = viewer.camera;
   camera.fov = 2 * Math.atan((VH / 2 / PX_PER_MM * K) / CAM_DIST) * 180 / Math.PI;

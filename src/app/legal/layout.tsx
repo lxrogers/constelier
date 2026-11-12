@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegalLinks from '@/components/LegalLinks';
+import ShopNav from '@/components/ShopNav';
 import DraftBanner from './components/DraftBanner';
 import LegalNav from './components/LegalNav';
 import { LEGAL_DRAFT } from './policy';
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
+    <div className="theme-root theme-paper shop-shell">
+    <ShopNav />
     <main className="legal-page">
       <div className="legal-card">
         <DraftBanner />
@@ -21,5 +24,6 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       </div>
       <LegalLinks className="legal-links-page" />
     </main>
+    </div>
   );
 }
