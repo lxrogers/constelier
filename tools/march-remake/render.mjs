@@ -1,5 +1,5 @@
 // Render top-down and tilted gold previews (PPM) for each pendant in people.json.
-//   node tools/march-remake/render.mjs <people.json> <outDir>
+//   node tools/march-remake/render.mjs <people.json> <outDir> [set,set,...]
 import fs from 'fs';
 import path from 'path';
 import { build, SETTINGS } from './build.mjs';
@@ -68,15 +68,17 @@ function downsample(img, W, H, f) {
 
 const rot = (deg) => { const t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t); return [[1, 0, 0], [0, c, -s], [0, s, c]]; };
 
-const [peopleFile, outDir] = process.argv.slice(2);
+const [peopleFile, outDir, setList] = process.argv.slice(2);
+const only = setList ? setList.split(',') : null;
 const people = JSON.parse(fs.readFileSync(peopleFile, 'utf8'));
 fs.mkdirSync(outDir, { recursive: true });
 const SIZE = 560, SS = 2, W = SIZE * SS;
 for (const p of people) for (const [name, S] of Object.entries(SETTINGS)) {
+  if (only && !only.includes(name)) continue;
   const { mesh, mm } = build(p, S);
   const V = mesh.vertices, T = mesh.triangles, N = vertexNormals(V, T);
-  // same physical scale for both settings: 30 mm across the frame
-  const scale = (W / 30) * mm;
+  // same physical scale for every setting: 34 mm across the frame (room for the bail)
+  const scale = (W / 34) * mm;
   for (const [view, R] of [['top', rot(0)], ['tilt', rot(-55)]]) {
     const img = downsample(shade(raster(V, N, T, W, W, scale, R, S.thickness / 2), W, W, [246, 244, 240]), W, W, SS);
     fs.writeFileSync(path.join(outDir, `${p.id}-${name}-${view}.ppm`), Buffer.concat([Buffer.from(`P6 ${SIZE} ${SIZE} 255\n`), img]));

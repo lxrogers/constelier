@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Horoscope, Origin } from '../../horoscope-bundle.js';
-import { outlineData, minFeatureFor } from '../../modules/pendant-build.js';
+import { outlineData, minFeatureFor, buildExportMesh, meshOptionsFor } from '../../modules/pendant-build.js';
 import { buildPendantMesh, meshToSTL } from '../../modules/fast-pendant-mesh.js';
 import { topology } from '../mesh-export/mesh-check.mjs';
 
@@ -31,7 +31,22 @@ export const SETTINGS = {
     thickness: 10.75, filletR: 2.5, diameterMm: 25,
     aspects: ['opposition', 'trine', 'square', 'sextile'],
   },
+  castable: castableFromDefaults(),
 };
+
+// Settings from src/config/pendant-defaults.json (the Control panel's saved
+// castable defaults), including rim rounding and the bail.
+function castableFromDefaults() {
+  const d = JSON.parse(fs.readFileSync(new URL('../../src/config/pendant-defaults.json', import.meta.url), 'utf8'));
+  return {
+    style: d.outlineStyle, liquidity: d.liquidity, expansion: d.lineThickness, borderThickness: d.borderThickness,
+    filletRadius: d.filletRadius, minArea: d.minArea, minAngle: d.minAngle, thickness: d.thickness, filletR: d.edgeFillet,
+    diameterMm: d.diameterMm, aspects: d.aspects,
+    mesh: { thickness: d.thickness, edgeFillet: d.edgeFillet, rimRoundness: d.rimRoundness, borderThickness: d.borderThickness,
+      diameterMm: d.diameterMm, bailEnabled: d.bailEnabled, bailInnerMm: d.bailInnerMm, bailBand: d.bailBand,
+      bailGapMm: d.bailGapMm, bailBlend: d.bailBlend },
+  };
+}
 
 export function chordsFor(p, aspects) {
   const origin = new Origin({ year: p.year, month: p.month - 1, date: p.day, hour: p.hour, minute: p.minute, latitude: p.lat, longitude: p.lon });
@@ -56,7 +71,9 @@ export function build(p, S) {
   const params = { style: S.style, chords, circleRadius: 100, borderThickness: S.borderThickness, expansion: S.expansion,
     minArea: S.minArea, minAngle: S.minAngle, filletRadius: S.filletRadius, liquidity: S.liquidity };
   const data = outlineData(params);
-  const mesh = buildPendantMesh(data, { thickness: S.thickness, filletR: S.filletR, minFeature: minFeatureFor(params) });
+  const mesh = S.mesh
+    ? buildExportMesh(params, meshOptionsFor(S.mesh))
+    : buildPendantMesh(data, { thickness: S.thickness, filletR: S.filletR, minFeature: minFeatureFor(params) });
   const mm = S.diameterMm / (2 * (100 + S.borderThickness));
   const topo = topology({ V: Float64Array.from(mesh.vertices), T: mesh.triangles });
   return { chords, data, mesh, mm, topo };
