@@ -497,8 +497,8 @@ input[type="range"]::-moz-range-thumb {
 
 /* ── Flow layout (birth details + reading) ──────────────────
    Desktop follows the design file: the model large on the left, the
-   text open on the right (no card). The zoomed model may slide under the
-   text column, which blurs whatever passes behind it. */
+   text on the right in a floating card. The zoomed model may slide under
+   the card, which blurs whatever passes behind it. */
 @media (min-width: 769px) {
   body:has(.chart-page.is-flow) { overflow: hidden; }
   nav.site-nav { position: relative; z-index: 20; }
@@ -533,33 +533,21 @@ input[type="range"]::-moz-range-thumb {
     height: 100%;
     max-height: 100%;
     box-sizing: border-box;
-    background: transparent;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0 0 0 64px;
+    /* A floating card, the same in every step, so moving between birth
+       details and the reading only changes what's inside it. See-through
+       and blurred where the zoomed model slides under it. */
+    margin-left: 32px;
+    padding: 48px;
     justify-content: center;
+    background: rgba(253, 251, 247, 0.6);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 24px;
+    box-shadow:
+      0 1px 2px rgba(60, 45, 20, 0.05),
+      0 12px 32px -16px rgba(60, 45, 20, 0.16);
   }
-  .chart-page.is-flow #controls::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background: rgba(245, 240, 230, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    -webkit-mask-image:
-      linear-gradient(to right, transparent, #000 64px),
-      linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(to right, transparent, #000 64px),
-      linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
-    mask-composite: intersect;
-    opacity: 0;
-    transition: opacity 0.9s ease;
-  }
-  .chart-page.is-flow:has(.chart-wrapper[data-zoomed]) #controls::before { opacity: 1; }
   .chart-page.is-flow #controls > div { flex: 0 0 auto; }
   .chart-page.is-flow .controls-back-btn,
   .chart-page.is-flow .controls-subheading { display: none; }
@@ -651,4 +639,173 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-reading .reading-text-lg { font-size: 14px; line-height: 1.5; }
   .chart-page.is-reading .reading-dot { height: 18px; }
   .chart-page.is-reading .reading-big3-cell { padding: 6px 10px; }
+}
+
+/* ── Reading focus line (drawn by the engine above the 3D model) ──
+   Draws in from one planet to the other, then keeps flashing. */
+.focus-line-glow,
+.focus-line-core {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: calc(var(--len) * 1px);
+  stroke-dashoffset: calc(var(--len) * 1px);
+  animation:
+    focus-draw 0.9s cubic-bezier(.3,.7,.2,1) 0.35s forwards,
+    focus-flash 1.5s ease-in-out 1.3s infinite;
+}
+/* A wide soft stroke rather than a blur filter: the filter had to be
+   re-rendered on every frame of the zoom. */
+.focus-line-glow {
+  stroke: rgba(232, 190, 92, 0.38);
+  stroke-width: 11;
+}
+.focus-line-core {
+  stroke: #8a5f10;
+  stroke-width: 2.4;
+}
+.focus-line-end {
+  fill: #8a5f10;
+  stroke: #fff8e8;
+  stroke-width: 2;
+  opacity: 0;
+  animation: focus-end-in 0.4s ease 0.3s forwards;
+}
+@keyframes focus-draw { to { stroke-dashoffset: 0; } }
+@keyframes focus-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@keyframes focus-end-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .focus-line-glow, .focus-line-core { animation: none; stroke-dashoffset: 0; }
+  .focus-line-end { animation: none; opacity: 1; }
+}
+
+/* ── Last step (bag / waitlist) in the flow layout ──────────── */
+@media (min-width: 769px) {
+  .chart-page.is-flow.is-finish #controls h2 { font-size: 40px; order: 1; }
+  .chart-page.is-flow.is-finish .controls-back-btn {
+    display: block;
+    order: 0;
+    font-size: 14px;
+    color: #5a524a;
+  }
+  .chart-page.is-flow.is-finish #controls > div { order: 2; }
+  .chart-page.is-flow.is-finish .add-to-bag,
+  .chart-page.is-flow.is-finish .waitlist-form { gap: 18px; }
+  .chart-page.is-flow.is-finish .atb-price { font-size: 44px; }
+  .chart-page.is-flow.is-finish .atb-metal { font-size: 14px; }
+  .chart-page.is-flow.is-finish .atb-note,
+  .chart-page.is-flow.is-finish .waitlist-intro,
+  .chart-page.is-flow.is-finish .waitlist-thanks p { font-size: 17px; line-height: 1.55; }
+  .chart-page.is-flow.is-finish .add-to-bag > .controls-step-btn,
+  .chart-page.is-flow.is-finish .waitlist-form .controls-step-btn,
+  .chart-page.is-flow.is-finish .atb-added .btn-row > * {
+    flex: 0 0 auto;
+    width: auto;
+    align-self: flex-start;
+    min-height: 48px;
+    padding: 0 28px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+  .chart-page.is-flow.is-finish .waitlist-form input[type="email"] {
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+}
+@media (max-width: 768px) {
+  /* Phones had no way back from the last step to the reading. */
+  .chart-page.is-finish .controls-back-btn.hide-mobile {
+    display: block !important;
+    order: -1;
+    font-size: 13px;
+    color: #5a524a;
+  }
+}
+
+/* Phones: the birth-details sheet matches the reading sheet: same cream
+   card and grab handle, a centred serif heading, and pill buttons. Neither sheet uses a backdrop blur: the
+   chart behind them redraws while it animates, and blurring it every
+   frame is what made scrolling stutter. */
+@media (max-width: 768px) {
+  .chart-page.is-flow #controls,
+  .chart-page.is-reading #controls {
+    background: rgba(250, 247, 240, 0.94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* No title bar on the birth steps, just the grab handle. */
+  .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls {
+    padding-top: 26px;
+    gap: 14px;
+  }
+  .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls h2 { display: none; }
+  .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: #d4cfc5;
+  }
+  .chart-page.is-flow .birth-field .form-group > label {
+    font-family: 'Moulin', serif;
+    font-size: 19px;
+    line-height: 1.15;
+    text-align: center;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #2c2c2c;
+  }
+  .chart-page.is-flow .birth-field .location-display,
+  .chart-page.is-flow .birth-field .location-input-wrap input[type="text"] { text-align: center; }
+  .chart-page.is-flow .birth-field .btn-row .controls-step-btn,
+  .chart-page.is-flow .birth-field .btn-row .controls-back-btn-mobile {
+    min-height: 46px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+  .chart-page.is-flow .birth-field .btn-row .controls-back-btn-mobile {
+    flex: 0 0 auto;
+    padding: 0 22px;
+    background: transparent;
+  }
+}
+
+/* Moving between steps: the model glides (useGlide), the sheet grows to
+   its new height, and the new step's text fades up instead of popping. */
+@keyframes step-in { from { opacity: 0; transform: translateY(10px); } }
+.chart-page.is-flow #controls > div { animation: step-in 0.5s ease 0.15s both; }
+@media (max-width: 768px) {
+  .chart-page.is-flow #controls {
+    transition:
+      height 0.6s cubic-bezier(.22,.7,.2,1),
+      max-height 0.6s cubic-bezier(.22,.7,.2,1),
+      bottom 0.25s ease;
+  }
+  /* The on-screen keyboard is up (useKeyboardInset): the sheet rides on
+     top of it, no taller than what is still visible. */
+  .keyboard-open .chart-page.is-flow #controls {
+    bottom: var(--kb-inset, 0px);
+    max-height: calc(var(--vv-height, 100dvh) - 16px);
+  }
+  /* Location: the field sits in the middle of the space under its
+     heading, not tight against it. */
+  .chart-page.is-flow .birth-field-location .form-group { flex: 1; }
+  .chart-page.is-flow .birth-field-location .location-input-wrap { margin-top: auto; }
+  .chart-page.is-flow .birth-field-location .location-display { margin-bottom: auto; }
+  /* While typing, the field moves up under its heading so the suggestions
+     have room above the on-screen keyboard (iOS slides the page up to
+     keep the field just above it). */
+  .chart-page.is-flow .birth-field-location .form-group:focus-within .location-input-wrap { margin-top: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-page.is-flow #controls > div { animation: none; }
+  .chart-page.is-flow #controls { transition: none; }
 }

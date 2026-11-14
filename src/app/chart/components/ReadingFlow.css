@@ -155,3 +155,13 @@
 @media (max-width: 768px) {
   .reading-progress-label { display: none; }
 }
+
+.reading-loading {
+  margin: 0;
+  font-family: 'Moulin', serif;
+  font-size: 28px;
+  color: #7a7568;
+  animation: reading-loading 1.6s ease-in-out infinite;
+}
+@keyframes reading-loading { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .reading-loading { animation: none; } }

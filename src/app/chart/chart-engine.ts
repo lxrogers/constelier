@@ -75,6 +75,18 @@ export interface FocusSpec {
   aspects: { point1Key: string; point2Key: string; aspectKey: string }[];
   planets?: string[];
   zoom?: boolean;
+  // 'wide' pulls the camera back so the pendant reads as a small object
+  // (the reading's opening). Ignored when `zoom` is set.
+  // 'lines' is about the chart itself: the 3D pendant fades almost away and
+  // every aspect line is drawn strong (the "how to read a line" section).
+  view?: 'wide' | 'lines';
+}
+
+// Where each drawn aspect line sits, in 0..1 of the chart box. Sent with the
+// `aspect-segments` event on the 2D canvas whenever the lines change.
+export interface AspectSegment {
+  point1Key: string; point2Key: string; aspectKey: string;
+  x1: number; y1: number; x2: number; y2: number;
 }
 
 export interface ChartEngine {
@@ -125,9 +137,27 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const SIZE = 700;
-  canvas.width = SIZE * dpr;
-  canvas.height = SIZE * dpr;
-  ctx.scale(dpr, dpr);
+  // Drawing is always in SIZE units; the backing store only needs enough
+  // pixels for the size the canvas is shown at (plus the reading zoom).
+  // On a phone that is about a third of SIZE * dpr, and the chart is
+  // redrawn every frame while it animates, so this matters.
+  const MAX_ZOOM = 1.9;
+  let canvasRes = 0;
+  function sizeCanvas() {
+    const shown = canvas.clientWidth || SIZE;
+    const res = Math.min(SIZE * dpr, Math.ceil((shown * dpr * MAX_ZOOM) / 50) * 50);
+    if (res === canvasRes) return false;
+    canvasRes = res;
+    canvas.width = res;
+    canvas.height = res;
+    ctx.setTransform(res / SIZE, 0, 0, res / SIZE, 0, 0);
+    return true;
+  }
+  sizeCanvas();
+  const canvasResize = typeof ResizeObserver !== 'undefined'
+    ? new ResizeObserver(() => { if (sizeCanvas() && displayState) drawChartState(displayState); })
+    : null;
+  canvasResize?.observe(canvas);
 
   const CX = SIZE / 2;
   const CY = SIZE / 2;
@@ -179,7 +209,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const HOVER_THRESHOLD = 6;
 
   // Reading focus (see FocusSpec). Pairs are stored both ways round.
-  let focus: { pairs: Set<string>; planets: Set<string>; zoom: boolean } | null = null;
+  let focus: { pairs: Set<string>; planets: Set<string>; zoom: boolean; wide: boolean; lines: boolean } | null = null;
   let shown3d = false; // the 3D pendant has faded in at least once
   const pairKey = (a: string, b: string) => a + '|' + b;
   const isFocusedPair = (a: string, b: string) => !!focus && focus.pairs.has(pairKey(a, b));
@@ -228,12 +258,64 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     return drawnAspects.filter(a => isFocusedPair(a.point1Key, a.point2Key));
   }
 
-  // The 3D pendant dims to half while a reading line grows in on the 2D
-  // canvas beneath it; otherwise it stays fully visible.
+  // While a reading line is in focus the 3D pendant fades way back, so the
+  // line, its planets and the 2D outline growing in all read through it.
+  const FOCUS_3D_OPACITY = 0.18;
+  const LINES_3D_OPACITY = 0.1;
   function apply3DFade(seconds = 0.15) {
     if (!shown3d) return;
+    const dim = growth?.hide3d || (focus?.zoom && focusedSegments().length > 0);
     chart3dCanvas.style.transition = `opacity ${seconds}s ease`;
-    chart3dCanvas.style.opacity = growth?.hide3d ? '0.5' : '1';
+    chart3dCanvas.style.opacity = focus?.lines ? String(LINES_3D_OPACITY) : dim ? String(FOCUS_3D_OPACITY) : '1';
+  }
+
+  // The focused line(s), drawn above the 3D model: draws in, then flashes.
+  const focusSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  focusSvg.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
+  focusSvg.classList.add('focus-overlay');
+  focusSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
+    'pointer-events:none;z-index:3;overflow:visible;';
+  canvas.parentElement!.appendChild(focusSvg);
+  let focusSvgKey = '';
+
+  function updateFocusOverlay() {
+    const segs = focus?.zoom ? focusedSegments() : [];
+    const key = segs.map(a => `${pairKey(a.point1Key, a.point2Key)}@${a.x1.toFixed(0)},${a.y1.toFixed(0)}`).join(',');
+    if (key === focusSvgKey) return;
+    focusSvgKey = key;
+    focusSvg.replaceChildren();
+    for (const a of segs) {
+      const len = Math.hypot(a.x2 - a.x1, a.y2 - a.y1);
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'focus-line');
+      g.style.setProperty('--len', len.toFixed(1));
+      const mk = (tag: string, attrs: Record<string, string | number>) => {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (const k in attrs) el.setAttribute(k, String(attrs[k]));
+        g.appendChild(el);
+        return el;
+      };
+      mk('line', { class: 'focus-line-glow', x1: a.x1, y1: a.y1, x2: a.x2, y2: a.y2 });
+      mk('line', { class: 'focus-line-core', x1: a.x1, y1: a.y1, x2: a.x2, y2: a.y2 });
+      mk('circle', { class: 'focus-line-end', cx: a.x1, cy: a.y1, r: 5 });
+      mk('circle', { class: 'focus-line-end', cx: a.x2, cy: a.y2, r: 5 });
+      focusSvg.appendChild(g);
+    }
+  }
+
+  // Tell the page where the lines are (the pins prototype places on them).
+  let segmentsSig = '';
+  function emitSegments() {
+    if (!aspectAnimDone) return;
+    const r = (n: number) => Math.round(n * 10) / 10;
+    const sig = drawnAspects.map(a => `${a.point1Key}${a.point2Key}${r(a.x1)}${r(a.y1)}${r(a.x2)}${r(a.y2)}`).join('|');
+    if (sig === segmentsSig) return;
+    segmentsSig = sig;
+    const detail: AspectSegment[] = drawnAspects.map(a => ({
+      point1Key: a.point1Key, point2Key: a.point2Key, aspectKey: a.aspectKey,
+      x1: a.x1 / SIZE, y1: a.y1 / SIZE, x2: a.x2 / SIZE, y2: a.y2 / SIZE,
+    }));
+    canvas.dispatchEvent(new CustomEvent('aspect-segments', { detail }));
   }
 
   // Ease the whole chart (2D + 3D together) toward the focused lines.
@@ -242,7 +324,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     wrapper.style.transition = 'transform 1.4s cubic-bezier(.22,.7,.2,1)';
     const segs = focus?.zoom ? focusedSegments() : [];
     if (!segs.length) {
-      wrapper.style.transform = 'scale(1) translate(0%, 0%)';
+      // The opening of the reading sits back so the pendant reads as small.
+      const s = focus?.wide && !focus.zoom ? 0.74 : 1;
+      wrapper.style.transform = `scale(${s}) translate(0%, 0%)`;
+      wrapper.style.setProperty('--zoom', String(s));
       delete wrapper.dataset.zoomed;
       return;
     }
@@ -253,18 +338,23 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
     const extent = Math.max(maxX - minX, maxY - minY, 1);
-    // Kept subtle: long lines (oppositions) barely zoom; short ones get up to 1.4x.
-    const s = Math.max(1.08, Math.min(1.4, (PENDANT_R * 1.6) / extent));
-    // Pull most of the way toward the lines, keeping some context.
-    const pull = 0.85;
+    // Long lines (oppositions) still come in a little; short ones up to 1.85x.
+    // Phones zoom less so the planets and their signs stay on screen.
+    const narrow = window.innerWidth <= 768;
+    const s = Math.max(narrow ? 1.2 : 1.3, Math.min(narrow ? 1.55 : 1.85, (PENDANT_R * 1.9) / extent));
+    // Pull most of the way toward the lines, keeping the planets in view.
+    const pull = 0.9;
     const tx = (CX - (minX + maxX) / 2) / SIZE * 100 * pull;
     const ty = (CY - (minY + maxY) / 2) / SIZE * 100 * pull;
     wrapper.style.transform = `scale(${s.toFixed(3)}) translate(${tx.toFixed(2)}%, ${ty.toFixed(2)}%)`;
+    wrapper.style.setProperty('--zoom', s.toFixed(3));
   }
 
   function refreshFocus() {
     if (displayState) drawChartState(displayState);
     applyZoom();
+    updateFocusOverlay();
+    apply3DFade(0.6);
     // One line being read: replay it drawing in and thickening.
     const segs = focus?.zoom ? focusedSegments() : [];
     if (segs.length === 1) {
@@ -276,7 +366,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
 
   function setFocus(spec: FocusSpec | null) {
-    if (!spec || (!spec.aspects.length && !spec.planets?.length)) {
+    if (!spec || (!spec.aspects.length && !spec.planets?.length && !spec.view)) {
       focus = null;
     } else {
       const pairs = new Set<string>();
@@ -287,7 +377,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         planets.add(a.point1Key);
         planets.add(a.point2Key);
       }
-      focus = { pairs, planets, zoom: !!spec.zoom };
+      focus = { pairs, planets, zoom: !!spec.zoom, wide: spec.view === 'wide', lines: spec.view === 'lines' };
     }
     refreshFocus();
   }
@@ -455,6 +545,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
           locationInput.value = name;
           locationInfo.textContent = `${selectedLat.toFixed(4)}°, ${selectedLon.toFixed(4)}°`;
           dropdown.classList.remove('open');
+          // Close the phone keyboard so the pendant redrawing is in view.
+          locationInput.blur();
           generateChart();
           syncURL();
         });
@@ -835,6 +927,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       if (outlineStyle !== options.params.outlineStyle) p.set('outline', outlineStyle);
       if (outlineStyle === 'liquid' && liquidity !== options.params.liquidity) p.set('liq', String(liquidity));
     }
+    // Keep the page's own params (e.g. the reading layout prototype).
+    const reading = new URLSearchParams(window.location.search).get('reading');
+    if (reading) p.set('reading', reading);
     history.replaceState(null, '', '?' + p.toString());
   }
 
@@ -947,6 +1042,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const degMap = {};
     for (const p of planets) degMap[p.key] = p.deg;
     drawAspectLines(state.horoscope, degMap, ascDeg);
+    if (aspectAnimDone) { emitSegments(); updateFocusOverlay(); }
     drawPlanets(planets, ascDeg);
 
     ctx.globalAlpha = 1;
@@ -965,7 +1061,32 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   // ── Zodiac Ring ────────────────────────────────────────────
 
+  // Signs holding a planet the reading is about.
+  function focusedSigns(): Set<number> {
+    const out = new Set<number>();
+    if (!focus || hoveredAspect || !displayState) return out;
+    for (const p of displayState.planets) {
+      if (focus.planets.has(p.key)) out.add(Math.floor(normDeg(p.deg) / 30));
+    }
+    return out;
+  }
+
   function drawZodiacRing(ascDeg) {
+    const lit = focusedSigns();
+    // A gold band behind each focused sign's slice of the ring.
+    for (const i of lit) {
+      const a0 = eclToAngle(i * 30, ascDeg), a1 = eclToAngle(i * 30 + 30, ascDeg);
+      const prev = ctx.globalAlpha;
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(CX, CY, OUTER_R + 34, a0, a1, a1 < a0);
+      ctx.arc(CX, CY, ASPECT_R, a1, a0, a1 >= a0);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(110, 102, 92, 0.09)'; // a soft grey band
+      ctx.fill();
+      ctx.globalAlpha = prev;
+    }
+
     ctx.beginPath();
     ctx.arc(CX, CY, OUTER_R, 0, Math.PI * 2);
     ctx.strokeStyle = '#a89f92';
@@ -988,8 +1109,11 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // Draw sign name curved along the arc
       const labelR = OUTER_R + 18;
       const label = sign.name.toUpperCase();
-      ctx.font = '13px Graphik Web, system-ui, sans-serif';
-      ctx.fillStyle = '#8a8078';
+      const signLit = lit.has(i);
+      const prevA = ctx.globalAlpha;
+      if (signLit) ctx.globalAlpha = 1;
+      ctx.font = signLit ? '600 15px Graphik Web, system-ui, sans-serif' : '13px Graphik Web, system-ui, sans-serif';
+      ctx.fillStyle = signLit ? '#3a3630' : '#8a8078';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -1035,6 +1159,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
           angle += charAngle / 2;
         }
       }
+      ctx.globalAlpha = prevA;
     }
   }
 
@@ -1199,9 +1324,22 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const isHighlighted = hoveredAspect
         ? (p.key === hoveredAspect.point1Key || p.key === hoveredAspect.point2Key)
         : !!focus?.planets.has(p.key);
-      const fontSize = p.key === 'sun' ? 28 : 22;
-      const weight = isHighlighted ? 600 : 400;
       const reading = isHighlighted && !hoveredAspect;
+      // Planets the reading is about grow and get a soft halo.
+      const baseSize = p.key === 'sun' ? 28 : 22;
+      const fontSize = reading ? Math.round(baseSize * 1.55) : baseSize;
+      const weight = isHighlighted ? 600 : 400;
+      if (reading) {
+        const prev = ctx.globalAlpha;
+        ctx.globalAlpha = 1;
+        const halo = ctx.createRadialGradient(glyphP.x, glyphP.y, 0, glyphP.x, glyphP.y, fontSize * 0.95);
+        halo.addColorStop(0, 'rgba(255, 250, 238, 0.95)');
+        halo.addColorStop(0.6, 'rgba(240, 214, 150, 0.45)');
+        halo.addColorStop(1, 'rgba(240, 214, 150, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(glyphP.x, glyphP.y, fontSize * 0.95, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = prev;
+      }
       if (reading) {
         // A short gold tick where the planet meets the ring, so the eye can
         // run from the glyph to the bar it anchors.
@@ -1272,9 +1410,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
         ctx.strokeStyle = style.color;
-        ctx.lineWidth = isHovered ? style.width + 2.5 : style.width;
+        const strong = !!focus?.lines;
+        ctx.lineWidth = isHovered ? style.width + 2.5 : strong ? style.width + 0.9 : style.width;
         ctx.setLineDash(style.dash);
-        ctx.globalAlpha = isHovered ? 0.95 : style.opacity * chartOpacity * (dimmed ? 0.35 : 1);
+        ctx.globalAlpha = isHovered ? 0.95 : strong ? 0.85 : style.opacity * chartOpacity * (dimmed ? 0.35 : 1);
         ctx.stroke();
         ctx.globalAlpha = chartOpacity;
         ctx.setLineDash([]);
@@ -1605,7 +1744,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const frames = [];
     const g = {
       key: pairKey(p1, p2), chord: chords[idx], phase: 'wait', start: 0, lastSwitch: 0, shown: 0,
-      loops: null, lineT: 0, lineAlpha: 1, hide3d: false,
+      loops: null, lineT: 0, lineAlpha: 1, hide3d: false, lastDraw: 0,
     };
     growth = g;
     const paramsList = steps.map(sc =>
@@ -1641,7 +1780,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         // breathing in and out until the reader moves on (stopGrowth).
         const t = (now - g.start) / GROWTH_PULSE_MS;
         g.lineAlpha = 0.85 * (0.5 - 0.5 * Math.cos(t * Math.PI * 2));
+        // A slow breath: 30fps is enough and halves the redraws.
+        if (now - g.lastDraw < 32) { growthId = requestAnimationFrame(tick); return; }
       }
+      g.lastDraw = now;
       if (displayState) drawChartState(displayState);
       growthId = requestAnimationFrame(tick);
     };
@@ -1669,13 +1811,19 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   let _dotAnimTime = 0;
   let _dotAnimId = null;
+  let _dotLastDraw = 0;
   let _3dModelReady = false;
 
   function _startDotAnim() {
     if (_dotAnimId) return;
     function tick() {
-      _dotAnimTime = performance.now() / 1000;
-      if (displayState && pendantModelData && pendantAlpha > 0) {
+      const now = performance.now();
+      _dotAnimTime = now / 1000;
+      // The growth animation already redraws every frame; the dots' shimmer
+      // is slow, so 30fps is plenty on its own.
+      if (!growthId && now - _dotLastDraw >= 32 &&
+          displayState && pendantModelData && pendantAlpha > 0) {
+        _dotLastDraw = now;
         drawChartState(displayState);
       }
       _dotAnimId = requestAnimationFrame(tick);
@@ -1706,6 +1854,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   function drawPendant() {
     if (!pendantModelData || pendantAlpha <= 0) { _stopDotAnim(); return; }
+    // Lines view: just the chart, no pendant fill or loading dots.
+    if (focus?.lines && !growth) { _stopDotAnim(); return; }
     const { model, r } = pendantModelData;
     // Scale is fixed by FIT_R so the r=100 circle always lines up with the
     // chart; a wider rim just draws larger.
@@ -2229,6 +2379,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     stopGrowth(false);
     stopGrowIn();
     resizeObserver?.disconnect();
+    canvasResize?.disconnect();
     canvas.parentElement?.style.removeProperty('transform');
     locationInput.removeEventListener('input', onLocationInput);
     locationInput.removeEventListener('blur', onLocationBlur);
