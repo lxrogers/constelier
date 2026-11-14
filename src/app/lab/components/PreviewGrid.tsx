@@ -1,24 +1,25 @@
 'use client';
 
 import { usePendantGrid } from '@/hooks/usePendantGrid';
-import { LAB_SAMPLES } from '@/config/lab-samples';
+import type { LabSample } from '@/config/lab-samples';
 import type { PendantParams } from '@/config/pendant-params';
 import type { PrintItem } from '@/lib/print-cart';
 
 interface Props {
+  samples: LabSample[];
   params: PendantParams;
   draft: boolean;
   onAddToCart: (item: Omit<PrintItem, 'id' | 'addedAt'>) => void;
 }
 
-export default function PreviewGrid({ params, draft, onAddToCart }: Props) {
-  const { canvases, status, chords, thumbnail } = usePendantGrid(LAB_SAMPLES, params, draft);
+export default function PreviewGrid({ samples, params, draft, onAddToCart }: Props) {
+  const { canvases, status, chords, thumbnail } = usePendantGrid(samples, params, draft);
 
   return (
     <section className="lab-card lab-grid-wrap">
       <h2>Sample charts</h2>
       <div className="lab-grid">
-        {LAB_SAMPLES.map((s, i) => {
+        {samples.map((s, i) => {
           const st = status[i];
           return (
             <figure key={s.id} className="lab-sample">

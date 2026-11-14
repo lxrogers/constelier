@@ -14,9 +14,12 @@ interface Props {
   canWrite: boolean;
   onChange: (next: Partial<PendantParams>, draft: boolean) => void;
   onSave: (values: Partial<PendantParams>) => Promise<void>;
+  randomSamples: boolean;
+  onNewSamples: () => void;
+  onStandardSamples: () => void;
 }
 
-export default function LabPanel({ params, saved, canWrite, onChange, onSave }: Props) {
+export default function LabPanel({ params, saved, canWrite, onChange, onSave, randomSamples, onNewSamples, onStandardSamples }: Props) {
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const changedKeys = PARAMS.map((d) => d.key).filter((k) => !paramEquals(params, saved, k));
 
@@ -50,6 +53,10 @@ export default function LabPanel({ params, saved, canWrite, onChange, onSave }: 
             onClick={() => revert(changedKeys)}>Revert</button>
         </div>
         <p className="lab-panel-sub">Drag the 3D view to orbit, scroll to zoom, double-click to reset. The samples follow the angle.</p>
+        <div className="lab-panel-actions">
+          <button type="button" className="lab-btn" onClick={onNewSamples}>Generate 4 new pendants</button>
+          {randomSamples && <button type="button" className="lab-btn" onClick={onStandardSamples}>Standard samples</button>}
+        </div>
         {!canWrite && <p className="lab-msg error">Saving defaults only works under npm run dev.</p>}
         {msg && <p className={`lab-msg${msg.error ? ' error' : ''}`}>{msg.text}</p>}
       </div>
