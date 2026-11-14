@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { useGlide } from '@/hooks/useGlide';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { trackFunnel } from '@/lib/analytics';
@@ -43,9 +43,15 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const [ownDraft, setOwnDraft] = useState(false);
   const params = controlledParams ?? ownParams;
   const isDraft = controlledParams ? draft : ownDraft;
-  const latest = useRef({ params, isDraft });
-  latest.current = { params, isDraft };
   const [step, setStep] = useState<'birth' | 'reading' | 'waitlist'>('birth');
+  // No bail while entering birth details or reading the lines: the pendant
+  // reads as the chart's shape. It joins the design at the last step.
+  const shownParams = useMemo(
+    () => (step === 'waitlist' ? params : { ...params, bailEnabled: false }),
+    [params, step],
+  );
+  const latest = useRef({ params: shownParams, isDraft });
+  latest.current = { params: shownParams, isDraft };
   const mainRef = useRef<HTMLDivElement>(null);
   // The model's box changes between steps; glide it there instead of jumping.
   const captureGlide = useGlide(mainRef, wrapperRef, step);
@@ -139,8 +145,8 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   // Push setting changes into the engine. (Changes made before it finished
   // loading are already in the params it was created with.)
   useEffect(() => {
-    engineRef.current?.setParams(params, { draft: isDraft });
-  }, [params, isDraft]);
+    engineRef.current?.setParams(shownParams, { draft: isDraft });
+  }, [shownParams, isDraft]);
 
   // Birth details and the reading share one layout: model left, text right.
   // (The lab keeps its card for birth details, beside its own side panel.)
