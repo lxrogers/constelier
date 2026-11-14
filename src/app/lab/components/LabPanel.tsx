@@ -61,7 +61,9 @@ export default function LabPanel({ params, saved, canWrite, onChange, onSave }: 
             <h3>{group}</h3>
             {group === 'Size' && (
               <p className="lab-derived">
-                Thickness {(params.thickness * mm).toFixed(2)} mm · rim {(params.borderThickness * mm).toFixed(2)} mm
+                {params.thicknessMm < 1 || params.barWidthMm < 0.8
+                  ? `Thinner than casting usually allows (about 1.0 mm thick, 0.8 mm bars).`
+                  : `Inner circle ${(params.diameterMm - 2 * params.rimWidthMm).toFixed(1)} mm across. Castable sizes.`}
               </p>
             )}
             {group === 'Bail' && params.bailEnabled && (

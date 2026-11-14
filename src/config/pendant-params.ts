@@ -14,6 +14,14 @@ export interface PendantParams {
   outlineStyle: OutlineStyle;
   liquidity: number;
   aspects: AspectKey[];
+  // Physical sizes, set in the UI. Everything below in model units is derived
+  // from these and diameterMm (withDerived), so a bigger pendant gets finer
+  // lines rather than a uniformly scaled-up copy.
+  thicknessMm: number;
+  barWidthMm: number;
+  rimWidthMm: number;
+  edgeRoundMm: number;
+  // Derived model units (inner circle r = 100), what the geometry code reads.
   lineThickness: number;
   filletRadius: number;
   minArea: number;
@@ -55,23 +63,24 @@ export type ParamGroup = (typeof PARAM_GROUPS)[number];
 
 export const PARAMS: ParamDef[] = [
   { key: 'diameterMm', kind: 'number', label: 'Overall size', group: 'Size', min: 10, max: 50, step: 0.5, unit: 'mm',
-    hint: 'Outer diameter of the finished pendant. The whole model scales with it (thickness too).' },
+    hint: 'Outer diameter of the finished pendant. Thickness, bar and rim widths stay in mm, so a bigger pendant has finer lines.' },
   { key: 'outlineStyle', kind: 'choice', label: 'Outline', group: 'Outline',
     options: [{ value: 'current', label: 'Today' }, { value: 'liquid', label: 'Liquid' }, { value: 'pebble', label: 'Pebble' }] },
   { key: 'liquidity', kind: 'number', label: 'Liquidity', group: 'Outline', min: 2, max: 30, step: 0.5,
     hint: 'Crisp bars → poured disc', showIf: (p) => p.outlineStyle === 'liquid' },
-  { key: 'lineThickness', kind: 'number', label: 'Bar half-width', group: 'Outline', min: 0.5, max: 8, step: 0.1 },
+  { key: 'barWidthMm', kind: 'number', label: 'Bar width', group: 'Outline', min: 0.3, max: 2.5, step: 0.05, unit: 'mm',
+    hint: 'Width of the chord bars. Casting needs about 0.8 mm; 1.0+ is sturdier.' },
   { key: 'filletRadius', kind: 'number', label: '2D corner fillet', group: 'Outline', min: 0, max: 20, step: 0.5,
     showIf: (p) => p.outlineStyle === 'current' },
 
-  { key: 'borderThickness', kind: 'number', label: 'Rim width', group: 'Rim', min: 0, max: 20, step: 0.25,
-    hint: 'Outer radius minus inner radius (inner circle r = 100)' },
+  { key: 'rimWidthMm', kind: 'number', label: 'Rim width', group: 'Rim', min: 0, max: 4, step: 0.05, unit: 'mm',
+    hint: 'Outer radius minus inner radius' },
   { key: 'rimRoundness', kind: 'number', label: 'Rim roundness', group: 'Rim', min: 0, max: 3, step: 0.01,
     hint: '1 = half-round profile. Above 1 the curve stretches inward into a half-ellipse (2 = reaches in one thickness). Capped by rim width.' },
 
-  { key: 'thickness', kind: 'number', label: 'Thickness', group: 'Edges', min: 2, max: 30, step: 0.25,
-    hint: 'Model units (inner circle r = 100). The Size section shows it in mm.' },
-  { key: 'edgeFillet', kind: 'number', label: 'Void edge rounding', group: 'Edges', min: 0, max: 15, step: 0.1,
+  { key: 'thicknessMm', kind: 'number', label: 'Thickness', group: 'Edges', min: 0.4, max: 3, step: 0.05, unit: 'mm',
+    hint: 'Casting needs about 1.0 mm; 1.2+ is sturdier.' },
+  { key: 'edgeRoundMm', kind: 'number', label: 'Void edge rounding', group: 'Edges', min: 0, max: 1.5, step: 0.01, unit: 'mm',
     hint: 'Capped at half the thickness and by narrow bars' },
 
   { key: 'bailEnabled', kind: 'toggle', label: 'Bail', group: 'Bail',
@@ -103,6 +112,27 @@ export const PARAM_BY_KEY = Object.fromEntries(PARAMS.map((p) => [p.key, p])) as
 
 // Model units → millimetres for a given set of params (the inner circle is
 // r = 100 units; the outer edge is r + rim width).
+// Model units per millimetre. The inner circle is always r = 100 units and
+// the rim sits outside it, so the inner circle's real radius is what's left
+// of the pendant's radius after the rim.
+export function unitsPerMm(p: Pick<PendantParams, 'diameterMm' | 'rimWidthMm'>) {
+  return 100 / Math.max(1, p.diameterMm / 2 - p.rimWidthMm);
+}
+
+// Fill in the model-unit fields from the mm ones. Call after any change to
+// the mm fields or the diameter.
+export function withDerived(p: PendantParams): PendantParams {
+  const rimMm = Math.min(p.rimWidthMm, p.diameterMm / 2 - 1);
+  const u = unitsPerMm({ diameterMm: p.diameterMm, rimWidthMm: rimMm });
+  return {
+    ...p,
+    borderThickness: rimMm * u,
+    lineThickness: (p.barWidthMm / 2) * u,
+    thickness: p.thicknessMm * u,
+    edgeFillet: p.edgeRoundMm * u,
+  };
+}
+
 export function mmPerUnit(p: Pick<PendantParams, 'diameterMm' | 'borderThickness'>) {
   return p.diameterMm / (2 * (100 + p.borderThickness));
 }
@@ -112,6 +142,10 @@ const FALLBACK: PendantParams = {
   outlineStyle: 'current',
   liquidity: 11,
   aspects: ['opposition', 'sextile', 'square', 'trine'],
+  thicknessMm: 1.2,
+  barWidthMm: 1.0,
+  rimWidthMm: 1.3,
+  edgeRoundMm: 0.28,
   lineThickness: 3,
   filletRadius: 5,
   minArea: 185,
@@ -155,7 +189,7 @@ export function normalizeParams(input: unknown, base: PendantParams = FALLBACK):
       if (Array.isArray(v)) out.aspects = ASPECT_KEYS.filter((k) => v.includes(k));
     }
   }
-  return out;
+  return withDerived(out);
 }
 
 export const PENDANT_DEFAULTS: PendantParams = normalizeParams(savedDefaults, FALLBACK);

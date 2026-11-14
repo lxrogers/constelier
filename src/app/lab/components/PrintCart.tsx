@@ -78,7 +78,7 @@ export default function PrintCart({ cart, params }: Props) {
               <div className="lab-cart-info">
                 <span>{it.label}</span>
                 <span className="lab-sample-meta">
-                  {it.params.diameterMm} mm · {it.params.outlineStyle} · rim {it.params.borderThickness} / round {it.params.rimRoundness}
+                  {it.params.diameterMm} mm · {it.params.outlineStyle} · rim {it.params.rimWidthMm} mm / round {it.params.rimRoundness}
                 </span>
               </div>
               <button type="button" className="lab-mini" onClick={() => cart.remove(it.id)} aria-label="Remove">✕</button>
