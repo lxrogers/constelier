@@ -1,6 +1,7 @@
 'use client';
 
-// The pieces of a reading, shared by every layout (steps, list, scroll, pins).
+// The pieces of a reading: intro, how to read a line, one line, summary.
+import './ReadingSections.css';
 import {
   ASPECT_TYPES, TYPE_ORDER,
   type BigThree, type ReadingLine, type ReadingSummary,

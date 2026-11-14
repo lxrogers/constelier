@@ -582,9 +582,7 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.6);
   }
-  .chart-page.is-flow #controls > div > .controls-step-btn,
-  .chart-page.is-reading .reading-nav .controls-step-btn,
-  .chart-page.is-reading .reading-nav .controls-back-btn-mobile {
+  .chart-page.is-flow #controls > div > .controls-step-btn {
     flex: 0 0 auto;
     width: auto;
     align-self: flex-start;
@@ -603,7 +601,6 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-reading .reading-text { font-size: 17px; }
   .chart-page.is-reading .reading-text-lg { font-size: 19px; line-height: 1.6; }
   .chart-page.is-reading .reading-where { font-size: 14px; }
-  .chart-page.is-reading .reading-nav { margin-top: 8px; }
 }
 
 /* Mobile: a smaller model (it zooms anyway) and a compact sheet, so each
@@ -637,7 +634,6 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-reading .reading-title { font-size: 24px; }
   .chart-page.is-reading .reading-text { font-size: 13px; line-height: 1.5; }
   .chart-page.is-reading .reading-text-lg { font-size: 14px; line-height: 1.5; }
-  .chart-page.is-reading .reading-dot { height: 18px; }
   .chart-page.is-reading .reading-big3-cell { padding: 6px 10px; }
 }
 
@@ -781,7 +777,7 @@ input[type="range"]::-moz-range-thumb {
 /* Moving between steps: the model glides (useGlide), the sheet grows to
    its new height, and the new step's text fades up instead of popping. */
 @keyframes step-in { from { opacity: 0; transform: translateY(10px); } }
-.chart-page.is-flow #controls > div { animation: step-in 0.5s ease 0.15s both; }
+.chart-page.is-flow.has-stepped #controls > div { animation: step-in 0.5s ease 0.15s both; }
 @media (max-width: 768px) {
   .chart-page.is-flow #controls {
     transition:

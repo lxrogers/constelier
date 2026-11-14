@@ -5,44 +5,6 @@
   flex: 1;
 }
 
-.reading-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.reading-progress-label {
-  font-size: 12px;
-  color: #7a7568;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.reading-dots {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -6px;
-}
-.reading-dot {
-  width: 20px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.reading-dot::after {
-  content: '';
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background: #d4cfc5;
-  transition: width 0.3s, background 0.3s;
-}
-.reading-dot.done::after { background: #9a9084; }
-.reading-dot.current::after { width: 14px; background: #2c2c2c; }
 
 .reading-body {
   display: flex;
@@ -149,13 +111,8 @@
   color: #3a3630;
 }
 
-.reading-nav { margin-top: auto; }
 
-/* Mobile: the dots alone show progress. */
-@media (max-width: 768px) {
-  .reading-progress-label { display: none; }
-}
-
+/* Before the chart is ready. */
 .reading-loading {
   margin: 0;
   font-family: 'Moulin', serif;

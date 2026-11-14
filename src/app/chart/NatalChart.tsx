@@ -6,14 +6,10 @@ import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
 import AddToBagPanel from './components/AddToBagPanel';
-import ReadingFlow from './components/ReadingFlow';
-import ReadingList from './components/reading/ReadingList';
 import ReadingScroll from './components/reading/ReadingScroll';
-import ReadingPins from './components/reading/ReadingPins';
-import ReadingVariantSwitch, { readingVariantFromURL, type ReadingVariant } from './components/reading/ReadingVariantSwitch';
 import type { ChartAspect, ChartBodies } from '@/lib/reading/aspect-reading';
 import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
-import type { AspectSegment, ChartEngine, FocusSpec } from './chart-engine';
+import type { ChartEngine, FocusSpec } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -52,15 +48,15 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const mainRef = useRef<HTMLDivElement>(null);
   // The model's box changes between steps; glide it there instead of jumping.
   const captureGlide = useGlide(mainRef, wrapperRef, step);
-  const goStep = (next: typeof step) => { captureGlide(); setStep(next); };
+  // Fade the new step's text in, but only once someone moves between steps:
+  // on first load the chart is still being worked out and an animation
+  // could sit unplayed, leaving the fields invisible.
+  const [stepped, setStepped] = useState(false);
+  const goStep = (next: typeof step) => { captureGlide(); setStepped(true); setStep(next); };
   const [birthStep, setBirthStep] = useState<'date' | 'time' | 'location'>('date');
   const [aspects, setAspects] = useState<ChartAspect[]>([]);
   const [bodies, setBodies] = useState<ChartBodies | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [segments, setSegments] = useState<AspectSegment[]>([]);
-  // Reading layout prototypes; ?reading=steps|list|scroll|pins.
-  const [variant, setVariant] = useState<ReadingVariant>('steps');
-  useEffect(() => { setVariant(readingVariantFromURL()); }, []);
   // Phones: keep the sheet (and the location field) above the keyboard.
   useKeyboardInset();
 
@@ -85,8 +81,6 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   }, [step]);
 
   const handleFocus = (spec: FocusSpec | null) => {
-    // The step-by-step reading swaps its text each step; start it at the top.
-    if (variant === 'steps') controlsRef.current?.scrollTo(0, 0);
     engineRef.current?.setFocus(spec);
   };
 
@@ -108,12 +102,6 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
     };
     canvas.addEventListener('chart-updated', handleChart);
 
-    const handleSegments = (e: Event) => {
-      if (destroyed) return;
-      setSegments((e as CustomEvent).detail);
-    };
-    canvas.addEventListener('aspect-segments', handleSegments);
-
     (async () => {
       const { initChartEngine } = await import('./chart-engine');
       if (destroyed) return;
@@ -128,7 +116,6 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
       destroyed = true;
       canvas.removeEventListener('aspects-updated', handleAspects);
       canvas.removeEventListener('chart-updated', handleChart);
-      canvas.removeEventListener('aspect-segments', handleSegments);
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
@@ -150,7 +137,7 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const flow = step === 'reading' || (!sidePanel && (step === 'birth' || step === 'waitlist'));
 
   return (
-    <div className={`chart-page${flow ? ' is-flow' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ` is-reading reading-${variant}` : ''}${className ? ' ' + className : ''}`}>
+    <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
       <div id="controls" ref={controlsRef}>
         <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart' : 'Customize your Aspect Pendant'}</h2>
         {step === 'birth' && (
@@ -246,10 +233,7 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
               onBack: () => goStep('birth'),
               onFinish: () => goStep('waitlist'),
             };
-            if (variant === 'list') return <ReadingList key={variant} {...props} />;
-            if (variant === 'scroll') return <ReadingScroll key={variant} {...props} />;
-            if (variant === 'pins') return <ReadingPins key={variant} {...props} segments={segments} overlayHost={wrapperRef.current} />;
-            return <ReadingFlow key={variant} {...props} />;
+            return <ReadingScroll {...props} />;
           })()}
         </div>
 
@@ -270,10 +254,6 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
           <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
           <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
         </div>
-        {step === 'reading' && <ReadingVariantSwitch value={variant} onChange={v => {
-          controlsRef.current?.scrollTo(0, 0);
-          setVariant(v);
-        }} />}
         {!controlledParams && (
           <SettingsPanel params={ownParams} onChange={(next, d) => {
             setOwnParams((p) => ({ ...p, ...next }));

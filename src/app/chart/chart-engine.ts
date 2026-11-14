@@ -82,13 +82,6 @@ export interface FocusSpec {
   view?: 'wide' | 'lines';
 }
 
-// Where each drawn aspect line sits, in 0..1 of the chart box. Sent with the
-// `aspect-segments` event on the 2D canvas whenever the lines change.
-export interface AspectSegment {
-  point1Key: string; point2Key: string; aspectKey: string;
-  x1: number; y1: number; x2: number; y2: number;
-}
-
 export interface ChartEngine {
   destroy(): void;
   setFocus(spec: FocusSpec | null): void;
@@ -301,21 +294,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       mk('circle', { class: 'focus-line-end', cx: a.x2, cy: a.y2, r: 5 });
       focusSvg.appendChild(g);
     }
-  }
-
-  // Tell the page where the lines are (the pins prototype places on them).
-  let segmentsSig = '';
-  function emitSegments() {
-    if (!aspectAnimDone) return;
-    const r = (n: number) => Math.round(n * 10) / 10;
-    const sig = drawnAspects.map(a => `${a.point1Key}${a.point2Key}${r(a.x1)}${r(a.y1)}${r(a.x2)}${r(a.y2)}`).join('|');
-    if (sig === segmentsSig) return;
-    segmentsSig = sig;
-    const detail: AspectSegment[] = drawnAspects.map(a => ({
-      point1Key: a.point1Key, point2Key: a.point2Key, aspectKey: a.aspectKey,
-      x1: a.x1 / SIZE, y1: a.y1 / SIZE, x2: a.x2 / SIZE, y2: a.y2 / SIZE,
-    }));
-    canvas.dispatchEvent(new CustomEvent('aspect-segments', { detail }));
   }
 
   // Ease the whole chart (2D + 3D together) toward the focused lines.
@@ -927,9 +905,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       if (outlineStyle !== options.params.outlineStyle) p.set('outline', outlineStyle);
       if (outlineStyle === 'liquid' && liquidity !== options.params.liquidity) p.set('liq', String(liquidity));
     }
-    // Keep the page's own params (e.g. the reading layout prototype).
-    const reading = new URLSearchParams(window.location.search).get('reading');
-    if (reading) p.set('reading', reading);
     history.replaceState(null, '', '?' + p.toString());
   }
 
@@ -1042,7 +1017,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const degMap = {};
     for (const p of planets) degMap[p.key] = p.deg;
     drawAspectLines(state.horoscope, degMap, ascDeg);
-    if (aspectAnimDone) { emitSegments(); updateFocusOverlay(); }
+    if (aspectAnimDone) updateFocusOverlay();
     drawPlanets(planets, ascDeg);
 
     ctx.globalAlpha = 1;

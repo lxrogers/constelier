@@ -1,0 +1,170 @@
+/* The reading: one scrolling column of sections (intro, how to read, one
+   per line, summary) under a pinned bar with Back and Finish. Section
+   type (titles, cards, type list) is in ReadingSections.css. */
+
+.reading-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2c2c2c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-scroll { gap: 0; }
+.reading-scroll-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  background: rgba(247, 243, 235, 0.95);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(212, 207, 197, 0.6);
+}
+.reading-scroll-back {
+  border: 0; background: none; padding: 0;
+  font: inherit; font-size: 14px; color: #5a524a; cursor: pointer; white-space: nowrap;
+}
+.chart-page .reading-scroll-bar .reading-scroll-finish {
+  flex: none; width: auto; margin: 0;
+  min-height: 40px; padding: 0 20px; border-radius: 999px; font-size: 14px;
+}
+.reading-scroll-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 9vh 0;
+  transition: opacity 0.5s ease;
+}
+.reading-scroll-section { opacity: 0.32; }
+.reading-scroll-section.is-line { min-height: 38vh; box-sizing: border-box; }
+.reading-scroll-section.current { opacity: 1; }
+.reading-scroll-section.is-intro { padding-top: 4vh; padding-bottom: 5vh; }
+/* Starts high enough that it shows below the intro: the cue to scroll. */
+.reading-scroll-section.is-intro + .reading-scroll-section { padding-top: 5vh; }
+.reading-scroll-section.is-summary { padding-bottom: 22vh; }
+.reading-scroll-section { scroll-margin-top: 110px; }
+.chart-page .reading-scroll-section .btn-row .controls-step-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 48px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-size: 15px;
+}
+.reading-scroll-section + .reading-scroll-section { border-top: 1px solid #ebe5d9; }
+
+@media (min-width: 769px) {
+  /* The reading scrolls inside the same floating card as the birth
+     details (chart.css), with its bar pinned to the card's top. */
+  .chart-page.is-reading.reading-scroll #controls {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 0 44px;
+    overscroll-behavior: contain;
+  }
+  .chart-page.is-reading.reading-scroll .reading-scroll-bar {
+    margin: 0 -44px;
+    padding: 20px 44px 14px;
+    background: rgba(253, 251, 247, 0.92);
+  }
+  .chart-page.is-reading.reading-scroll .reading-title { font-size: 38px; line-height: 1.08; }
+  .chart-page.is-reading.reading-scroll .reading-themes { font-size: 16px; gap: 10px; }
+}
+@media (max-width: 768px) {
+  /* No top padding, so the pinned bar is the sheet's own top edge. */
+  /* The sheet takes two thirds; the model sits small in the top third
+     (it zooms in on each line, so it doesn't need more). */
+  .chart-page.is-reading.reading-scroll #main { padding-top: 6px; }
+  .chart-page.is-reading.reading-scroll .chart-wrapper {
+    width: min(92%, calc((100dvh - 44px) / 3 - 10px));
+  }
+  .chart-page.is-reading.reading-scroll #controls {
+    height: 67%;
+    max-height: 67%;
+    padding-top: 0;
+    background: rgba(250, 247, 240, 0.8);
+  }
+  .reading-scroll-bar {
+    margin: 0 -20px;
+    padding: 16px 16px 10px;
+    gap: 10px;
+    background: rgba(250, 247, 240, 0.96);
+    border-radius: 20px 20px 0 0;
+  }
+  /* grab handle */
+  .reading-scroll-bar::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: #d4cfc5;
+  }
+  .reading-scroll-back { font-size: 13px; }
+  .chart-page .reading-scroll-bar .reading-scroll-finish {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .reading-scroll-section { gap: 12px; padding: 5vh 0; }
+  .reading-scroll-section.is-line { min-height: 32vh; }
+  /* Tight below the intro so the next section peeks in: that, not a
+     "scroll" hint, is what says there's more. */
+  .reading-scroll-section.is-intro { padding-top: 3vh; padding-bottom: 2.5vh; min-height: 0; }
+  .reading-scroll-section.is-intro + .reading-scroll-section { padding-top: 3vh; }
+  .reading-scroll-section.is-summary { padding-bottom: 10vh; }
+  .reading-scroll-section { scroll-margin-top: 48px; }
+  .chart-page.is-reading.reading-scroll .reading-title { font-size: 23px; line-height: 1.12; }
+  .chart-page.is-reading.reading-scroll .reading-text,
+  .chart-page.is-reading.reading-scroll .reading-text-lg { font-size: 14px; line-height: 1.55; }
+  .chart-page.is-reading.reading-scroll .reading-big3 { gap: 6px; }
+  .chart-page.is-reading.reading-scroll .reading-big3-cell { padding: 7px 8px; }
+  .chart-page.is-reading.reading-scroll .reading-big3-value { font-size: 12px; }
+  .reading-scroll .reading-meta { gap: 6px; }
+  .reading-scroll .reading-where { font-size: 12px; }
+  .reading-scroll .reading-type-def { font-size: 12px; }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-scroll-section { transition: none; }
+}
+
+/* Tablets: a narrower text column so the model keeps its size. */
+@media (min-width: 769px) and (max-width: 1000px) {
+  .chart-page.is-flow.is-reading.reading-scroll { padding-left: 16px; }
+  .chart-page.is-reading.reading-scroll #controls {
+    flex: 0 0 380px;
+    min-width: 0;
+    padding: 0 28px;
+  }
+  .chart-page.is-reading.reading-scroll .reading-scroll-bar {
+    margin: 0 -28px;
+    padding: 20px 28px 14px;
+  }
+  .chart-page.is-reading.reading-scroll .reading-title { font-size: 30px; }
+  .chart-page.is-reading.reading-scroll .reading-text,
+  .chart-page.is-reading.reading-scroll .reading-text-lg { font-size: 16px; }
+  .chart-page .reading-scroll-bar .reading-scroll-finish { padding: 0 16px; }
+}
+
+/* "Reading your sky…" before the chart is ready */
+.chart-page.is-reading.reading-scroll .reading-loading { padding-top: 24px; }
+@media (min-width: 769px) {
+  .chart-page.is-reading.reading-scroll .reading-loading { padding-top: 42vh; }
+}
