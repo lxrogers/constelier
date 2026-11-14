@@ -8,7 +8,7 @@ import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
 import { buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
 import { buildPreview, buildOutlineLoops, meshOptionsFor, pendantExtent, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
 import { chordsFromHoroscope } from '@/lib/natal-chords';
-import type { PendantParams } from '@/config/pendant-params';
+import { withDerived, type PendantParams } from '@/config/pendant-params';
 import makerjs from 'makerjs';
 
 const m = makerjs;
@@ -1987,6 +1987,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function setParams(next, { draft = false } = {}) {
     const prev = P;
     P = { ...P, ...next, aspects: [...(next.aspects || P.aspects)] };
+    // Sizes are set in mm; re-derive the model units when they or the diameter move.
+    if (['diameterMm', 'thicknessMm', 'barWidthMm', 'rimWidthMm', 'edgeRoundMm'].some((k) => k in next)) P = withDerived(P);
     const changed = (k) => {
       const a = prev[k], b = P[k];
       if (Array.isArray(a)) return a.length !== b.length || a.some((v) => !b.includes(v));

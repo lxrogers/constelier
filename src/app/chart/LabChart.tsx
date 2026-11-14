@@ -10,7 +10,7 @@ import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
 import type { ChartEngine, FocusSpec } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
-import './chart.css';
+import '../lab/lab-chart.css';
 
 // Off until launch: the last step stays the waitlist unless this is 'true'.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
