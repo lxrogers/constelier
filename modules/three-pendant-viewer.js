@@ -234,7 +234,8 @@ export class PendantViewer {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
     var taaPass = new TAARenderPass(this.scene, this.camera);
-    taaPass.sampleLevel = 3;
+    taaPass.sampleLevel = this._moving ? 2 : 3;
+    this._taaPass = taaPass;
     this.composer.addPass(taaPass);
 
     var smaaPass = new SMAAPass(
@@ -610,7 +611,8 @@ export class PendantViewer {
       this.composer = new EffectComposer(this.renderer, rt);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
       var taaPass = new TAARenderPass(this.scene, this.camera);
-      taaPass.sampleLevel = 3;
+      taaPass.sampleLevel = this._moving ? 2 : 3;
+      this._taaPass = taaPass;
       this.composer.addPass(taaPass);
       var colorGradingPass = new ShaderPass(ColorGradingShader);
       this.composer.addPass(colorGradingPass);
@@ -643,6 +645,13 @@ export class PendantViewer {
 
   setRoughness(value) {
     this._faceMat.roughness = value;
+  }
+
+  // While the pendant animates every frame, halve the anti-aliasing samples
+  // (4 instead of 8 scene renders per frame); stills go back to full quality.
+  setMoving(moving) {
+    this._moving = !!moving;
+    if (this._taaPass) this._taaPass.sampleLevel = moving ? 2 : 3;
   }
 
   setEdgesVisible(visible) {

@@ -346,7 +346,9 @@
   .btn-row.mobile-only { display: flex; }
   .hide-mobile { display: none !important; }
 
-  html, body { overflow: hidden; height: 100dvh; }
+  /* (Not while the homepage hero is showing: that view scrolls.) */
+  html:not(:has(.cfg[data-view='home'])),
+  html:not(:has(.cfg[data-view='home'])) body { overflow: hidden; height: 100dvh; }
 
   .cfg {
     display: flex;

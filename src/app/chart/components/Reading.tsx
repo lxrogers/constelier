@@ -132,8 +132,7 @@ export default function Reading({ aspects, active, onFocus, onDone }: Props) {
       >
         {item.kind === 'intro' && (
           <>
-            <p className="eyebrow reveal">Your reading</p>
-            <h3 className="reading-title reveal" style={{ ['--d' as string]: '60ms' }}>
+            <h3 className="reading-title reveal">
               {word(total)} {total === 1 ? 'line' : 'lines'}, {word(total).toLowerCase()} {total === 1 ? 'conversation' : 'conversations'}.
             </h3>
             <p className="reading-body">
@@ -192,8 +191,7 @@ export default function Reading({ aspects, active, onFocus, onDone }: Props) {
 
         {item.kind === 'close' && (
           <>
-            <p className="eyebrow reveal">The whole sky</p>
-            <h3 className="reading-title reveal" style={{ ['--d' as string]: '60ms' }}>That is your chart.</h3>
+            <h3 className="reading-title reveal">That is your chart.</h3>
             <ul className="reading-tally reveal" style={{ ['--d' as string]: '140ms' }}>
               {READING_ORDER.filter((k) => counts[k]).map((k) => (
                 <li key={k}>

@@ -12,7 +12,8 @@ import { Wordmark } from '@/components/Logo';
 import type { AspectLike } from '@/lib/reading';
 import { trackFunnel } from '@/lib/analytics';
 import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
-import type { ChartEngine } from './chart-engine';
+import { useHomeView } from '@/hooks/useHomeView';
+import type { ChartEngine, PendantMotion } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
@@ -38,11 +39,25 @@ const STEPS: { id: Step; label: string }[] = [
 // engine's chart opacity). The shape step fades the chart so the metal leads.
 const CHART_OPACITY: Record<Step, number> = { birth: 60, reading: 60, shape: 22, reserve: 30 };
 
-export default function NatalChart({ theme = 'night', initialStep = 'birth', homeHref = '/' }: {
+// The homepage's own parts. With these the page opens on the hero (same live
+// chart, different layout) and becomes the configurator without navigating.
+export interface HomeSlots {
+  nav: React.ReactNode;
+  hero: React.ReactNode;
+  // Drawn over the chart (the hand-written note).
+  note?: React.ReactNode;
+  below: React.ReactNode;
+}
+
+export default function NatalChart({ theme = 'night', initialStep = 'birth', homeHref = '/', home }: {
   theme?: ChartTheme;
   initialStep?: Step;
   homeHref?: string;
+  home?: HomeSlots;
 }) {
+  const { view, rootRef, goHome, isHome } = useHomeView(!!home);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [engineReady, setEngineReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -114,7 +129,13 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
     (async () => {
       const { initChartEngine } = await import('./chart-engine');
       if (destroyed) return;
-      engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!, { params, urlOverrides: true });
+      engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!, {
+        params,
+        urlOverrides: true,
+        // Birth details stay out of the address bar on the homepage.
+        shouldSyncUrl: () => !isHome(),
+      });
+      setEngineReady(true);
       // Apply the starting step's chart opacity once the engine listens.
       const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
       op?.dispatchEvent(new Event('input', { bubbles: true }));
@@ -132,6 +153,27 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Back on the hero the chart is at rest: no line in focus, no zoom. (The
+  // steps already visited stay open in the panel's step bar.)
+  useEffect(() => {
+    if (view === 'home') setStep('birth');
+  }, [view]);
+
+  // On the hero the pendant moves a little; in the configurator it lies flat
+  // so the chart lines under it line up. It also rests while off screen.
+  // (?motion=spin or ?motion=off to compare.)
+  useEffect(() => {
+    const engine = engineRef.current;
+    const stage = stageRef.current;
+    if (!engineReady || !engine || !stage) return;
+    if (view !== 'home') { engine.setMotion(null); return; }
+    const q = new URLSearchParams(window.location.search).get('motion');
+    const mode: PendantMotion | null = q === 'off' ? null : q === 'spin' ? 'spin' : 'sway';
+    const io = new IntersectionObserver(([e]) => engine.setMotion(e.isIntersecting ? mode : null));
+    io.observe(stage);
+    return () => io.disconnect();
+  }, [view, engineReady]);
 
   // Only the changed settings go to the engine, so values it took from the
   // URL (a shared link, a reopened bag design) stay unless changed here.
@@ -173,16 +215,26 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <div className={`theme-root theme-${theme} cfg`} data-step={step}>
-      <header className="cfg-nav">
-        <Link href={homeHref} className="cfg-home" aria-label="Constelier home"><Wordmark /></Link>
+    <div ref={rootRef} className={`theme-root theme-${theme} cfg${home ? ' atl' : ''}`} data-step={step} data-view={view}>
+      {home && <div className="cfg-home-only" data-leave="up">{home.nav}</div>}
+      <header className="cfg-nav cfg-only" data-leave={home ? 'up' : undefined}>
+        <Link
+          href={homeHref}
+          className="cfg-home"
+          aria-label="Constelier home"
+          onClick={home ? (e) => { e.preventDefault(); goHome(); } : undefined}
+        >
+          <Wordmark />
+        </Link>
         <div className="cfg-nav-end">
           <span className="cfg-nav-step eyebrow">{String(stepIndex + 1).padStart(2, '0')} / 04</span>
           <BagLink />
         </div>
       </header>
 
-      <div id="main" className="cfg-stage">
+      {home && <div className="cfg-home-only atl-hero-copy" data-leave="left">{home.hero}</div>}
+
+      <div id="main" className="cfg-stage" ref={stageRef}>
         <div className="cfg-stage-glow" aria-hidden="true" />
         <div className="chart-frame" style={{ transform: stageTransform }}>
           <div className="chart-wrapper">
@@ -190,13 +242,14 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
             <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
           </div>
         </div>
+        {home?.note && <div className="cfg-home-only" data-leave="up">{home.note}</div>}
         <SettingsPanel showGear={showDev} params={params} onChange={changeParams} />
         {/* Engine bindings: chart opacity is driven by the step. */}
         <input type="hidden" id="chart-opacity" defaultValue={CHART_OPACITY[initialStep]} />
         <span id="chart-opacity-val" hidden />
       </div>
 
-      <aside id="controls" className="cfg-panel" ref={panelRef}>
+      <aside id="controls" className="cfg-panel cfg-only" data-leave={home ? 'right' : undefined} ref={panelRef}>
         <nav className="cfg-steps" aria-label="Steps">
           {STEPS.map((s, i) => (
             <button
@@ -306,8 +359,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
         {/* ── 03 Shape ── */}
         <section className="cfg-section" hidden={step !== 'shape'}>
           <div className="cfg-head">
-            <p className="eyebrow reveal">The metal</p>
-            <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>How should the gold move?</h2>
+            <h2 className="cfg-title reveal">How should the gold move?</h2>
           </div>
           <OutlineControls variant="panel" params={params} onChange={changeParams} />
           <div className="cfg-actions">
@@ -327,8 +379,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
           {SHOP_ENABLED ? (
             <div className="cfg-shop">
               <div className="cfg-head">
-                <p className="eyebrow reveal">Almost yours</p>
-                <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>Your pendant.</h2>
+                <h2 className="cfg-title reveal">Your pendant.</h2>
               </div>
               <AddToBagPanel canvasRef={canvasRef} active={step === 'reserve'} />
               <button className="btn btn-ghost cfg-back cfg-shop-back" onClick={() => goTo('shape')} aria-label="Back to the shape">
@@ -337,8 +388,7 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
             </div>
           ) : submitted ? (
             <div className="cfg-head waitlist-thanks">
-              <p className="eyebrow reveal">Reserved</p>
-              <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>It is written.</h2>
+              <h2 className="cfg-title reveal">It is written.</h2>
               <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
                 We will email your design when casting opens.
               </p>
@@ -348,6 +398,8 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
           )}
         </section>
       </aside>
+
+      {home && <div className="cfg-home-only atl-below">{home.below}</div>}
     </div>
   );
 }
@@ -419,8 +471,7 @@ function WaitlistForm({ active, onSubmitted, onBack }: { active: boolean; onSubm
   return (
     <div className="waitlist-form">
       <div className="cfg-head">
-        <p className="eyebrow reveal">Almost yours</p>
-        <h2 className="cfg-title reveal" style={{ ['--d' as string]: '60ms' }}>Reserve your pendant.</h2>
+        <h2 className="cfg-title reveal">Reserve your pendant.</h2>
         <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
           Constelier is still in the studio. Leave your email and we will send your design when casting opens.
         </p>

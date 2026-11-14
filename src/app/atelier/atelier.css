@@ -36,16 +36,29 @@
 .atl-links a:hover { color: var(--ink); }
 .atl-nav-cta { justify-self: end; height: 40px; padding: 0 20px; font-size: 13px; }
 
-/* Hero */
-.atl-hero {
-  display: grid;
+/* ── Hero: the live chart ─────────────────────────────────────
+   The page root is the configurator's root (.cfg), and data-view picks the
+   layout: `home` is this page, `cfg` the configurator. Only one chart exists,
+   so switching moves it (hooks/useHomeView) instead of loading a page. */
+
+.cfg[data-view='home'] .cfg-only,
+.cfg[data-view='cfg'] .cfg-home-only { display: none; }
+
+.cfg[data-view='home'] {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 40px;
+  grid-template-rows: auto minmax(calc(100svh - 77px), auto) auto;
+  grid-template-areas: 'nav nav' 'copy art' 'below below';
+  column-gap: 40px;
   align-items: center;
-  padding: 40px var(--pad) 100px;
-  min-height: calc(100svh - 76px);
+  height: auto;
+  overflow: visible;
+  overflow-x: clip;
+  padding: 0 var(--pad);
 }
-.atl-hero-copy { display: flex; flex-direction: column; gap: 28px; }
+.cfg[data-view='home'] > .cfg-home-only:first-child { grid-area: nav; margin: 0 calc(-1 * var(--pad)); position: sticky; top: 0; z-index: 50; }
+.atl-below { grid-area: below; margin: 0 calc(-1 * var(--pad)); align-self: stretch; }
+
+.atl-hero-copy { grid-area: copy; display: flex; flex-direction: column; gap: 28px; padding: 40px 0 100px; }
 .atl-h1 {
   font-family: var(--serif);
   font-weight: 400;
@@ -58,27 +71,35 @@
 .atl-lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 28em; font-weight: 300; }
 .atl-hero-cta { display: flex; gap: 12px; }
 
-.atl-hero-art {
-  position: relative;
+.cfg[data-view='home'] .cfg-stage {
+  grid-area: art;
   aspect-ratio: 1;
   width: 100%;
   max-width: 720px;
+  height: auto;
   justify-self: center;
+  margin: 40px 0 100px;
+  padding: 0;
+  overflow: visible;
 }
-.atl-hero-wheel {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: var(--ink);
-  opacity: 0.6;
+
+/* The configurator's own parts arrive as the chart glides over. */
+@keyframes atl-panel-in {
+  from { opacity: 0; transform: translateX(48px); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
 }
-.atl-hero-pendant {
-  position: absolute;
-  inset: 14%;
-  filter: drop-shadow(0 24px 30px rgba(80, 60, 20, 0.28)) drop-shadow(0 4px 6px rgba(80, 60, 20, 0.2));
+@keyframes atl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.atl.cfg[data-view='cfg'] .cfg-panel { animation: atl-panel-in 0.9s var(--ease-out) 0.25s both; }
+.atl.cfg[data-view='cfg'] .cfg-nav { animation: atl-fade-in 0.6s ease 0.3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .atl.cfg[data-view='cfg'] .cfg-panel,
+  .atl.cfg[data-view='cfg'] .cfg-nav { animation: none; }
 }
-.atl-hero-pendant img { width: 100%; height: auto; }
+/* The chart glides in from outside the stage; do not crop it on the way. */
+.atl.cfg .cfg-stage { overflow: visible; }
+/* Same place for the wordmark in both layouts, so it does not jump. */
+.atl.cfg .cfg-nav { padding: 0 var(--pad); height: 77px; }
+
 .atl-note {
   position: absolute;
   right: -2%;
@@ -94,18 +115,6 @@
   transform: rotate(-4deg);
 }
 .atl-note svg { color: var(--accent); transform: scaleX(-1) translateY(18px); order: -1; }
-.atl-coords {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -28px;
-  text-align: center;
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
 .atl-anchor { position: absolute; top: -90px; }
 .atl section { position: relative; }
 
@@ -210,11 +219,17 @@
   .atl .wordmark-icon { width: 22px; height: 22px; }
   .atl-nav-cta { height: 36px; padding: 0 16px; }
 
-  .atl-hero { grid-template-columns: 1fr; min-height: auto; padding-top: 16px; padding-bottom: 72px; gap: 48px; }
-  .atl-hero-art { order: -1; max-width: 440px; }
+  .cfg[data-view='home'] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: 'nav' 'art' 'copy' 'below';
+  }
+  .cfg[data-view='home'] .cfg-stage { max-width: 440px; margin: 16px 0 40px; }
+  .atl-hero-copy { padding: 0 0 72px; }
+  .atl.cfg .cfg-nav { height: 65px; }
   .atl-note { font-size: 15px; right: 4%; top: 0; }
   .atl-note svg { width: 48px; }
-  .atl-coords { font-size: 9.5px; letter-spacing: 0.14em; bottom: -24px; }
   .atl-lede { font-size: 16px; }
   .atl-hero-cta .btn { width: 100%; }
 
