@@ -789,11 +789,17 @@ input[type="range"]::-moz-range-thumb {
       max-height 0.6s cubic-bezier(.22,.7,.2,1),
       bottom 0.25s ease;
   }
-  /* The on-screen keyboard is up (useKeyboardInset): the sheet rides on
-     top of it, no taller than what is still visible. */
+  /* The on-screen keyboard is up (useKeyboardInset): pin the sheet to
+     the visible area, its bottom where the keyboard starts. Fixed to the
+     visual viewport, so it holds still however the browser scrolls. */
   .keyboard-open .chart-page.is-flow #controls {
-    bottom: var(--kb-inset, 0px);
-    max-height: calc(var(--vv-height, 100dvh) - 16px);
+    --kb-sheet-h: min(320px, calc(var(--vv-height, 100dvh) - 24px));
+    position: fixed;
+    top: calc(var(--vv-top, 0px) + var(--vv-height, 100dvh) - var(--kb-sheet-h));
+    bottom: auto;
+    height: var(--kb-sheet-h);
+    max-height: var(--kb-sheet-h);
+    transition: none;
   }
   /* Location: the field sits in the middle of the space under its
      heading, not tight against it. */

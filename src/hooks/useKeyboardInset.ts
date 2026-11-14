@@ -1,14 +1,17 @@
 import { useEffect } from 'react';
 
-// Phones: how much of the page the on-screen keyboard covers, as CSS
-// variables on <html>, so a bottom sheet can sit right above it.
-//   --kb-inset   distance from the visible bottom to the page's bottom
-//   --vv-height  height of what is still visible
-// and the class `keyboard-open` while it is up.
+// Phones: where the part of the page you can still see is while the
+// on-screen keyboard is up, as CSS variables on <html>, so a bottom sheet
+// can be pinned right above the keyboard:
+//   --vv-top     top of the visible area, in fixed-position coordinates
+//   --vv-height  its height
+// and the class `keyboard-open` while a field is focused and the keyboard
+// covers part of the screen.
 //
-// iPhone Safari doesn't resize the page for the keyboard; it slides the
-// visible area over it, and not always far enough to show a field near
-// the bottom. The visual viewport says where the visible area really is.
+// Phone browsers don't resize the page for the keyboard; they slide the
+// visible area over it, each by their own rules (Chrome and Safari differ).
+// Pinning to the visual viewport, rather than reacting to the page's
+// scroll, works the same in both and can't fight the browser's own scroll.
 export function useKeyboardInset() {
   useEffect(() => {
     const vv = window.visualViewport;
@@ -17,12 +20,9 @@ export function useKeyboardInset() {
     let frame = 0;
     const update = () => {
       frame = 0;
-      // Bottom of the page in the visible area's coordinates, minus where
-      // the visible area ends.
-      const pageBottom = window.innerHeight - window.scrollY;
-      const inset = Math.max(0, Math.round(pageBottom - (vv.offsetTop + vv.height)));
-      const open = inset > 80 && document.activeElement instanceof HTMLInputElement;
-      root.style.setProperty('--kb-inset', open ? `${inset}px` : '0px');
+      const covered = window.innerHeight - vv.height;
+      const open = covered > 80 && document.activeElement instanceof HTMLInputElement;
+      root.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
       root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
       root.classList.toggle('keyboard-open', open);
     };
@@ -41,7 +41,7 @@ export function useKeyboardInset() {
       document.removeEventListener('focusin', schedule);
       document.removeEventListener('focusout', schedule);
       root.classList.remove('keyboard-open');
-      root.style.removeProperty('--kb-inset');
+      root.style.removeProperty('--vv-top');
       root.style.removeProperty('--vv-height');
     };
   }, []);
