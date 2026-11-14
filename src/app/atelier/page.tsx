@@ -21,8 +21,8 @@ const GALLERY = [
 export default function Atelier() {
   return (
     <NatalChart
-      theme="paper"
       home={{
+        className: 'theme-root theme-paper atl',
         nav: (
           <header className="atl-nav">
             <a href="#top" className="atl-home" aria-label="Constelier home"><Wordmark /></a>

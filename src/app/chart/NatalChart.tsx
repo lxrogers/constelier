@@ -1,111 +1,119 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import SettingsPanel from './components/SettingsPanel';
-import OutlineControls from './components/OutlineControls';
-import Reading from './components/Reading';
-import AddToBagPanel from './components/AddToBagPanel';
-import BagLink from '@/components/BagLink';
-import { Wordmark } from '@/components/Logo';
-import type { AspectLike } from '@/lib/reading';
-import { trackFunnel } from '@/lib/analytics';
-import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
+import { useRef, useEffect, useState } from 'react';
+import { useGlide } from '@/hooks/useGlide';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useHomeView } from '@/hooks/useHomeView';
-import type { ChartEngine, PendantMotion } from './chart-engine';
+import SiteNav from './SiteNav';
+import { trackFunnel } from '@/lib/analytics';
+import dynamic from 'next/dynamic';
+import SettingsPanel from './components/SettingsPanel';
+import AddToBagPanel from './components/AddToBagPanel';
+import ReadingScroll from './components/reading/ReadingScroll';
+import type { ChartAspect, ChartBodies } from '@/lib/reading/aspect-reading';
+import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
+import type { ChartEngine, FocusSpec } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
 
-interface AspectData extends AspectLike {
-  enabled: boolean;
-}
-
-type Step = 'birth' | 'reading' | 'shape' | 'reserve';
-export type ChartTheme = 'night' | 'paper' | 'mono';
-
 // Off until launch: the last step stays the waitlist unless this is 'true'.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: 'birth', label: 'Birth' },
-  { id: 'reading', label: 'Reading' },
-  { id: 'shape', label: 'Shape' },
-  { id: 'reserve', label: 'Reserve' },
-];
-
-// How much of the zodiac ring stays visible in each step (0..100, the
-// engine's chart opacity). The shape step fades the chart so the metal leads.
-const CHART_OPACITY: Record<Step, number> = { birth: 60, reading: 60, shape: 22, reserve: 30 };
-
-// The homepage's own parts. With these the page opens on the hero (same live
-// chart, different layout) and becomes the configurator without navigating.
+// The homepage's own parts. With these the page opens on the hero (the same
+// live chart, larger, beside the headline) and "Design yours" changes the
+// layout around it instead of loading /chart. See hooks/useHomeView.
 export interface HomeSlots {
+  // Classes for the element that wraps both layouts (the homepage's theme).
+  className: string;
   nav: React.ReactNode;
   hero: React.ReactNode;
-  // Drawn over the chart (the hand-written note).
+  // Sits over the chart (the handwritten note).
   note?: React.ReactNode;
+  // Everything under the hero.
   below: React.ReactNode;
 }
 
-export default function NatalChart({ theme = 'night', initialStep = 'birth', homeHref = '/', home }: {
-  theme?: ChartTheme;
-  initialStep?: Step;
-  homeHref?: string;
+interface NatalChartProps {
+  // Controlled pendant settings (the lab). Without them the page uses the
+  // saved defaults plus whatever the prod settings panel exposes.
+  params?: PendantParams;
+  // True while a slider is mid-drag: the engine builds a quick draft.
+  draft?: boolean;
+  // Let the URL override aspects/outline and keep it in sync (prod only).
+  urlOverrides?: boolean;
+  // Orbitable 3D view (lab).
+  orbit?: boolean;
+  // Extra column to the right of the chart (the lab's settings).
+  sidePanel?: React.ReactNode;
+  className?: string;
   home?: HomeSlots;
-}) {
+}
+
+export default function NatalChart({ params: controlledParams, draft = false, urlOverrides = true, orbit = false, sidePanel, className, home }: NatalChartProps = {}) {
   const { view, rootRef, goHome, isHome } = useHomeView(!!home);
-  const stageRef = useRef<HTMLDivElement>(null);
   const [engineReady, setEngineReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<ChartEngine | null>(null);
-  // Pendant settings: the saved lab defaults, changed by the outline
-  // controls and the developer settings panel (?dev).
-  const [params, setParams] = useState<PendantParams>(PENDANT_DEFAULTS);
-  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [step, setStep] = useState<Step>(initialStep);
-  const [visited, setVisited] = useState<Set<Step>>(() => new Set(STEPS.slice(0, STEPS.findIndex((s) => s.id === initialStep) + 1).map((s) => s.id)));
+  const [ownParams, setOwnParams] = useState<PendantParams>(PENDANT_DEFAULTS);
+  const [ownDraft, setOwnDraft] = useState(false);
+  const params = controlledParams ?? ownParams;
+  const isDraft = controlledParams ? draft : ownDraft;
+  const latest = useRef({ params, isDraft });
+  latest.current = { params, isDraft };
+  const [step, setStep] = useState<'birth' | 'reading' | 'waitlist'>('birth');
+  const mainRef = useRef<HTMLDivElement>(null);
+  // The model's box changes between steps; glide it there instead of jumping.
+  const captureGlide = useGlide(mainRef, wrapperRef, step);
+  // Fade the new step's text in, but only once someone moves between steps:
+  // on first load the chart is still being worked out and an animation
+  // could sit unplayed, leaving the fields invisible.
+  const [stepped, setStepped] = useState(false);
+  const goStep = (next: typeof step) => { captureGlide(); setStepped(true); setStep(next); };
   const [birthStep, setBirthStep] = useState<'date' | 'time' | 'location'>('date');
-  const [aspects, setAspects] = useState<AspectData[]>([]);
-  const [focus, setFocus] = useState<{ x: number; y: number } | null>(null);
+  const [aspects, setAspects] = useState<ChartAspect[]>([]);
+  const [bodies, setBodies] = useState<ChartBodies | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [showDev, setShowDev] = useState(false);
-  const chartTracked = useRef(false);
+  // Phones: keep the sheet (and the location field) above the keyboard.
+  useKeyboardInset();
 
+  // iPhone Safari slides the whole page up to keep a focused field above
+  // the keyboard, and doesn't always slide it back. This page never
+  // scrolls, so put it back once the field lets go.
+  useEffect(() => {
+    const onFocusOut = (e: FocusEvent) => {
+      if (!(e.target instanceof HTMLInputElement)) return;
+      window.setTimeout(() => {
+        if (!(document.activeElement instanceof HTMLInputElement)) window.scrollTo(0, 0);
+      }, 60);
+    };
+    document.addEventListener('focusout', onFocusOut);
+    return () => document.removeEventListener('focusout', onFocusOut);
+  }, []);
+
+  useEffect(() => {
+    controlsRef.current?.scrollTo(0, 0);
+    // Only the reading steers the chart's focus.
+    if (step !== 'reading') engineRef.current?.setFocus(null);
+  }, [step]);
+
+  // Funnel analytics: reached the reading, saw a chart with lines.
+  const chartTracked = useRef(false);
   useEffect(() => {
     if (step === 'reading') trackFunnel('birth_details_entered');
   }, [step]);
-
   useEffect(() => {
     if (step !== 'reading' || aspects.length === 0 || chartTracked.current) return;
     chartTracked.current = true;
     trackFunnel('chart_shown', { aspects: aspects.length });
   }, [step, aspects.length]);
 
-  useEffect(() => {
-    setShowDev(new URLSearchParams(window.location.search).has('dev'));
-  }, []);
-
-  function goTo(next: Step) {
-    setStep(next);
-    setVisited((v) => new Set(v).add(next));
-  }
-
-  // Step changes: scroll the panel to the top, set how loud the chart is,
-  // and clear any highlight outside the reading.
-  useEffect(() => {
-    panelRef.current?.scrollTo(0, 0);
-    const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
-    if (op) {
-      op.value = String(CHART_OPACITY[step]);
-      op.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    if (step !== 'reading') dispatchAspectHover(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  const handleFocus = (spec: FocusSpec | null) => {
+    engineRef.current?.setFocus(spec);
+  };
 
   useEffect(() => {
     if (!canvasRef.current || !canvas3dRef.current) return;
@@ -119,33 +127,29 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
     };
     canvas.addEventListener('aspects-updated', handleAspects);
 
-    const handleHoverChanged = (e: Event) => {
+    const handleChart = (e: Event) => {
       if (destroyed) return;
-      const d = (e as CustomEvent).detail;
-      setFocus(d && typeof d.x1 === 'number' ? { x: (d.x1 + d.x2) / 2, y: (d.y1 + d.y2) / 2 } : null);
+      setBodies((e as CustomEvent).detail);
     };
-    canvas.addEventListener('hover-changed', handleHoverChanged);
+    canvas.addEventListener('chart-updated', handleChart);
 
     (async () => {
       const { initChartEngine } = await import('./chart-engine');
       if (destroyed) return;
       engineRef.current = initChartEngine(canvasRef.current!, canvas3dRef.current!, {
-        params,
-        urlOverrides: true,
+        params: latest.current.params,
+        urlOverrides,
+        orbit,
         // Birth details stay out of the address bar on the homepage.
         shouldSyncUrl: () => !isHome(),
       });
       setEngineReady(true);
-      // Apply the starting step's chart opacity once the engine listens.
-      const op = document.getElementById('chart-opacity') as HTMLInputElement | null;
-      op?.dispatchEvent(new Event('input', { bubbles: true }));
     })();
 
     return () => {
       destroyed = true;
       canvas.removeEventListener('aspects-updated', handleAspects);
-      canvas.removeEventListener('hover-changed', handleHoverChanged);
-      if (focusTimer.current) clearTimeout(focusTimer.current);
+      canvas.removeEventListener('chart-updated', handleChart);
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
@@ -154,252 +158,179 @@ export default function NatalChart({ theme = 'night', initialStep = 'birth', hom
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Back on the hero the chart is at rest: no line in focus, no zoom. (The
-  // steps already visited stay open in the panel's step bar.)
+  // Push setting changes into the engine. (Changes made before it finished
+  // loading are already in the params it was created with.)
+  useEffect(() => {
+    engineRef.current?.setParams(params, { draft: isDraft });
+  }, [params, isDraft]);
+
+  // Back on the hero, the next visit to the design starts from birth details.
   useEffect(() => {
     if (view === 'home') setStep('birth');
   }, [view]);
 
-  // On the hero the pendant moves a little; in the configurator it lies flat
-  // so the chart lines under it line up. It also rests while off screen.
-  // (?motion=spin or ?motion=off to compare.)
+  // The hero's pendant moves a little while it is only being looked at, and
+  // lies flat again for the design. (?motion=spin or ?motion=off to compare.)
   useEffect(() => {
     const engine = engineRef.current;
-    const stage = stageRef.current;
-    if (!engineReady || !engine || !stage) return;
+    const stage = mainRef.current;
+    if (!home || !engineReady || !engine || !stage) return;
     if (view !== 'home') { engine.setMotion(null); return; }
     const q = new URLSearchParams(window.location.search).get('motion');
-    const mode: PendantMotion | null = q === 'off' ? null : q === 'spin' ? 'spin' : 'sway';
+    if (q === 'off') return;
+    const mode = q === 'spin' ? 'spin' : 'sway';
+    // Not while it is scrolled out of sight.
     const io = new IntersectionObserver(([e]) => engine.setMotion(e.isIntersecting ? mode : null));
     io.observe(stage);
     return () => io.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, engineReady]);
 
-  // Only the changed settings go to the engine, so values it took from the
-  // URL (a shared link, a reopened bag design) stay unless changed here.
-  function changeParams(next: Partial<PendantParams>, draft: boolean) {
-    setParams((p) => ({ ...p, ...next }));
-    engineRef.current?.setParams(next, { draft });
-  }
+  // Birth details and the reading share one layout: model left, text right.
+  // (The lab keeps its card for birth details, beside its own side panel.)
+  // The last step (bag or waitlist) keeps that layout too, so finishing the
+  // reading doesn't flip the model to the other side.
+  const flow = step === 'reading' || (!sidePanel && (step === 'birth' || step === 'waitlist'));
 
-  function dispatchAspectHover(aspect: AspectLike | null) {
-    canvasRef.current?.dispatchEvent(new CustomEvent('aspect-hover', {
-      detail: aspect ? {
-        point1Key: aspect.point1Key,
-        point2Key: aspect.point2Key,
-        aspectKey: aspect.aspectKey,
-      } : null,
-    }));
-  }
+  const page = (
+    <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
+      <div id="controls" ref={controlsRef} data-leave={home ? 'right' : undefined}>
+        <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart' : 'Customize your Aspect Pendant'}</h2>
+        {step === 'birth' && (
+          <p className="controls-intro hide-mobile">
+            Your date, time and place of birth set the lines. The pendant redraws as you change them.
+          </p>
+        )}
+        {step !== 'birth' && (
+          <button className="controls-back-btn hide-mobile" onClick={() => goStep(step === 'reading' ? 'birth' : 'reading')}>
+            &larr; {step === 'reading' ? 'Birth Details' : 'Your Reading'}
+          </button>
+        )}
+        {step !== 'reading' && (
+          <h3 className="controls-subheading">
+            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Join the Waitlist'}
+          </h3>
+        )}
 
-  // The engine ignores a highlight while the lines are still drawing in, so
-  // send it again a moment later.
-  const onReadingFocus = useCallback((a: AspectLike | null) => {
-    dispatchAspectHover(a);
-    if (focusTimer.current) clearTimeout(focusTimer.current);
-    if (a) focusTimer.current = setTimeout(() => dispatchAspectHover(a), 900);
-  }, []);
+        <div style={{ display: step === 'birth' ? undefined : 'none' }}>
+          <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Date of Birth</label>
+              <div className="date-row hide-mobile">
+                <select id="birth-month"></select>
+                <select id="birth-day"></select>
+                <select id="birth-year"></select>
+              </div>
+              <div className="mobile-only">
+                <WheelDatePicker />
+              </div>
+            </div>
+            <div className="btn-row mobile-only">
+              <button className="controls-step-btn" onClick={() => setBirthStep('time')}>
+                Next &rarr;
+              </button>
+            </div>
+          </div>
+          <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Time</label>
+              <div className="time-row hide-mobile">
+                <select id="birth-hour"></select>
+                <select id="birth-minute"></select>
+              </div>
+              <div className="mobile-only">
+                <WheelTimePicker />
+              </div>
+            </div>
+            <div className="btn-row mobile-only">
+              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('date')}>
+                &larr; Back
+              </button>
+              <button className="controls-step-btn" onClick={() => setBirthStep('location')}>
+                Next &rarr;
+              </button>
+            </div>
+          </div>
+          <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
+            <div className="form-group">
+              <label>Location</label>
+              <div className="location-input-wrap">
+                <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
+                <div id="location-dropdown" className="dropdown"></div>
+              </div>
+              <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
+            </div>
+            <div className="btn-row mobile-only">
+              <button className="controls-back-btn-mobile" onClick={() => setBirthStep('time')}>
+                &larr; Back
+              </button>
+              <button className="controls-step-btn" onClick={() => goStep('reading')}>
+                Explore my chart
+              </button>
+            </div>
+          </div>
+          <div id="error"></div>
+          <button className="controls-step-btn hide-mobile" onClick={() => goStep('reading')}>
+            Explore my chart
+          </button>
+        </div>
 
-  const enabled = aspects.filter((a) => a.enabled);
+        <div style={{ display: step === 'reading' ? undefined : 'none' }}>
+          {(() => {
+            // The chart is still being worked out: don't show a reading of nothing.
+            if (!aspects.length) {
+              return <p className="reading-loading">Reading your sky<span aria-hidden="true">…</span></p>;
+            }
+            const props = {
+              aspects,
+              bodies,
+              active: step === 'reading',
+              onFocus: handleFocus,
+              onBack: () => goStep('birth'),
+              onFinish: () => goStep('waitlist'),
+            };
+            return <ReadingScroll {...props} />;
+          })()}
+        </div>
 
-  // "Camera": lean the view toward the line being read; pull in close on
-  // the metal while shaping.
-  let stageTransform = 'none';
-  if (step === 'reading' && focus) {
-    const k = 0.22;
-    stageTransform = `translate(${((0.5 - focus.x) * k * 100).toFixed(2)}%, ${((0.5 - focus.y) * k * 100).toFixed(2)}%) scale(1.1)`;
-  } else if (step === 'shape' || step === 'reserve') {
-    stageTransform = 'scale(1.08)';
-  }
+        <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
+          {SHOP_ENABLED ? (
+            <AddToBagPanel canvasRef={canvasRef} active={step === 'waitlist'} />
+          ) : submitted ? (
+            <div className="waitlist-thanks">
+              <p>Thank you for signing up! We&apos;ll be in touch.</p>
+            </div>
+          ) : (
+            <WaitlistForm onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} />
+          )}
+        </div>
+      </div>
+      <div id="main" ref={mainRef}>
+        <div className="chart-wrapper" ref={wrapperRef} data-glide>
+          <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
+          <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
+        </div>
+        {home?.note && <div className="home-only" data-leave="up">{home.note}</div>}
+        {!controlledParams && (
+          <SettingsPanel params={ownParams} onChange={(next, d) => {
+            setOwnParams((p) => ({ ...p, ...next }));
+            setOwnDraft(d);
+          }} />
+        )}
+      </div>
+      {sidePanel}
+    </div>
+  );
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  if (!home) return page;
 
   return (
-    <div ref={rootRef} className={`theme-root theme-${theme} cfg${home ? ' atl' : ''}`} data-step={step} data-view={view}>
-      {home && <div className="cfg-home-only" data-leave="up">{home.nav}</div>}
-      <header className="cfg-nav cfg-only" data-leave={home ? 'up' : undefined}>
-        <Link
-          href={homeHref}
-          className="cfg-home"
-          aria-label="Constelier home"
-          onClick={home ? (e) => { e.preventDefault(); goHome(); } : undefined}
-        >
-          <Wordmark />
-        </Link>
-        <div className="cfg-nav-end">
-          <span className="cfg-nav-step eyebrow">{String(stepIndex + 1).padStart(2, '0')} / 04</span>
-          <BagLink />
-        </div>
-      </header>
-
-      {home && <div className="cfg-home-only atl-hero-copy" data-leave="left">{home.hero}</div>}
-
-      <div id="main" className="cfg-stage" ref={stageRef}>
-        <div className="cfg-stage-glow" aria-hidden="true" />
-        <div className="chart-frame" style={{ transform: stageTransform }}>
-          <div className="chart-wrapper">
-            <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
-            <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
-          </div>
-        </div>
-        {home?.note && <div className="cfg-home-only" data-leave="up">{home.note}</div>}
-        <SettingsPanel showGear={showDev} params={params} onChange={changeParams} />
-        {/* Engine bindings: chart opacity is driven by the step. */}
-        <input type="hidden" id="chart-opacity" defaultValue={CHART_OPACITY[initialStep]} />
-        <span id="chart-opacity-val" hidden />
-      </div>
-
-      <aside id="controls" className="cfg-panel cfg-only" data-leave={home ? 'right' : undefined} ref={panelRef}>
-        <nav className="cfg-steps" aria-label="Steps">
-          {STEPS.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`cfg-step${s.id === step ? ' current' : ''}${i < stepIndex ? ' done' : ''}`}
-              disabled={!visited.has(s.id) || s.id === step}
-              onClick={() => goTo(s.id)}
-            >
-              <span className="cfg-step-n">{String(i + 1).padStart(2, '0')}</span>
-              <span className="cfg-step-l">{s.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* ── 01 Birth ── */}
-        <section className="cfg-section" hidden={step !== 'birth'}>
-          <div className="cfg-head">
-            <h2 className="cfg-title reveal">The sky, the moment you arrived.</h2>
-            <p className="cfg-sub reveal" style={{ ['--d' as string]: '80ms' }}>
-              Date, time and place. The closer the time, the truer the chart.
-            </p>
-          </div>
-
-          <p className="cfg-birth-progress mobile-only" aria-live="polite">
-            {birthStep === 'date' ? 'Date' : birthStep === 'time' ? 'Time' : 'Place'} <span>· {birthStep === 'date' ? 1 : birthStep === 'time' ? 2 : 3} of 3</span>
-          </p>
-          <div className="cfg-fields">
-            <div className={`birth-field birth-field-date${birthStep === 'date' ? ' active' : ''}`}>
-              <div className="form-group">
-                <label htmlFor="birth-month">Date</label>
-                <div className="date-row hide-mobile">
-                  <select id="birth-month" aria-label="Month"></select>
-                  <select id="birth-day" aria-label="Day"></select>
-                  <select id="birth-year" aria-label="Year"></select>
-                </div>
-                <div className="mobile-only">
-                  <WheelDatePicker />
-                </div>
-              </div>
-            </div>
-            <div className={`birth-field birth-field-time${birthStep === 'time' ? ' active' : ''}`}>
-              <div className="form-group">
-                <label htmlFor="birth-hour">Time</label>
-                <div className="time-row hide-mobile">
-                  <select id="birth-hour" aria-label="Hour"></select>
-                  <select id="birth-minute" aria-label="Minute"></select>
-                </div>
-                <div className="mobile-only">
-                  <WheelTimePicker />
-                </div>
-              </div>
-            </div>
-            <div className={`birth-field birth-field-location${birthStep === 'location' ? ' active' : ''}`}>
-              <div className="form-group">
-                <label htmlFor="location">Place</label>
-                <div className="location-input-wrap">
-                  <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
-                  <div id="location-dropdown" className="dropdown"></div>
-                </div>
-                <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
-              </div>
-            </div>
-            <div id="error"></div>
-          </div>
-
-          <div className="cfg-actions">
-            {/* Phones: one field at a time. */}
-            <div className="btn-row mobile-only">
-              {birthStep !== 'date' && (
-                <button className="btn btn-ghost cfg-back" onClick={() => setBirthStep(birthStep === 'location' ? 'time' : 'date')} aria-label="Back">
-                  <span aria-hidden="true">&larr;</span>
-                </button>
-              )}
-              {birthStep !== 'location' ? (
-                <button className="btn cfg-cta" onClick={() => setBirthStep(birthStep === 'date' ? 'time' : 'location')}>
-                  Next <span className="btn-arrow" aria-hidden="true">&rarr;</span>
-                </button>
-              ) : (
-                <button className="btn cfg-cta" onClick={() => goTo('reading')}>
-                  Read my chart <span className="btn-arrow" aria-hidden="true">&rarr;</span>
-                </button>
-              )}
-            </div>
-            <button className="btn cfg-cta hide-mobile" onClick={() => goTo('reading')}>
-              Read my chart <span className="btn-arrow" aria-hidden="true">&rarr;</span>
-            </button>
-          </div>
-        </section>
-
-        {/* ── 02 Reading ── */}
-        <section className="cfg-section" hidden={step !== 'reading'}>
-          {/* Keep aspect-filters in DOM for chart-engine bindings */}
-          <div hidden><div className="aspect-filters" id="aspect-filters"></div></div>
-          {enabled.length > 0 ? (
-            <Reading
-              aspects={enabled}
-              active={step === 'reading'}
-              onFocus={onReadingFocus}
-              onDone={() => goTo('shape')}
-            />
-          ) : (
-            <p className="cfg-sub">Drawing your chart…</p>
-          )}
-        </section>
-
-        {/* ── 03 Shape ── */}
-        <section className="cfg-section" hidden={step !== 'shape'}>
-          <div className="cfg-head">
-            <h2 className="cfg-title reveal">How should the gold move?</h2>
-          </div>
-          <OutlineControls variant="panel" params={params} onChange={changeParams} />
-          <div className="cfg-actions">
-            <div className="btn-row">
-              <button className="btn btn-ghost cfg-back" onClick={() => goTo('reading')} aria-label="Back to the reading">
-                <span aria-hidden="true">&larr;</span>
-              </button>
-              <button className="btn cfg-cta" onClick={() => goTo('reserve')}>
-                {SHOP_ENABLED ? 'Make it yours' : 'Reserve this pendant'} <span className="btn-arrow" aria-hidden="true">&rarr;</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 04 Reserve ── */}
-        <section className="cfg-section" hidden={step !== 'reserve'}>
-          {SHOP_ENABLED ? (
-            <div className="cfg-shop">
-              <div className="cfg-head">
-                <h2 className="cfg-title reveal">Your pendant.</h2>
-              </div>
-              <AddToBagPanel canvasRef={canvasRef} active={step === 'reserve'} />
-              <button className="btn btn-ghost cfg-back cfg-shop-back" onClick={() => goTo('shape')} aria-label="Back to the shape">
-                <span aria-hidden="true">&larr;</span>
-              </button>
-            </div>
-          ) : submitted ? (
-            <div className="cfg-head waitlist-thanks">
-              <h2 className="cfg-title reveal">It is written.</h2>
-              <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
-                We will email your design when casting opens.
-              </p>
-            </div>
-          ) : (
-            <WaitlistForm active={step === 'reserve'} onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} onBack={() => goTo('shape')} />
-          )}
-        </section>
-      </aside>
-
-      {home && <div className="cfg-home-only atl-below">{home.below}</div>}
+    <div ref={rootRef} className={`home-shell ${home.className}`} data-view={view}>
+      <div className="home-only" data-leave="up">{home.nav}</div>
+      <div className="design-only"><SiteNav onHome={goHome} /></div>
+      <div className="home-only atl-hero-copy" data-leave="left">{home.hero}</div>
+      {page}
+      <div className="home-only atl-below">{home.below}</div>
     </div>
   );
 }
@@ -409,57 +340,39 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 // Replace with your Formspree form ID from https://formspree.io
 const FORMSPREE_ID = 'xjgeozgv';
 
-function getBirthMeta() {
-  const val = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value || '';
-  const year = val('birth-year');
-  const month = val('birth-month');
-  const day = val('birth-day');
-  const hour = val('birth-hour');
-  const minute = val('birth-minute');
-  const location = val('location');
-  const monthName = MONTHS[parseInt(month) - 1] || '';
-  const h = parseInt(hour);
-  const mm = parseInt(minute);
-  const time = Number.isFinite(h) && Number.isFinite(mm)
-    ? `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-    : '';
-  return {
-    // Empty strings when the form isn't filled yet, so nothing shows half-done.
-    birthdate: monthName && day && year ? `${monthName} ${day}, ${year}` : '',
-    birthtime: hour && minute ? `${hour}:${minute}` : '',
-    time,
-    location,
-  };
-}
-
-function WaitlistForm({ active, onSubmitted, onBack }: { active: boolean; onSubmitted: () => void; onBack: () => void }) {
+function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
-  const [meta, setMeta] = useState<ReturnType<typeof getBirthMeta> | null>(null);
 
-  // Read the form when the step opens; the engine fills the selects after mount.
-  useEffect(() => {
-    if (!active) return;
-    setMeta(getBirthMeta());
-    const t1 = setTimeout(() => setMeta(getBirthMeta()), 400);
-    const t2 = setTimeout(() => setMeta(getBirthMeta()), 1500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [active]);
+  function getBirthMeta() {
+    const year = (document.getElementById('birth-year') as HTMLInputElement)?.value || '';
+    const month = (document.getElementById('birth-month') as HTMLInputElement)?.value || '';
+    const day = (document.getElementById('birth-day') as HTMLInputElement)?.value || '';
+    const hour = (document.getElementById('birth-hour') as HTMLSelectElement)?.value || '';
+    const minute = (document.getElementById('birth-minute') as HTMLSelectElement)?.value || '';
+    const location = (document.getElementById('location') as HTMLInputElement)?.value || '';
+    const monthName = MONTHS[parseInt(month) - 1] || month;
+    return {
+      birthdate: `${monthName} ${day}, ${year}`,
+      birthtime: `${hour}:${minute}`,
+      location,
+    };
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || sending) return;
     setSending(true);
-    const m = getBirthMeta();
+    const meta = getBirthMeta();
     try {
       await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          birthdate: m.birthdate,
-          birthtime: m.birthtime,
-          location: m.location,
+          birthdate: meta.birthdate,
+          birthtime: meta.birthtime,
+          location: meta.location,
         }),
       });
       onSubmitted();
@@ -470,23 +383,14 @@ function WaitlistForm({ active, onSubmitted, onBack }: { active: boolean; onSubm
 
   return (
     <div className="waitlist-form">
-      <div className="cfg-head">
-        <h2 className="cfg-title reveal">Reserve your pendant.</h2>
-        <p className="cfg-sub reveal" style={{ ['--d' as string]: '120ms' }}>
-          Constelier is still in the studio. Leave your email and we will send your design when casting opens.
-        </p>
-      </div>
-      {meta && (meta.birthdate || meta.location) && (
-        <dl className="cfg-summary reveal" style={{ ['--d' as string]: '180ms' }}>
-          {meta.birthdate && <div><dt>Born</dt><dd>{meta.birthdate}{meta.time && <span className="cfg-summary-time">{meta.time}</span>}</dd></div>}
-          {meta.location && <div><dt>Place</dt><dd>{meta.location.split(',')[0]}</dd></div>}
-        </dl>
-      )}
+      <p className="waitlist-intro">
+        Constelier is a work in progress. Sign up to be notified when we launch
+        and to receive your personalized pendant design.
+      </p>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="waitlist-email">Email</label>
+          <label>Email</label>
           <input
-            id="waitlist-email"
             type="email"
             required
             placeholder="you@example.com"
@@ -494,14 +398,9 @@ function WaitlistForm({ active, onSubmitted, onBack }: { active: boolean; onSubm
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div className="btn-row">
-          <button type="button" className="btn btn-ghost cfg-back" onClick={onBack} aria-label="Back to the shape">
-            <span aria-hidden="true">&larr;</span>
-          </button>
-          <button type="submit" className="btn cfg-cta" disabled={sending}>
-            {sending ? 'Sending…' : 'Join the waitlist'}
-          </button>
-        </div>
+        <button type="submit" className="controls-step-btn" disabled={sending}>
+          {sending ? 'Submitting...' : 'Join Waitlist'}
+        </button>
       </form>
       <p className="waitlist-disclosure">
         Your birth date, time, and location will be shared with Constelier

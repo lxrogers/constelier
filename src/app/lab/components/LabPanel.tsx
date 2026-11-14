@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PENDANT_SIZES } from '@/config/pendant-sizes';
 import ParamControl from '@/components/params/ParamControl';
 import {
   PARAMS, PARAM_GROUPS, paramEquals, mmPerUnit,
@@ -60,8 +61,21 @@ export default function LabPanel({ params, saved, canWrite, onChange, onSave }: 
           <section key={group} className="lab-group">
             <h3>{group}</h3>
             {group === 'Size' && (
+              <div className="lab-panel-actions">
+                {PENDANT_SIZES.map((sz) => (
+                  <button key={sz.id} type="button"
+                    className={`lab-btn${params.diameterMm === sz.diameterMm && params.thicknessMm === sz.thicknessMm ? ' primary' : ''}`}
+                    onClick={() => onChange({ diameterMm: sz.diameterMm, thicknessMm: sz.thicknessMm }, false)}>
+                    {sz.label} {sz.diameterMm} mm
+                  </button>
+                ))}
+              </div>
+            )}
+            {group === 'Size' && (
               <p className="lab-derived">
-                Thickness {(params.thickness * mm).toFixed(2)} mm · rim {(params.borderThickness * mm).toFixed(2)} mm
+                {params.thicknessMm < 1 || params.barWidthMm < 0.8
+                  ? `Thinner than casting usually allows (about 1.0 mm thick, 0.8 mm bars).`
+                  : `Inner circle ${(params.diameterMm - 2 * params.rimWidthMm).toFixed(1)} mm across. Castable sizes.`}
               </p>
             )}
             {group === 'Bail' && params.bailEnabled && (

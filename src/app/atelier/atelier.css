@@ -37,26 +37,73 @@
 .atl-nav-cta { justify-self: end; height: 40px; padding: 0 20px; font-size: 13px; }
 
 /* ── Hero: the live chart ─────────────────────────────────────
-   The page root is the configurator's root (.cfg), and data-view picks the
-   layout: `home` is this page, `cfg` the configurator. Only one chart exists,
-   so switching moves it (hooks/useHomeView) instead of loading a page. */
+   The page is the chart page (NatalChart) inside .home-shell, and data-view
+   picks the layout: `home` is this page, `cfg` the design flow exactly as
+   /chart shows it. Only one chart exists, so switching moves it
+   (hooks/useHomeView) instead of loading a page. */
 
-.cfg[data-view='home'] .cfg-only,
-.cfg[data-view='cfg'] .cfg-home-only { display: none; }
+.home-shell[data-view='cfg'] .home-only,
+.home-shell[data-view='home'] .design-only,
+.home-shell[data-view='home'] #controls,
+.home-shell[data-view='home'] .settings-wrapper { display: none; }
 
-.cfg[data-view='home'] {
+/* /chart never scrolls; this view does. */
+body:has(.home-shell[data-view='home'] .chart-page) { overflow: visible; }
+
+.home-shell[data-view='home'] {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   grid-template-rows: auto minmax(calc(100svh - 77px), auto) auto;
   grid-template-areas: 'nav nav' 'copy art' 'below below';
   column-gap: 40px;
   align-items: center;
-  height: auto;
-  overflow: visible;
-  overflow-x: clip;
   padding: 0 var(--pad);
 }
-.cfg[data-view='home'] > .cfg-home-only:first-child { grid-area: nav; margin: 0 calc(-1 * var(--pad)); position: sticky; top: 0; z-index: 50; }
+.home-shell[data-view='home'] > .home-only:first-child { grid-area: nav; margin: 0 calc(-1 * var(--pad)); position: sticky; top: 0; z-index: 50; }
 .atl-below { grid-area: below; margin: 0 calc(-1 * var(--pad)); align-self: stretch; }
+
+/* The chart page's own box steps aside; its chart is the hero art. */
+.home-shell[data-view='home'] .chart-page { display: contents; }
+.home-shell[data-view='home'] .chart-page #main {
+  grid-area: art;
+  flex: none;
+  order: 0;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  justify-self: center;
+  margin: 40px 0 100px;
+  padding: 0;
+  overflow: visible;
+}
+.home-shell[data-view='home'] .chart-page .chart-wrapper { --chart-size: 100cqw; }
+
+/* In the design layout nothing of this page's theme reaches the chart
+   page: same ink and chart colours as /chart on its own. */
+.home-shell .chart-page,
+.home-shell .site-nav {
+  color: #2c2c2c;
+  --chart-hover: initial;
+  --chart-hover-fg: initial;
+  --chart-hover-width: initial;
+  --chart-aspect-hi: initial;
+  --chart-glyph-hi: initial;
+  --chart-dim: initial;
+}
+
+/* The design's own parts arrive as the chart glides over. */
+@keyframes atl-panel-in {
+  from { opacity: 0; transform: translateX(48px); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes atl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.home-shell[data-view='cfg'] #controls { animation: atl-panel-in 0.9s var(--ease-out) 0.25s both; }
+.home-shell[data-view='cfg'] .design-only { animation: atl-fade-in 0.6s ease 0.3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .home-shell[data-view='cfg'] #controls,
+  .home-shell[data-view='cfg'] .design-only { animation: none; }
+}
 
 .atl-hero-copy { grid-area: copy; display: flex; flex-direction: column; gap: 28px; padding: 40px 0 100px; }
 .atl-h1 {
@@ -70,35 +117,6 @@
 .atl-h1 em { font-style: italic; color: var(--accent); }
 .atl-lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 28em; font-weight: 300; }
 .atl-hero-cta { display: flex; gap: 12px; }
-
-.cfg[data-view='home'] .cfg-stage {
-  grid-area: art;
-  aspect-ratio: 1;
-  width: 100%;
-  max-width: 720px;
-  height: auto;
-  justify-self: center;
-  margin: 40px 0 100px;
-  padding: 0;
-  overflow: visible;
-}
-
-/* The configurator's own parts arrive as the chart glides over. */
-@keyframes atl-panel-in {
-  from { opacity: 0; transform: translateX(48px); filter: blur(8px); }
-  to { opacity: 1; transform: none; filter: none; }
-}
-@keyframes atl-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.atl.cfg[data-view='cfg'] .cfg-panel { animation: atl-panel-in 0.9s var(--ease-out) 0.25s both; }
-.atl.cfg[data-view='cfg'] .cfg-nav { animation: atl-fade-in 0.6s ease 0.3s both; }
-@media (prefers-reduced-motion: reduce) {
-  .atl.cfg[data-view='cfg'] .cfg-panel,
-  .atl.cfg[data-view='cfg'] .cfg-nav { animation: none; }
-}
-/* The chart glides in from outside the stage; do not crop it on the way. */
-.atl.cfg .cfg-stage { overflow: visible; }
-/* Same place for the wordmark in both layouts, so it does not jump. */
-.atl.cfg .cfg-nav { padding: 0 var(--pad); height: 77px; }
 
 .atl-note {
   position: absolute;
@@ -219,15 +237,13 @@
   .atl .wordmark-icon { width: 22px; height: 22px; }
   .atl-nav-cta { height: 36px; padding: 0 16px; }
 
-  .cfg[data-view='home'] {
-    display: grid;
+  .home-shell[data-view='home'] {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
     grid-template-areas: 'nav' 'art' 'copy' 'below';
   }
-  .cfg[data-view='home'] .cfg-stage { max-width: 440px; margin: 16px 0 40px; }
+  .home-shell[data-view='home'] .chart-page #main { max-width: 440px; margin: 16px 0 40px; }
   .atl-hero-copy { padding: 0 0 72px; }
-  .atl.cfg .cfg-nav { height: 65px; }
   .atl-note { font-size: 15px; right: 4%; top: 0; }
   .atl-note svg { width: 48px; }
   .atl-lede { font-size: 16px; }

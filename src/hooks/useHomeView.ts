@@ -7,7 +7,7 @@
 //
 // The layouts themselves are plain CSS keyed off `data-view` on the root.
 // This hook decides which one is showing (from the path) and animates the
-// switch: the chart with a FLIP, the parts that leave by fading out where
+// switch: the chart ([data-glide]) with a FLIP, the parts that leave by fading out where
 // they stood. Parts that arrive animate in with CSS.
 
 import { useCallback, useLayoutEffect, useRef } from 'react';
@@ -42,7 +42,7 @@ export function useHomeView(enabled: boolean, designPath = '/chart') {
     if (from === view || !root) return;
     shown.current = view;
 
-    const frame = root.querySelector<HTMLElement>('.chart-frame');
+    const frame = root.querySelector<HTMLElement>('[data-glide]');
     if (!frame || matchMedia('(prefers-reduced-motion: reduce)').matches) {
       if (view === 'cfg') window.scrollTo({ top: 0, behavior: 'instant' });
       return;
