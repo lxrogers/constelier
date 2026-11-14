@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PENDANT_SIZES } from '@/config/pendant-sizes';
 import ParamControl from '@/components/params/ParamControl';
 import {
   PARAMS, PARAM_GROUPS, paramEquals, mmPerUnit,
@@ -59,6 +60,17 @@ export default function LabPanel({ params, saved, canWrite, onChange, onSave }: 
         return (
           <section key={group} className="lab-group">
             <h3>{group}</h3>
+            {group === 'Size' && (
+              <div className="lab-panel-actions">
+                {PENDANT_SIZES.map((sz) => (
+                  <button key={sz.id} type="button"
+                    className={`lab-btn${params.diameterMm === sz.diameterMm && params.thicknessMm === sz.thicknessMm ? ' primary' : ''}`}
+                    onClick={() => onChange({ diameterMm: sz.diameterMm, thicknessMm: sz.thicknessMm }, false)}>
+                    {sz.label} {sz.diameterMm} mm
+                  </button>
+                ))}
+              </div>
+            )}
             {group === 'Size' && (
               <p className="lab-derived">
                 {params.thicknessMm < 1 || params.barWidthMm < 0.8

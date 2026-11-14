@@ -78,7 +78,7 @@ export const PARAMS: ParamDef[] = [
   { key: 'rimRoundness', kind: 'number', label: 'Rim roundness', group: 'Rim', min: 0, max: 3, step: 0.01,
     hint: '1 = half-round profile. Above 1 the curve stretches inward into a half-ellipse (2 = reaches in one thickness). Capped by rim width.' },
 
-  { key: 'thicknessMm', kind: 'number', label: 'Thickness', group: 'Edges', min: 0.4, max: 3, step: 0.05, unit: 'mm',
+  { key: 'thicknessMm', kind: 'number', label: 'Thickness', group: 'Edges', min: 0.4, max: 3, step: 0.01, unit: 'mm',
     hint: 'Casting needs about 1.0 mm; 1.2+ is sturdier.' },
   { key: 'edgeRoundMm', kind: 'number', label: 'Void edge rounding', group: 'Edges', min: 0, max: 1.5, step: 0.01, unit: 'mm',
     hint: 'Capped at half the thickness and by narrow bars' },
