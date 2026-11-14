@@ -10,16 +10,19 @@ import LabPanel from './components/LabPanel';
 import PreviewGrid from './components/PreviewGrid';
 import PrintCart from './components/PrintCart';
 import { usePrintCart } from '@/hooks/usePrintCart';
+import { LAB_SAMPLES, randomSamples, type LabSample } from '@/config/lab-samples';
 import { normalizeParams, withDerived, PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
 import './lab.css';
 
 const DRAFT_KEY = 'constelier-lab-params';
+const SAMPLES_KEY = 'constelier-lab-samples';
 
 export default function LabPage() {
   const [saved, setSaved] = useState<PendantParams>(PENDANT_DEFAULTS);
   const [canWrite, setCanWrite] = useState(true);
   const [params, setParams] = useState<PendantParams>(PENDANT_DEFAULTS);
   const [draft, setDraft] = useState(false);
+  const [samples, setSamples] = useState<LabSample[]>(LAB_SAMPLES);
   const cart = usePrintCart();
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -30,10 +33,24 @@ export default function LabPage() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) setParams(normalizeParams(JSON.parse(raw), PENDANT_DEFAULTS));
     } catch {}
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAMPLES_KEY) || 'null');
+      if (Array.isArray(saved) && saved.length === LAB_SAMPLES.length) setSamples(saved);
+    } catch {}
     fetch('/api/lab/defaults').then((r) => r.json()).then((d) => {
       if (d?.defaults) setSaved(normalizeParams(d.defaults));
       setCanWrite(!!d?.canWrite);
     }).catch(() => {});
+  }, []);
+
+  // Random charts survive a reload until "Standard samples" puts the
+  // tuned four back.
+  const changeSamples = useCallback((next: LabSample[] | null) => {
+    setSamples(next ?? LAB_SAMPLES);
+    try {
+      if (next) localStorage.setItem(SAMPLES_KEY, JSON.stringify(next));
+      else localStorage.removeItem(SAMPLES_KEY);
+    } catch {}
   }, []);
 
   const update = useCallback((next: Partial<PendantParams>, isDraft: boolean) => {
@@ -69,11 +86,14 @@ export default function LabPage() {
         orbit
         sidePanel={
           <LabPanel params={params} saved={saved} canWrite={canWrite}
-            onChange={update} onSave={saveDefaults} />
+            onChange={update} onSave={saveDefaults}
+            randomSamples={samples !== LAB_SAMPLES}
+            onNewSamples={() => changeSamples(randomSamples(LAB_SAMPLES.length))}
+            onStandardSamples={() => changeSamples(null)} />
         }
       />
       <div className="lab-bottom">
-        <PreviewGrid params={params} draft={draft} onAddToCart={cart.add} />
+        <PreviewGrid samples={samples} params={params} draft={draft} onAddToCart={cart.add} />
         <PrintCart cart={cart} params={params} />
       </div>
     </div>
