@@ -1,0 +1,119 @@
+.outline-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Floating variant (kept for other pages); the configurator uses the panel. */
+.outline-float {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 150;
+  align-items: center;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--surface-glass, rgba(255, 255, 255, 0.82));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.outline-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #e2dccf);
+}
+
+.outline-seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2, #7a7568);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.outline-seg-btn:hover { color: var(--ink, #3a3630); }
+.outline-seg-btn.active {
+  background: var(--btn, #1f1d1a);
+  color: var(--btn-ink, #fff);
+}
+
+.outline-note {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  font-weight: 300;
+  min-height: 3.1em;
+  animation: rise-in 0.5s var(--ease-out) both;
+}
+
+.outline-liquidity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 2px 0;
+}
+.outline-float .outline-liquidity { width: 280px; }
+.outline-liquidity-end {
+  font-size: 10px;
+  color: var(--ink-3, #8b8375);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.outline-liquidity input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 36px; /* big touch target; the track is drawn thinner */
+  background: transparent;
+  margin: 0;
+  touch-action: none; /* dragging the thumb never scrolls the page */
+  cursor: pointer;
+}
+.outline-liquidity input[type='range']::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(to right, var(--gold) 0 var(--fill), var(--line-strong, #e2dccf) var(--fill) 100%);
+}
+.outline-liquidity input[type='range']::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong, #e2dccf);
+}
+.outline-liquidity input[type='range']::-moz-range-progress {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--gold);
+}
+.outline-liquidity input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3cf, var(--gold) 55%, var(--gold-deep));
+  border: 0;
+  box-shadow: 0 0 0 4px rgba(212, 178, 106, 0.16), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.outline-liquidity input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3cf, var(--gold) 55%, var(--gold-deep));
+  border: 0;
+  box-shadow: 0 0 0 4px rgba(212, 178, 106, 0.16), 0 2px 6px rgba(0, 0, 0, 0.35);
+}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { bag, formatUSD } from '@/hooks/useBag';
 import { describeDesign, type PendantDesign } from '@/lib/commerce/design';
 import './AddToBagPanel.css';
+import { trackFunnel } from '@/lib/analytics';
 
 interface Snapshot { design: PendantDesign; thumbnail: string | null }
 interface Quote { unitAmount: number; grams: number; metal: string }
@@ -58,6 +59,7 @@ export default function AddToBagPanel({ canvasRef, active }: {
       if (!res.ok) throw new Error(data.error || 'Could not price this pendant.');
       setQuote(data);
       setStatus('idle');
+      trackFunnel('quote_shown', { price: data.unitAmount });
     } catch (err) {
       if (id !== seq.current) return;
       setStatus('error');
@@ -88,6 +90,7 @@ export default function AddToBagPanel({ canvasRef, active }: {
     try {
       bag.add({ design: snap.design, title, subtitle, thumbnail: snap.thumbnail, unitAmount: quote.unitAmount });
       setStatus('added');
+      trackFunnel('added_to_bag', { price: quote.unitAmount });
     } catch (err) {
       setStatus('error');
       setError((err as Error).message);

@@ -1,0 +1,1776 @@
+{
+  "url": "http://localhost:3010/prototypes/rings",
+  "fixture": "Test-only adapter of wave geometry; not a new ring generator.",
+  "errors": [],
+  "screenshots": [
+    "/workspace/ring-evidence/family-fixture/fixture-family-gold.png",
+    "/workspace/ring-evidence/family-fixture/fixture-selector-mobile.png"
+  ],
+  "switchResetPresets": true,
+  "serialization": {
+    "family": "fixture",
+    "reload": true,
+    "json": true
+  },
+  "rapidSwitchBack": true,
+  "obsoleteErrorIgnored": true,
+  "currentErrorRecovery": true,
+  "exportSnapshot": {
+    "family": "fixture",
+    "params": {
+      "innerDiameter": 17.8,
+      "width": 3.2,
+      "thickness": 1.35,
+      "section": 0.86,
+      "waves": 4,
+      "amplitude": 1.25,
+      "radial": 0.15
+    },
+    "selectedAfterExport": "wave",
+    "byteIdentical": true
+  },
+  "switchStress": {
+    "switches": 40,
+    "gpuBefore": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 26,
+      "meshCommitCount": 13,
+      "displayedRequestId": 18,
+      "displayedFamily": "wave",
+      "displayedSelection": 6,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "gpuAfter": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 39,
+      "meshCommitCount": 19,
+      "displayedRequestId": 59,
+      "displayedFamily": "wave",
+      "displayedSelection": 46,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "jobs": [
+      {
+        "id": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 0,
+        "at": 68
+      },
+      {
+        "id": 2,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 1,
+        "at": 435
+      },
+      {
+        "id": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 1,
+        "at": 4101.799999999814
+      },
+      {
+        "id": 4,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.7,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 1,
+        "at": 6690.199999999255
+      },
+      {
+        "id": 6,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 3,
+        "at": 6878.899999999441
+      },
+      {
+        "id": 7,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 3,
+        "at": 7083.299999999814
+      },
+      {
+        "id": 8,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.8,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 3,
+        "at": 7596.199999999255
+      },
+      {
+        "id": 9,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 4,
+        "at": 7697.199999999255
+      },
+      {
+        "id": 10,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "settled",
+        "family": "wave",
+        "selection": 4,
+        "at": 7913
+      },
+      {
+        "id": 11,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.4,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 4,
+        "at": 8344.399999999441
+      },
+      {
+        "id": 12,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.5,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 4,
+        "at": 8414.299999999814
+      },
+      {
+        "id": 13,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.5,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "settled",
+        "family": "wave",
+        "selection": 4,
+        "at": 8634.5
+      },
+      {
+        "id": 14,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 5,
+        "at": 9059
+      },
+      {
+        "id": 15,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 5,
+        "at": 9279.099999999627
+      },
+      {
+        "id": 16,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.2,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 5,
+        "at": 9719.299999999814
+      },
+      {
+        "id": 1,
+        "quality": "export",
+        "family": "fixture",
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.2,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "at": 9883.899999999441
+      },
+      {
+        "id": 17,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 6,
+        "at": 9926.099999999627
+      },
+      {
+        "id": 18,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "settled",
+        "family": "wave",
+        "selection": 6,
+        "at": 10146.199999999255
+      },
+      {
+        "id": 19,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 7,
+        "at": 11179.599999999627
+      },
+      {
+        "id": 21,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 9,
+        "at": 11229.899999999441
+      },
+      {
+        "id": 22,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 10,
+        "at": 11256.5
+      },
+      {
+        "id": 23,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 11,
+        "at": 11286
+      },
+      {
+        "id": 24,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 12,
+        "at": 11311.199999999255
+      },
+      {
+        "id": 25,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 13,
+        "at": 11336.699999999255
+      },
+      {
+        "id": 26,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 14,
+        "at": 11364.299999999814
+      },
+      {
+        "id": 27,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 15,
+        "at": 11389.299999999814
+      },
+      {
+        "id": 28,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 16,
+        "at": 11414.799999999814
+      },
+      {
+        "id": 29,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 17,
+        "at": 11439.799999999814
+      },
+      {
+        "id": 30,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 18,
+        "at": 11487.5
+      },
+      {
+        "id": 31,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 19,
+        "at": 11512.399999999441
+      },
+      {
+        "id": 32,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 20,
+        "at": 11538.199999999255
+      },
+      {
+        "id": 33,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 21,
+        "at": 11565.799999999814
+      },
+      {
+        "id": 34,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 22,
+        "at": 11591.599999999627
+      },
+      {
+        "id": 35,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 23,
+        "at": 11616.599999999627
+      },
+      {
+        "id": 36,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 24,
+        "at": 11642.199999999255
+      },
+      {
+        "id": 37,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 25,
+        "at": 11667.099999999627
+      },
+      {
+        "id": 38,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 26,
+        "at": 11695.599999999627
+      },
+      {
+        "id": 39,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 27,
+        "at": 11717.899999999441
+      },
+      {
+        "id": 40,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 28,
+        "at": 11743.699999999255
+      },
+      {
+        "id": 41,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 29,
+        "at": 11787.299999999814
+      },
+      {
+        "id": 42,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 30,
+        "at": 11799.799999999814
+      },
+      {
+        "id": 43,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 31,
+        "at": 11820.799999999814
+      },
+      {
+        "id": 44,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 32,
+        "at": 11849.199999999255
+      },
+      {
+        "id": 45,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 33,
+        "at": 11874.199999999255
+      },
+      {
+        "id": 46,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 34,
+        "at": 11899.299999999814
+      },
+      {
+        "id": 47,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 35,
+        "at": 11930.5
+      },
+      {
+        "id": 48,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 36,
+        "at": 11950.699999999255
+      },
+      {
+        "id": 49,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 37,
+        "at": 11983.699999999255
+      },
+      {
+        "id": 50,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 38,
+        "at": 12009.199999999255
+      },
+      {
+        "id": 51,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 39,
+        "at": 12034.199999999255
+      },
+      {
+        "id": 52,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 40,
+        "at": 12060.199999999255
+      },
+      {
+        "id": 53,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 41,
+        "at": 12085.699999999255
+      },
+      {
+        "id": 54,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 42,
+        "at": 12111.299999999814
+      },
+      {
+        "id": 55,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 43,
+        "at": 12136.699999999255
+      },
+      {
+        "id": 56,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 44,
+        "at": 12162.099999999627
+      },
+      {
+        "id": 57,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 45,
+        "at": 12187.899999999441
+      },
+      {
+        "id": 58,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "preview",
+        "family": "wave",
+        "selection": 46,
+        "at": 12213
+      },
+      {
+        "id": 59,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "quality": "settled",
+        "family": "wave",
+        "selection": 46,
+        "at": 12433.199999999255
+      }
+    ],
+    "replies": [
+      {
+        "id": 1,
+        "family": "wave",
+        "selection": 0,
+        "quality": "preview",
+        "at": 435
+      },
+      {
+        "id": 2,
+        "family": "fixture",
+        "selection": 1,
+        "quality": "preview",
+        "at": 4100.0999999996275
+      },
+      {
+        "id": 3,
+        "family": "fixture",
+        "selection": 1,
+        "quality": "settled",
+        "at": 6461.199999999255
+      },
+      {
+        "id": 4,
+        "family": "fixture",
+        "selection": 1,
+        "quality": "preview",
+        "at": 6878.899999999441
+      },
+      {
+        "id": 6,
+        "family": "fixture",
+        "selection": 3,
+        "quality": "preview",
+        "at": 6907.699999999255
+      },
+      {
+        "id": 7,
+        "family": "fixture",
+        "selection": 3,
+        "quality": "settled",
+        "at": 7443.799999999814
+      },
+      {
+        "id": 8,
+        "family": "fixture",
+        "selection": 3,
+        "quality": "preview",
+        "at": 7697.199999999255,
+        "error": "Injected shape rejection"
+      },
+      {
+        "id": 9,
+        "family": "wave",
+        "selection": 4,
+        "quality": "preview",
+        "at": 7708.899999999441
+      },
+      {
+        "id": 10,
+        "family": "wave",
+        "selection": 4,
+        "quality": "settled",
+        "at": 8171.799999999814
+      },
+      {
+        "id": 11,
+        "family": "wave",
+        "selection": 4,
+        "quality": "preview",
+        "at": 8404.699999999255,
+        "error": "Injected shape rejection"
+      },
+      {
+        "id": 12,
+        "family": "wave",
+        "selection": 4,
+        "quality": "preview",
+        "at": 8442.599999999627
+      },
+      {
+        "id": 13,
+        "family": "wave",
+        "selection": 4,
+        "quality": "settled",
+        "at": 8871.899999999441
+      },
+      {
+        "id": 14,
+        "family": "fixture",
+        "selection": 5,
+        "quality": "preview",
+        "at": 9100.5
+      },
+      {
+        "id": 15,
+        "family": "fixture",
+        "selection": 5,
+        "quality": "settled",
+        "at": 9574.299999999814
+      },
+      {
+        "id": 16,
+        "family": "fixture",
+        "selection": 5,
+        "quality": "preview",
+        "at": 9753.899999999441
+      },
+      {
+        "id": 17,
+        "family": "wave",
+        "selection": 6,
+        "quality": "preview",
+        "at": 9950.899999999441
+      },
+      {
+        "id": 18,
+        "family": "wave",
+        "selection": 6,
+        "quality": "settled",
+        "at": 10495.899999999441
+      },
+      {
+        "id": 1,
+        "family": "fixture",
+        "selection": 0,
+        "quality": "export",
+        "at": 11080.599999999627
+      },
+      {
+        "id": 19,
+        "family": "fixture",
+        "selection": 7,
+        "quality": "preview",
+        "at": 11229.899999999441
+      },
+      {
+        "id": 21,
+        "family": "fixture",
+        "selection": 9,
+        "quality": "preview",
+        "at": 11244.5
+      },
+      {
+        "id": 22,
+        "family": "wave",
+        "selection": 10,
+        "quality": "preview",
+        "at": 11269
+      },
+      {
+        "id": 23,
+        "family": "fixture",
+        "selection": 11,
+        "quality": "preview",
+        "at": 11297.399999999441
+      },
+      {
+        "id": 24,
+        "family": "wave",
+        "selection": 12,
+        "quality": "preview",
+        "at": 11324.899999999441
+      },
+      {
+        "id": 25,
+        "family": "fixture",
+        "selection": 13,
+        "quality": "preview",
+        "at": 11356.399999999441
+      },
+      {
+        "id": 26,
+        "family": "wave",
+        "selection": 14,
+        "quality": "preview",
+        "at": 11385.199999999255
+      },
+      {
+        "id": 27,
+        "family": "fixture",
+        "selection": 15,
+        "quality": "preview",
+        "at": 11403.299999999814
+      },
+      {
+        "id": 28,
+        "family": "wave",
+        "selection": 16,
+        "quality": "preview",
+        "at": 11425.5
+      },
+      {
+        "id": 29,
+        "family": "fixture",
+        "selection": 17,
+        "quality": "preview",
+        "at": 11448.199999999255
+      },
+      {
+        "id": 30,
+        "family": "wave",
+        "selection": 18,
+        "quality": "preview",
+        "at": 11499
+      },
+      {
+        "id": 31,
+        "family": "fixture",
+        "selection": 19,
+        "quality": "preview",
+        "at": 11525.299999999814
+      },
+      {
+        "id": 32,
+        "family": "wave",
+        "selection": 20,
+        "quality": "preview",
+        "at": 11564.599999999627
+      },
+      {
+        "id": 33,
+        "family": "fixture",
+        "selection": 21,
+        "quality": "preview",
+        "at": 11582.899999999441
+      },
+      {
+        "id": 34,
+        "family": "wave",
+        "selection": 22,
+        "quality": "preview",
+        "at": 11603.699999999255
+      },
+      {
+        "id": 35,
+        "family": "fixture",
+        "selection": 23,
+        "quality": "preview",
+        "at": 11637.099999999627
+      },
+      {
+        "id": 36,
+        "family": "wave",
+        "selection": 24,
+        "quality": "preview",
+        "at": 11655.199999999255
+      },
+      {
+        "id": 37,
+        "family": "fixture",
+        "selection": 25,
+        "quality": "preview",
+        "at": 11695.599999999627
+      },
+      {
+        "id": 38,
+        "family": "wave",
+        "selection": 26,
+        "quality": "preview",
+        "at": 11708.699999999255
+      },
+      {
+        "id": 39,
+        "family": "fixture",
+        "selection": 27,
+        "quality": "preview",
+        "at": 11730.299999999814
+      },
+      {
+        "id": 40,
+        "family": "wave",
+        "selection": 28,
+        "quality": "preview",
+        "at": 11787.199999999255
+      },
+      {
+        "id": 41,
+        "family": "fixture",
+        "selection": 29,
+        "quality": "preview",
+        "at": 11799.799999999814
+      },
+      {
+        "id": 42,
+        "family": "wave",
+        "selection": 30,
+        "quality": "preview",
+        "at": 11809.099999999627
+      },
+      {
+        "id": 43,
+        "family": "fixture",
+        "selection": 31,
+        "quality": "preview",
+        "at": 11834.899999999441
+      },
+      {
+        "id": 44,
+        "family": "wave",
+        "selection": 32,
+        "quality": "preview",
+        "at": 11856.899999999441
+      },
+      {
+        "id": 45,
+        "family": "fixture",
+        "selection": 33,
+        "quality": "preview",
+        "at": 11889.799999999814
+      },
+      {
+        "id": 46,
+        "family": "wave",
+        "selection": 34,
+        "quality": "preview",
+        "at": 11913.799999999814
+      },
+      {
+        "id": 47,
+        "family": "fixture",
+        "selection": 35,
+        "quality": "preview",
+        "at": 11942.699999999255
+      },
+      {
+        "id": 48,
+        "family": "wave",
+        "selection": 36,
+        "quality": "preview",
+        "at": 11965.099999999627
+      },
+      {
+        "id": 49,
+        "family": "fixture",
+        "selection": 37,
+        "quality": "preview",
+        "at": 11996.099999999627
+      },
+      {
+        "id": 50,
+        "family": "wave",
+        "selection": 38,
+        "quality": "preview",
+        "at": 12022
+      },
+      {
+        "id": 51,
+        "family": "fixture",
+        "selection": 39,
+        "quality": "preview",
+        "at": 12042.399999999441
+      },
+      {
+        "id": 52,
+        "family": "wave",
+        "selection": 40,
+        "quality": "preview",
+        "at": 12085.699999999255
+      },
+      {
+        "id": 53,
+        "family": "fixture",
+        "selection": 41,
+        "quality": "preview",
+        "at": 12097.5
+      },
+      {
+        "id": 54,
+        "family": "wave",
+        "selection": 42,
+        "quality": "preview",
+        "at": 12125.699999999255
+      },
+      {
+        "id": 55,
+        "family": "fixture",
+        "selection": 43,
+        "quality": "preview",
+        "at": 12155.899999999441
+      },
+      {
+        "id": 56,
+        "family": "wave",
+        "selection": 44,
+        "quality": "preview",
+        "at": 12187.899999999441
+      },
+      {
+        "id": 57,
+        "family": "fixture",
+        "selection": 45,
+        "quality": "preview",
+        "at": 12197.899999999441
+      },
+      {
+        "id": 58,
+        "family": "wave",
+        "selection": 46,
+        "quality": "preview",
+        "at": 12229.199999999255
+      },
+      {
+        "id": 59,
+        "family": "wave",
+        "selection": 46,
+        "quality": "settled",
+        "at": 12706
+      }
+    ],
+    "commits": [
+      {
+        "requestId": 2,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 6252.699999999255,
+        "meshCommitCount": 1,
+        "selectedFamily": "fixture",
+        "selectedScope": 1
+      },
+      {
+        "requestId": 3,
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 6472.5999999996275,
+        "meshCommitCount": 2,
+        "selectedFamily": "fixture",
+        "selectedScope": 1
+      },
+      {
+        "requestId": 6,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 6912.0999999996275,
+        "meshCommitCount": 3,
+        "selectedFamily": "fixture",
+        "selectedScope": 3
+      },
+      {
+        "requestId": 7,
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 7455,
+        "meshCommitCount": 4,
+        "selectedFamily": "fixture",
+        "selectedScope": 3
+      },
+      {
+        "requestId": 9,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 4,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 7721.799999999814,
+        "meshCommitCount": 5,
+        "selectedFamily": "wave",
+        "selectedScope": 4
+      },
+      {
+        "requestId": 10,
+        "quality": "settled",
+        "family": "wave",
+        "selection": 4,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 8188.399999999441,
+        "meshCommitCount": 6,
+        "selectedFamily": "wave",
+        "selectedScope": 4
+      },
+      {
+        "requestId": 12,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 4,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.5,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 8454.399999999441,
+        "meshCommitCount": 7,
+        "selectedFamily": "wave",
+        "selectedScope": 4
+      },
+      {
+        "requestId": 13,
+        "quality": "settled",
+        "family": "wave",
+        "selection": 4,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.5,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 8888,
+        "meshCommitCount": 8,
+        "selectedFamily": "wave",
+        "selectedScope": 4
+      },
+      {
+        "requestId": 14,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 5,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 9111.199999999255,
+        "meshCommitCount": 9,
+        "selectedFamily": "fixture",
+        "selectedScope": 5
+      },
+      {
+        "requestId": 15,
+        "quality": "settled",
+        "family": "fixture",
+        "selection": 5,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 9589.799999999814,
+        "meshCommitCount": 10,
+        "selectedFamily": "fixture",
+        "selectedScope": 5
+      },
+      {
+        "requestId": 16,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 5,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 3.2,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 9756.5,
+        "meshCommitCount": 11,
+        "selectedFamily": "fixture",
+        "selectedScope": 5
+      },
+      {
+        "requestId": 17,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 6,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 9954.299999999814,
+        "meshCommitCount": 12,
+        "selectedFamily": "wave",
+        "selectedScope": 6
+      },
+      {
+        "requestId": 18,
+        "quality": "settled",
+        "family": "wave",
+        "selection": 6,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 10505,
+        "meshCommitCount": 13,
+        "selectedFamily": "wave",
+        "selectedScope": 6
+      },
+      {
+        "requestId": 25,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 13,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 11361.699999999255,
+        "meshCommitCount": 14,
+        "selectedFamily": "fixture",
+        "selectedScope": 13
+      },
+      {
+        "requestId": 43,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 31,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 11846,
+        "meshCommitCount": 15,
+        "selectedFamily": "fixture",
+        "selectedScope": 31
+      },
+      {
+        "requestId": 46,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 34,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 11923.299999999814,
+        "meshCommitCount": 16,
+        "selectedFamily": "wave",
+        "selectedScope": 34
+      },
+      {
+        "requestId": 51,
+        "quality": "preview",
+        "family": "fixture",
+        "selection": 39,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.35,
+          "section": 0.86,
+          "waves": 4,
+          "amplitude": 1.25,
+          "radial": 0.15
+        },
+        "renderedAt": 12056.399999999441,
+        "meshCommitCount": 17,
+        "selectedFamily": "fixture",
+        "selectedScope": 39
+      },
+      {
+        "requestId": 58,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 46,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 12249.099999999627,
+        "meshCommitCount": 18,
+        "selectedFamily": "wave",
+        "selectedScope": 46
+      },
+      {
+        "requestId": 59,
+        "quality": "settled",
+        "family": "wave",
+        "selection": 46,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 12721.399999999441,
+        "meshCommitCount": 19,
+        "selectedFamily": "wave",
+        "selectedScope": 46
+      }
+    ],
+    "peak": 1
+  },
+  "unavailableLinkRejected": true,
+  "passed": true
+}

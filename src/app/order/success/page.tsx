@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { fulfillCheckout } from '@/lib/commerce/fulfillment';
 import { formatUSD } from '@/lib/commerce/format';
+import { formatOrderNumber } from '@/lib/commerce/orders';
 import ClearBag from './ClearBag';
+import LegalLinks from '@/components/LegalLinks';
+import { SHIP_WITHIN_TEXT } from '@/lib/commerce/shop-terms';
 import '../../bag/bag.css';
 
 export const metadata: Metadata = { title: 'Order confirmed · Constelier' };
@@ -16,12 +19,13 @@ export default async function OrderSuccessPage({ searchParams }: {
 
   let result;
   try {
-    result = await fulfillCheckout(session_id);
+    result = await fulfillCheckout(session_id, { source: 'success_page', onRecordError: 'log' });
   } catch (err) {
     console.error('Order lookup failed:', err);
     return <Missing />;
   }
-  const { session, fulfilled } = result;
+  const { session, fulfilled, order } = result;
+  const orderNumber = order && order.status !== 'skipped' ? formatOrderNumber(order.number) : null;
   const shipping = session.collected_information?.shipping_details;
   const addr = shipping?.address;
   const items = session.line_items?.data ?? [];
@@ -31,9 +35,10 @@ export default async function OrderSuccessPage({ searchParams }: {
       <ClearBag />
       <div className="shop-card">
         <h1 className="shop-title">{fulfilled ? 'Thank you, your order is in' : 'Your order is processing'}</h1>
+        {orderNumber && <p className="order-label">Order {orderNumber}</p>}
         <p className="order-lead">
           {fulfilled
-            ? `We’ve emailed a receipt to ${session.customer_details?.email ?? 'you'}. Your pendant will be cast to order and ships within 3 weeks.`
+            ? `We’ve emailed a receipt to ${session.customer_details?.email ?? 'you'}. Your pendant will be cast to order and ships within ${SHIP_WITHIN_TEXT}.`
             : 'Your payment is still being confirmed. We’ll email you as soon as it clears.'}
         </p>
 
@@ -76,6 +81,7 @@ export default async function OrderSuccessPage({ searchParams }: {
         )}
 
         <Link href="/chart" className="shop-btn">Back to Constelier</Link>
+        <LegalLinks />
       </div>
     </main>
   );
@@ -88,6 +94,7 @@ function Missing() {
         <h1 className="shop-title">Order not found</h1>
         <p className="order-lead">We couldn’t find that order. If you were charged, your receipt email has the details.</p>
         <Link href="/chart" className="shop-btn">Back to Constelier</Link>
+        <LegalLinks />
       </div>
     </main>
   );

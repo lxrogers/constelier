@@ -1,5 +1,8 @@
 import 'server-only';
 import type Stripe from 'stripe';
+import { SHIP_WITHIN_DAYS, SHIP_WITHIN_TEXT, EXPRESS_SHIPPING_CENTS } from './shop-terms';
+
+export { SHIP_WITHIN_DAYS };
 
 // US-only, cast-to-order shipping. Amounts in cents. Shipping is taxed where
 // the state taxes it (Stripe Tax decides from the tax code).
@@ -21,7 +24,7 @@ export const SHIPPING_OPTIONS: Stripe.Checkout.SessionCreateParams.ShippingOptio
     shipping_rate_data: {
       type: 'fixed_amount',
       display_name: 'Insured express shipping',
-      fixed_amount: { amount: 3500, currency: 'usd' },
+      fixed_amount: { amount: EXPRESS_SHIPPING_CENTS, currency: 'usd' },
       tax_behavior: 'exclusive',
       tax_code: 'txcd_92010001',
       delivery_estimate: {
@@ -37,6 +40,6 @@ export const SHIPPING_OPTIONS: Stripe.Checkout.SessionCreateParams.ShippingOptio
 export const PENDANT_TAX_CODE = 'txcd_99999999';
 
 export const PRODUCTION_NOTE =
-  'Each pendant is cast to order and ships within 3 weeks. Delivery times above start once it ships.';
+  `Each pendant is cast to order and ships within ${SHIP_WITHIN_TEXT}. Delivery times above start once it ships.`;
 
 export const automaticTaxEnabled = () => process.env.STRIPE_AUTOMATIC_TAX !== 'off';

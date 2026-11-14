@@ -223,8 +223,8 @@ function contoursValid(contours) {
 // giving way: first any stretch of the rim beyond `rOuterKeep` (its
 // elliptical part), then the voids (same x0.65 step as replicad-pipeline's
 // filletShape), and the rim itself only once the voids are flat.
-function chooseRadii(loopsFrames, rOuter, rHole, rOuterKeep = 0) {
-  const step = (r) => (r * 0.65 < 0.3 ? 0 : r * 0.65);
+function chooseRadii(loopsFrames, rOuter, rHole, rOuterKeep = 0, rMin = 0.3) {
+  const step = (r) => (r * 0.65 < rMin ? 0 : r * 0.65);
   for (let attempt = 0; attempt < 32; attempt++) {
     const contours = loopsFrames.map((fr, li) => {
       const r = li === 0 ? rOuter : rHole;
@@ -269,16 +269,19 @@ function roundedSlab(data, options, forExport) {
     maxArcStep = 6 * DEG,
     profileSteps = forExport ? 16 : 8,
     creaseDeg = 30,
+    minFilletR = 0.3,        // give up on the fillet below this (model units)
   } = options;
 
-  const loops = outlineLoops(data, tolerance, maxArcStep);
+  // `options.loops` skips the pendant outline: any counter-clockwise loops,
+  // the outer boundary first and its holes after (see buildMeshFromLoops).
+  const loops = options.loops || outlineLoops(data, tolerance, maxArcStep);
   const creaseCos = forExport ? -2 : Math.cos(creaseDeg * DEG); // export: one normal per point, so it welds
   const frames = loops.map(L => loopFrames(L.pts, L.hole, creaseCos));
   const rH0 = Math.max(0, Math.min(filletR, thickness / 2 - 0.1, minFeature * 0.45));
-  const border = data.borderThickness > 0 ? data.borderThickness : Infinity;
+  const border = data && data.borderThickness > 0 ? data.borderThickness : Infinity;
   const rO0 = Math.max(0, Math.min(outerFilletR, border * 0.9));
   const rZ0 = Math.max(0, Math.min(outerFilletZ ?? outerFilletR, thickness / 2));
-  const [rOuter, rHole] = (rH0 > 0 || rO0 > 0) ? chooseRadii(frames, rO0, rH0, Math.min(rO0, rZ0)) : [0, 0];
+  const [rOuter, rHole] = (rH0 > 0 || rO0 > 0) ? chooseRadii(frames, rO0, rH0, Math.min(rO0, rZ0), minFilletR) : [0, 0];
   // A stretched rim that had to give way keeps its full height; one that
   // shrank below circular shrinks in height too.
   const rOuterZ = Math.min(rZ0, rOuter);
@@ -390,4 +393,13 @@ export function buildRingPreviewMesh(circleRadius, borderThickness, options = {}
     circleRadius, borderThickness,
     voidChains: [{ links: [{ type: 'arc', origin: [0, 0], radius: circleRadius, startAngle: 0, endAngle: 360, reversed: false }] }],
   }, { minFeature: borderThickness, ...options });
+}
+
+// A rounded slab from plain polygons instead of pendant outline data: `outer`
+// is the boundary, `holes` go through it (each a list of [x, y], any winding).
+// Same options and output as buildPreviewMesh.
+export function buildMeshFromLoops(outer, holes = [], options = {}) {
+  const ccw = pts => (signedArea(pts) < 0 ? pts.slice().reverse() : pts);
+  const loops = [{ hole: false, pts: ccw(outer) }, ...holes.map(h => ({ hole: true, pts: ccw(h) }))];
+  return buildPreviewMesh(null, { ...options, loops });
 }

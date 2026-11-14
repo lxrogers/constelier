@@ -23,7 +23,10 @@ export async function POST(request: Request) {
   switch (event.type) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded':
-      await fulfillCheckout((event.data.object as Stripe.Checkout.Session).id);
+      // Throws if the order can't be saved, so Stripe gets a 500 and retries.
+      await fulfillCheckout((event.data.object as Stripe.Checkout.Session).id, {
+        source: 'webhook', onRecordError: 'throw',
+      });
       break;
     case 'checkout.session.async_payment_failed':
       console.warn('[order] payment failed', (event.data.object as Stripe.Checkout.Session).id);

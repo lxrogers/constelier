@@ -11,9 +11,11 @@ import './SettingsPanel.css';
 interface Props {
   params: PendantParams;
   onChange: (next: Partial<PendantParams>, draft: boolean) => void;
+  // The configurator hides the gear unless ?dev is in the address.
+  showGear?: boolean;
 }
 
-export default function SettingsPanel({ params, onChange }: Props) {
+export default function SettingsPanel({ params, onChange, showGear = true }: Props) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -33,7 +35,7 @@ export default function SettingsPanel({ params, onChange }: Props) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  if (PROD_PARAMS.length === 0) return null;
+  if (!showGear || PROD_PARAMS.length === 0) return null;
 
   return (
     <div className="settings-wrapper">

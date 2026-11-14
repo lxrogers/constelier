@@ -1,0 +1,4048 @@
+{
+  "url": "http://localhost:3011/prototypes/rings",
+  "errors": [],
+  "sliders": [
+    {
+      "key": "innerDiameter",
+      "old": "17.8",
+      "value": "22.4",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "width",
+      "old": "7.2",
+      "value": "9",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "thickness",
+      "old": "1.65",
+      "value": "2.9",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "segments",
+      "old": "14",
+      "value": "31",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "depth",
+      "old": "0.65",
+      "value": "0.78",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "faceRatio",
+      "old": "0.65",
+      "value": "0.71",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "tilt",
+      "old": "0",
+      "value": "0.54",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    },
+    {
+      "key": "softness",
+      "old": "0.9",
+      "value": "0.84",
+      "changedWhileHeld": true,
+      "pixelsChanged": true
+    }
+  ],
+  "families": [
+    {
+      "id": "wave",
+      "presets": [
+        "tide",
+        "ribbon",
+        "swell"
+      ],
+      "reset": true,
+      "linkReload": true,
+      "json": true,
+      "export": {
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.3,
+          "thickness": 2,
+          "section": 0.22,
+          "waves": 2,
+          "amplitude": 0.95,
+          "radial": 1.15
+        },
+        "path": "/workspace/ring-evidence/three-family-browser-final/wave-captured-mm.stl",
+        "triangles": 65536,
+        "byteIdentical": true,
+        "switchedTo": "liquid-accent"
+      }
+    },
+    {
+      "id": "liquid-accent",
+      "presets": [
+        "flicker",
+        "molten-crest",
+        "undertow"
+      ],
+      "reset": true,
+      "linkReload": true,
+      "json": true,
+      "export": {
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 2,
+          "thickness": 1.45,
+          "span": 120,
+          "amplitude": 1.65,
+          "asymmetry": 0.6,
+          "accentWidth": 4.6,
+          "radial": 1.85,
+          "gloopiness": 0.66
+        },
+        "path": "/workspace/ring-evidence/three-family-browser-final/liquid-accent-captured-mm.stl",
+        "triangles": 65536,
+        "byteIdentical": true,
+        "switchedTo": "faceted"
+      }
+    },
+    {
+      "id": "faceted",
+      "presets": [
+        "pinch",
+        "flute",
+        "chisel"
+      ],
+      "reset": true,
+      "linkReload": true,
+      "json": true,
+      "export": {
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.8,
+          "thickness": 1.8,
+          "segments": 14,
+          "depth": 0.55,
+          "faceRatio": 0.6,
+          "tilt": 0.5,
+          "softness": 0
+        },
+        "path": "/workspace/ring-evidence/three-family-browser-final/faceted-captured-mm.stl",
+        "triangles": 72800,
+        "byteIdentical": true,
+        "switchedTo": "wave"
+      }
+    }
+  ],
+  "screenshots": [
+    "/workspace/ring-evidence/three-family-browser-final/wave-tide-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/wave-tide-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/wave-ribbon-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/wave-ribbon-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/wave-swell-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/wave-swell-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-flicker-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-flicker-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-molten-crest-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-molten-crest-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-undertow-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/liquid-accent-undertow-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-pinch-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-pinch-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-flute-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-flute-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-chisel-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-chisel-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-extreme-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/faceted-extreme-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-top-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-front-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-side-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-perspective-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-close-clay.png",
+    "/workspace/ring-evidence/three-family-browser-final/chisel-close-gold.png",
+    "/workspace/ring-evidence/three-family-browser-final/three-family-mobile-gold.png"
+  ],
+  "extreme": {
+    "params": {
+      "innerDiameter": 14,
+      "width": 4,
+      "thickness": 1.5,
+      "segments": 36,
+      "depth": 0.12,
+      "faceRatio": 0.8,
+      "tilt": 0.8,
+      "softness": 0
+    },
+    "triangles": 22464,
+    "clamp": "Groove depth limited to 0.12 mm for this cell spacing and slant; the base wall stays intact."
+  },
+  "orbit": true,
+  "heldCompletionIsolation": true,
+  "switchStress": {
+    "switches": 60,
+    "before": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 8962,
+      "renderCount": 172,
+      "meshCommitCount": 124,
+      "displayedRequestId": 194,
+      "displayedFamily": "faceted",
+      "displayedSelection": 6,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "after": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 8962,
+      "renderCount": 192,
+      "meshCommitCount": 131,
+      "displayedRequestId": 255,
+      "displayedFamily": "faceted",
+      "displayedSelection": 66,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "gold"
+    },
+    "commits": [
+      {
+        "requestId": 3,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.8,
+          "thickness": 1.8,
+          "segments": 14,
+          "depth": 0.55,
+          "faceRatio": 0.6,
+          "tilt": 0.5,
+          "softness": 0
+        },
+        "renderedAt": 8686,
+        "meshCommitCount": 1,
+        "selected": "faceted",
+        "scope": 1
+      },
+      {
+        "requestId": 4,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 1,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.8,
+          "thickness": 1.8,
+          "segments": 14,
+          "depth": 0.55,
+          "faceRatio": 0.6,
+          "tilt": 0.5,
+          "softness": 0
+        },
+        "renderedAt": 8976.599999999627,
+        "meshCommitCount": 2,
+        "selected": "faceted",
+        "scope": 1
+      },
+      {
+        "requestId": 5,
+        "quality": "preview",
+        "family": "wave",
+        "selection": 2,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 10259.699999999255,
+        "meshCommitCount": 3,
+        "selected": "wave",
+        "scope": 2
+      },
+      {
+        "requestId": 6,
+        "quality": "settled",
+        "family": "wave",
+        "selection": 2,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 4.3,
+          "thickness": 1.65,
+          "section": 0.42,
+          "waves": 3,
+          "amplitude": 1.25,
+          "radial": 0.9
+        },
+        "renderedAt": 10849.399999999441,
+        "meshCommitCount": 4,
+        "selected": "wave",
+        "scope": 2
+      },
+      {
+        "requestId": 7,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 12233.199999999255,
+        "meshCommitCount": 5,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 8,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 12649,
+        "meshCommitCount": 6,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 9,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 16.4,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13198.5,
+        "meshCommitCount": 7,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 11,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.1,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13238,
+        "meshCommitCount": 8,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 12,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.5,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13420.5,
+        "meshCommitCount": 9,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 13,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.9,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13599.599999999627,
+        "meshCommitCount": 10,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 14,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 18.2,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13794.099999999627,
+        "meshCommitCount": 11,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 15,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 18.6,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 13823.299999999814,
+        "meshCommitCount": 12,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 16,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 19,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14015.199999999255,
+        "meshCommitCount": 13,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 17,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 19.4,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14210.299999999814,
+        "meshCommitCount": 14,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 18,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 19.7,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14398.299999999814,
+        "meshCommitCount": 15,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 19,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 20.1,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14570.199999999255,
+        "meshCommitCount": 16,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 20,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 20.5,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14754.799999999814,
+        "meshCommitCount": 17,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 21,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 20.9,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 14944,
+        "meshCommitCount": 18,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 22,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 21.2,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 15136.199999999255,
+        "meshCommitCount": 19,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 23,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 21.6,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 15536.799999999814,
+        "meshCommitCount": 20,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 26,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 22.4,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 15843.5,
+        "meshCommitCount": 21,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 27,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 22.4,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 16311.099999999627,
+        "meshCommitCount": 22,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 28,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 16886.099999999627,
+        "meshCommitCount": 23,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 29,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 17315.099999999627,
+        "meshCommitCount": 24,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 30,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.4,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 17873.89999999944,
+        "meshCommitCount": 25,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 31,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.7,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 17907.699999999255,
+        "meshCommitCount": 26,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 32,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.9,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 18098.699999999255,
+        "meshCommitCount": 27,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 33,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 6.1,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 18264.799999999814,
+        "meshCommitCount": 28,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 34,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 6.3,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 18469.89999999944,
+        "meshCommitCount": 29,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 35,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 6.5,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 18707.89999999944,
+        "meshCommitCount": 30,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 40,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 19203.099999999627,
+        "meshCommitCount": 31,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 48,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 8.6,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 19674.699999999255,
+        "meshCommitCount": 32,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 49,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 8.8,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 19712.39999999944,
+        "meshCommitCount": 33,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 50,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 9,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 19730.699999999255,
+        "meshCommitCount": 34,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 51,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 9,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 20432.5,
+        "meshCommitCount": 35,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 52,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 20952.5,
+        "meshCommitCount": 36,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 53,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 21448.299999999814,
+        "meshCommitCount": 37,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 54,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.9,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22018,
+        "meshCommitCount": 38,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 56,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.05,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22050.199999999255,
+        "meshCommitCount": 39,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 57,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.1,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22259.199999999255,
+        "meshCommitCount": 40,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 58,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.15,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22467.599999999627,
+        "meshCommitCount": 41,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 59,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.2,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22501.89999999944,
+        "meshCommitCount": 42,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 60,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.3,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22665.5,
+        "meshCommitCount": 43,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 61,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.35,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 22871.199999999255,
+        "meshCommitCount": 44,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 62,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.4,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 23064.299999999814,
+        "meshCommitCount": 45,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 63,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.5,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 23257.599999999627,
+        "meshCommitCount": 46,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 64,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.55,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 23433.299999999814,
+        "meshCommitCount": 47,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 65,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.6,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 23616.599999999627,
+        "meshCommitCount": 48,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 66,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 23999.099999999627,
+        "meshCommitCount": 49,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 70,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.85,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 24457.099999999627,
+        "meshCommitCount": 50,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 71,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.9,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 24503.199999999255,
+        "meshCommitCount": 51,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 72,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 2.9,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 25132.599999999627,
+        "meshCommitCount": 52,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 73,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 25649.39999999944,
+        "meshCommitCount": 53,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 74,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 26014.799999999814,
+        "meshCommitCount": 54,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 75,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 13,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 26551.5,
+        "meshCommitCount": 55,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 76,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 26598.599999999627,
+        "meshCommitCount": 56,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 77,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 15,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 26760.39999999944,
+        "meshCommitCount": 57,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 78,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 16,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 26962.299999999814,
+        "meshCommitCount": 58,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 79,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 18,
+          "depth": 0.61,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 27371.5,
+        "meshCommitCount": 59,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 80,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 18,
+          "depth": 0.61,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 28031.199999999255,
+        "meshCommitCount": 60,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 86,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 23,
+          "depth": 0.47,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 28073,
+        "meshCommitCount": 61,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 87,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 24,
+          "depth": 0.45,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 28116.5,
+        "meshCommitCount": 62,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 88,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 25,
+          "depth": 0.44,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 28614.5,
+        "meshCommitCount": 63,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 89,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 25,
+          "depth": 0.44,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 29158.099999999627,
+        "meshCommitCount": 64,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 95,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 30,
+          "depth": 0.36,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 29216.799999999814,
+        "meshCommitCount": 65,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 96,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 31,
+          "depth": 0.35,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 29235.5,
+        "meshCommitCount": 66,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 97,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 31,
+          "depth": 0.35,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 30252,
+        "meshCommitCount": 67,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 98,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 30926.89999999944,
+        "meshCommitCount": 68,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 99,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 31564,
+        "meshCommitCount": 69,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 101,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.44,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32114.699999999255,
+        "meshCommitCount": 70,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 102,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.5,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32157,
+        "meshCommitCount": 71,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 103,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.56,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32356.599999999627,
+        "meshCommitCount": 72,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 104,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.62,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32542.39999999944,
+        "meshCommitCount": 73,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 105,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.68,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32721.299999999814,
+        "meshCommitCount": 74,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 106,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.74,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 32926.699999999255,
+        "meshCommitCount": 75,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 107,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.78,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 33106,
+        "meshCommitCount": 76,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 108,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.78,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 33548.299999999814,
+        "meshCommitCount": 77,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 109,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 34478.39999999944,
+        "meshCommitCount": 78,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 110,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 35047.299999999814,
+        "meshCommitCount": 79,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 112,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.4,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 35581.59999999963,
+        "meshCommitCount": 80,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 113,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.42,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 35622.199999999255,
+        "meshCommitCount": 81,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 114,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.44,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 35817.699999999255,
+        "meshCommitCount": 82,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 115,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.46,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36011.59999999963,
+        "meshCommitCount": 83,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 116,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.48,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36174.699999999255,
+        "meshCommitCount": 84,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 117,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.5,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36357.199999999255,
+        "meshCommitCount": 85,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 118,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.52,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36544.59999999963,
+        "meshCommitCount": 86,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 119,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.55,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36726.299999999814,
+        "meshCommitCount": 87,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 120,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.57,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 36935.59999999963,
+        "meshCommitCount": 88,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 121,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.59,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37099.59999999963,
+        "meshCommitCount": 89,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 122,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.61,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37124,
+        "meshCommitCount": 90,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 123,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.63,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37314.5,
+        "meshCommitCount": 91,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 124,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37514.39999999944,
+        "meshCommitCount": 92,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 125,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.67,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37718.5,
+        "meshCommitCount": 93,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 126,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.69,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 37896.09999999963,
+        "meshCommitCount": 94,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 127,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.71,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 38056.89999999944,
+        "meshCommitCount": 95,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 128,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.71,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 38644.59999999963,
+        "meshCommitCount": 96,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 129,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 39265.299999999814,
+        "meshCommitCount": 97,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 130,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 39647.199999999255,
+        "meshCommitCount": 98,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 131,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": -0.42,
+          "softness": 0.9
+        },
+        "renderedAt": 40201.5,
+        "meshCommitCount": 99,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 132,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": -0.36,
+          "softness": 0.9
+        },
+        "renderedAt": 40249.89999999944,
+        "meshCommitCount": 100,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 133,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": -0.3,
+          "softness": 0.9
+        },
+        "renderedAt": 40515.5,
+        "meshCommitCount": 101,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 134,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": -0.3,
+          "softness": 0.9
+        },
+        "renderedAt": 41731,
+        "meshCommitCount": 102,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 151,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.62,
+          "faceRatio": 0.65,
+          "tilt": 0.54,
+          "softness": 0.9
+        },
+        "renderedAt": 42547.299999999814,
+        "meshCommitCount": 103,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 152,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 43179.799999999814,
+        "meshCommitCount": 104,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 153,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 43614.09999999963,
+        "meshCommitCount": 105,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 155,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.28
+        },
+        "renderedAt": 44150.199999999255,
+        "meshCommitCount": 106,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 156,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.31
+        },
+        "renderedAt": 44176.299999999814,
+        "meshCommitCount": 107,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 157,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.35
+        },
+        "renderedAt": 44363.39999999944,
+        "meshCommitCount": 108,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 158,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.39
+        },
+        "renderedAt": 44760.39999999944,
+        "meshCommitCount": 109,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 159,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.39
+        },
+        "renderedAt": 45096.699999999255,
+        "meshCommitCount": 110,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 164,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.57
+        },
+        "renderedAt": 45116.39999999944,
+        "meshCommitCount": 111,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 167,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.69
+        },
+        "renderedAt": 45371.299999999814,
+        "meshCommitCount": 112,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 173,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.8
+        },
+        "renderedAt": 45912.699999999255,
+        "meshCommitCount": 113,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 174,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.84
+        },
+        "renderedAt": 45954.799999999814,
+        "meshCommitCount": 114,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 175,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.84
+        },
+        "renderedAt": 46464.89999999944,
+        "meshCommitCount": 115,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 176,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 47000,
+        "meshCommitCount": 116,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 177,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 47346.699999999255,
+        "meshCommitCount": 117,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 178,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 14,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.64,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 47601,
+        "meshCommitCount": 118,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 185,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 14,
+          "width": 4,
+          "thickness": 1.5,
+          "segments": 36,
+          "depth": 0.12,
+          "faceRatio": 0.8,
+          "tilt": 0.8,
+          "softness": 0
+        },
+        "renderedAt": 47906.199999999255,
+        "meshCommitCount": 119,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 186,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 14,
+          "width": 4,
+          "thickness": 1.5,
+          "segments": 36,
+          "depth": 0.12,
+          "faceRatio": 0.8,
+          "tilt": 0.8,
+          "softness": 0
+        },
+        "renderedAt": 48499.39999999944,
+        "meshCommitCount": 120,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 187,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.8,
+          "thickness": 1.8,
+          "segments": 14,
+          "depth": 0.55,
+          "faceRatio": 0.6,
+          "tilt": 0.5,
+          "softness": 0
+        },
+        "renderedAt": 49709.09999999963,
+        "meshCommitCount": 121,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 188,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 3,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 5.8,
+          "thickness": 1.8,
+          "segments": 14,
+          "depth": 0.55,
+          "faceRatio": 0.6,
+          "tilt": 0.5,
+          "softness": 0
+        },
+        "renderedAt": 50646.39999999944,
+        "meshCommitCount": 122,
+        "selected": "faceted",
+        "scope": 3
+      },
+      {
+        "requestId": 193,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 6,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 60449.39999999944,
+        "meshCommitCount": 123,
+        "selected": "faceted",
+        "scope": 6
+      },
+      {
+        "requestId": 194,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 6,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 60896.59999999963,
+        "meshCommitCount": 124,
+        "selected": "faceted",
+        "scope": 6
+      },
+      {
+        "requestId": 203,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 15,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 61365.699999999255,
+        "meshCommitCount": 125,
+        "selected": "faceted",
+        "scope": 15
+      },
+      {
+        "requestId": 217,
+        "quality": "preview",
+        "family": "liquid-accent",
+        "selection": 29,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 1.6,
+          "thickness": 1.3,
+          "span": 140,
+          "amplitude": 1.7,
+          "asymmetry": 0.24,
+          "accentWidth": 2.1,
+          "radial": 0.4,
+          "gloopiness": 0.24
+        },
+        "renderedAt": 61748.59999999963,
+        "meshCommitCount": 126,
+        "selected": "liquid-accent",
+        "scope": 29
+      },
+      {
+        "requestId": 230,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 42,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 62122.39999999944,
+        "meshCommitCount": 127,
+        "selected": "faceted",
+        "scope": 42
+      },
+      {
+        "requestId": 248,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 60,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 62626.39999999944,
+        "meshCommitCount": 128,
+        "selected": "faceted",
+        "scope": 60
+      },
+      {
+        "requestId": 251,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 63,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 62722.199999999255,
+        "meshCommitCount": 129,
+        "selected": "faceted",
+        "scope": 63
+      },
+      {
+        "requestId": 254,
+        "quality": "preview",
+        "family": "faceted",
+        "selection": 66,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 62919.199999999255,
+        "meshCommitCount": 130,
+        "selected": "faceted",
+        "scope": 66
+      },
+      {
+        "requestId": 255,
+        "quality": "settled",
+        "family": "faceted",
+        "selection": 66,
+        "params": {
+          "innerDiameter": 17.8,
+          "width": 7.2,
+          "thickness": 1.65,
+          "segments": 14,
+          "depth": 0.65,
+          "faceRatio": 0.65,
+          "tilt": 0,
+          "softness": 0.9
+        },
+        "renderedAt": 63479.39999999944,
+        "meshCommitCount": 131,
+        "selected": "faceted",
+        "scope": 66
+      }
+    ],
+    "jobs": [
+      {
+        "id": 1,
+        "family": "wave",
+        "selection": 0,
+        "quality": "preview"
+      },
+      {
+        "id": 3,
+        "family": "faceted",
+        "selection": 1,
+        "quality": "preview"
+      },
+      {
+        "id": 4,
+        "family": "faceted",
+        "selection": 1,
+        "quality": "settled"
+      },
+      {
+        "id": 1,
+        "family": "faceted",
+        "quality": "export"
+      },
+      {
+        "id": 5,
+        "family": "wave",
+        "selection": 2,
+        "quality": "preview"
+      },
+      {
+        "id": 6,
+        "family": "wave",
+        "selection": 2,
+        "quality": "settled"
+      },
+      {
+        "id": 7,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 8,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 9,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 10,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 11,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 12,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 13,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 14,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 15,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 16,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 17,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 18,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 19,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 20,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 21,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 22,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 23,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 24,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 26,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 27,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 28,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 29,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 30,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 31,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 32,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 33,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 34,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 35,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 36,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 40,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 41,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 48,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 49,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 50,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 51,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 52,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 53,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 54,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 55,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 56,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 57,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 58,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 59,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 60,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 61,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 62,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 63,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 64,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 65,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 66,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 67,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 70,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 71,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 72,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 73,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 74,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 75,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 76,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 77,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 78,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 79,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 80,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 85,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 86,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 87,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 88,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 89,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 95,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 96,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 97,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 98,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 99,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 100,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 101,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 102,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 103,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 104,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 105,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 106,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 107,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 108,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 109,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 110,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 111,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 112,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 113,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 114,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 115,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 116,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 117,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 118,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 119,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 120,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 121,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 122,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 123,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 124,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 125,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 126,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 127,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 128,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 129,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 130,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 131,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 132,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 133,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 134,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 151,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 152,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 153,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 154,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 155,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 156,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 157,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 158,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 159,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 164,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 165,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 167,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 168,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 173,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 174,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 175,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 176,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 177,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 178,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 179,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 181,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 185,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 186,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 187,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 188,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "settled"
+      },
+      {
+        "id": 189,
+        "family": "faceted",
+        "selection": 3,
+        "quality": "preview"
+      },
+      {
+        "id": 193,
+        "family": "faceted",
+        "selection": 6,
+        "quality": "preview"
+      },
+      {
+        "id": 194,
+        "family": "faceted",
+        "selection": 6,
+        "quality": "settled"
+      },
+      {
+        "id": 195,
+        "family": "wave",
+        "selection": 7,
+        "quality": "preview"
+      },
+      {
+        "id": 196,
+        "family": "liquid-accent",
+        "selection": 8,
+        "quality": "preview"
+      },
+      {
+        "id": 198,
+        "family": "wave",
+        "selection": 10,
+        "quality": "preview"
+      },
+      {
+        "id": 200,
+        "family": "faceted",
+        "selection": 12,
+        "quality": "preview"
+      },
+      {
+        "id": 201,
+        "family": "wave",
+        "selection": 13,
+        "quality": "preview"
+      },
+      {
+        "id": 202,
+        "family": "liquid-accent",
+        "selection": 14,
+        "quality": "preview"
+      },
+      {
+        "id": 203,
+        "family": "faceted",
+        "selection": 15,
+        "quality": "preview"
+      },
+      {
+        "id": 204,
+        "family": "wave",
+        "selection": 16,
+        "quality": "preview"
+      },
+      {
+        "id": 205,
+        "family": "liquid-accent",
+        "selection": 17,
+        "quality": "preview"
+      },
+      {
+        "id": 206,
+        "family": "faceted",
+        "selection": 18,
+        "quality": "preview"
+      },
+      {
+        "id": 207,
+        "family": "wave",
+        "selection": 19,
+        "quality": "preview"
+      },
+      {
+        "id": 208,
+        "family": "liquid-accent",
+        "selection": 20,
+        "quality": "preview"
+      },
+      {
+        "id": 209,
+        "family": "faceted",
+        "selection": 21,
+        "quality": "preview"
+      },
+      {
+        "id": 210,
+        "family": "wave",
+        "selection": 22,
+        "quality": "preview"
+      },
+      {
+        "id": 211,
+        "family": "liquid-accent",
+        "selection": 23,
+        "quality": "preview"
+      },
+      {
+        "id": 212,
+        "family": "faceted",
+        "selection": 24,
+        "quality": "preview"
+      },
+      {
+        "id": 213,
+        "family": "wave",
+        "selection": 25,
+        "quality": "preview"
+      },
+      {
+        "id": 214,
+        "family": "liquid-accent",
+        "selection": 26,
+        "quality": "preview"
+      },
+      {
+        "id": 216,
+        "family": "wave",
+        "selection": 28,
+        "quality": "preview"
+      },
+      {
+        "id": 217,
+        "family": "liquid-accent",
+        "selection": 29,
+        "quality": "preview"
+      },
+      {
+        "id": 218,
+        "family": "faceted",
+        "selection": 30,
+        "quality": "preview"
+      },
+      {
+        "id": 219,
+        "family": "wave",
+        "selection": 31,
+        "quality": "preview"
+      },
+      {
+        "id": 220,
+        "family": "liquid-accent",
+        "selection": 32,
+        "quality": "preview"
+      },
+      {
+        "id": 221,
+        "family": "faceted",
+        "selection": 33,
+        "quality": "preview"
+      },
+      {
+        "id": 222,
+        "family": "wave",
+        "selection": 34,
+        "quality": "preview"
+      },
+      {
+        "id": 223,
+        "family": "liquid-accent",
+        "selection": 35,
+        "quality": "preview"
+      },
+      {
+        "id": 224,
+        "family": "faceted",
+        "selection": 36,
+        "quality": "preview"
+      },
+      {
+        "id": 225,
+        "family": "wave",
+        "selection": 37,
+        "quality": "preview"
+      },
+      {
+        "id": 226,
+        "family": "liquid-accent",
+        "selection": 38,
+        "quality": "preview"
+      },
+      {
+        "id": 227,
+        "family": "faceted",
+        "selection": 39,
+        "quality": "preview"
+      },
+      {
+        "id": 228,
+        "family": "wave",
+        "selection": 40,
+        "quality": "preview"
+      },
+      {
+        "id": 229,
+        "family": "liquid-accent",
+        "selection": 41,
+        "quality": "preview"
+      },
+      {
+        "id": 230,
+        "family": "faceted",
+        "selection": 42,
+        "quality": "preview"
+      },
+      {
+        "id": 231,
+        "family": "wave",
+        "selection": 43,
+        "quality": "preview"
+      },
+      {
+        "id": 232,
+        "family": "liquid-accent",
+        "selection": 44,
+        "quality": "preview"
+      },
+      {
+        "id": 233,
+        "family": "faceted",
+        "selection": 45,
+        "quality": "preview"
+      },
+      {
+        "id": 234,
+        "family": "wave",
+        "selection": 46,
+        "quality": "preview"
+      },
+      {
+        "id": 235,
+        "family": "liquid-accent",
+        "selection": 47,
+        "quality": "preview"
+      },
+      {
+        "id": 236,
+        "family": "faceted",
+        "selection": 48,
+        "quality": "preview"
+      },
+      {
+        "id": 237,
+        "family": "wave",
+        "selection": 49,
+        "quality": "preview"
+      },
+      {
+        "id": 238,
+        "family": "liquid-accent",
+        "selection": 50,
+        "quality": "preview"
+      },
+      {
+        "id": 239,
+        "family": "faceted",
+        "selection": 51,
+        "quality": "preview"
+      },
+      {
+        "id": 240,
+        "family": "wave",
+        "selection": 52,
+        "quality": "preview"
+      },
+      {
+        "id": 241,
+        "family": "liquid-accent",
+        "selection": 53,
+        "quality": "preview"
+      },
+      {
+        "id": 242,
+        "family": "faceted",
+        "selection": 54,
+        "quality": "preview"
+      },
+      {
+        "id": 243,
+        "family": "wave",
+        "selection": 55,
+        "quality": "preview"
+      },
+      {
+        "id": 244,
+        "family": "liquid-accent",
+        "selection": 56,
+        "quality": "preview"
+      },
+      {
+        "id": 245,
+        "family": "faceted",
+        "selection": 57,
+        "quality": "preview"
+      },
+      {
+        "id": 246,
+        "family": "wave",
+        "selection": 58,
+        "quality": "preview"
+      },
+      {
+        "id": 247,
+        "family": "liquid-accent",
+        "selection": 59,
+        "quality": "preview"
+      },
+      {
+        "id": 248,
+        "family": "faceted",
+        "selection": 60,
+        "quality": "preview"
+      },
+      {
+        "id": 249,
+        "family": "wave",
+        "selection": 61,
+        "quality": "preview"
+      },
+      {
+        "id": 250,
+        "family": "liquid-accent",
+        "selection": 62,
+        "quality": "preview"
+      },
+      {
+        "id": 251,
+        "family": "faceted",
+        "selection": 63,
+        "quality": "preview"
+      },
+      {
+        "id": 252,
+        "family": "wave",
+        "selection": 64,
+        "quality": "preview"
+      },
+      {
+        "id": 253,
+        "family": "liquid-accent",
+        "selection": 65,
+        "quality": "preview"
+      },
+      {
+        "id": 254,
+        "family": "faceted",
+        "selection": 66,
+        "quality": "preview"
+      },
+      {
+        "id": 255,
+        "family": "faceted",
+        "selection": 66,
+        "quality": "settled"
+      }
+    ],
+    "peak": 1
+  },
+  "mobile": true,
+  "passed": true
+}

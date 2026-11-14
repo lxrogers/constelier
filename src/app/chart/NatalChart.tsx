@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useGlide } from '@/hooks/useGlide';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { trackFunnel } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
 import AddToBagPanel from './components/AddToBagPanel';
@@ -79,6 +80,17 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
     // Only the reading steers the chart's focus.
     if (step !== 'reading') engineRef.current?.setFocus(null);
   }, [step]);
+
+  // Funnel analytics: reached the reading, saw a chart with lines.
+  const chartTracked = useRef(false);
+  useEffect(() => {
+    if (step === 'reading') trackFunnel('birth_details_entered');
+  }, [step]);
+  useEffect(() => {
+    if (step !== 'reading' || aspects.length === 0 || chartTracked.current) return;
+    chartTracked.current = true;
+    trackFunnel('chart_shown', { aspects: aspects.length });
+  }, [step, aspects.length]);
 
   const handleFocus = (spec: FocusSpec | null) => {
     engineRef.current?.setFocus(spec);
@@ -245,7 +257,7 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
               <p>Thank you for signing up! We&apos;ll be in touch.</p>
             </div>
           ) : (
-            <WaitlistForm onSubmitted={() => setSubmitted(true)} />
+            <WaitlistForm onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} />
           )}
         </div>
       </div>

@@ -5,12 +5,12 @@
 // default" writes src/config/pendant-defaults.json, which /chart reads.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import NatalChart from '../chart/NatalChart';
+import NatalChart from '../chart/LabChart';
 import LabPanel from './components/LabPanel';
 import PreviewGrid from './components/PreviewGrid';
 import PrintCart from './components/PrintCart';
 import { usePrintCart } from '@/hooks/usePrintCart';
-import { normalizeParams, PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
+import { normalizeParams, withDerived, PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
 import './lab.css';
 
 const DRAFT_KEY = 'constelier-lab-params';
@@ -38,7 +38,7 @@ export default function LabPage() {
 
   const update = useCallback((next: Partial<PendantParams>, isDraft: boolean) => {
     setParams((p) => {
-      const merged = { ...p, ...next };
+      const merged = withDerived({ ...p, ...next });
       if (persistTimer.current) clearTimeout(persistTimer.current);
       persistTimer.current = setTimeout(() => {
         try { localStorage.setItem(DRAFT_KEY, JSON.stringify(merged)); } catch {}
@@ -60,7 +60,7 @@ export default function LabPage() {
   }
 
   return (
-    <div className="lab">
+    <div className="lab lab-root">
       <NatalChart
         className="lab-top"
         params={params}

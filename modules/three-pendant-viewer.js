@@ -129,6 +129,10 @@ export class PendantViewer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // TAA renders the scene several times per frame; the shadow maps only
+    // need drawing once per frame (renderOnce flags them). Same image,
+    // far fewer 4096px shadow passes.
+    this.renderer.shadowMap.autoUpdate = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -337,6 +341,15 @@ export class PendantViewer {
     var mesh = new THREE.Mesh(faceGeom, mat);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  // A gold mesh that is not added to the scene: for callers that place and
+  // move several parts themselves (add it to `pendantGroup`).
+  createMesh(meshData) {
+    var mesh = this._buildMeshFromData(meshData);
+    mesh.material.dispose();
+    mesh.material = this._faceMat;
     return mesh;
   }
 
@@ -656,6 +669,7 @@ export class PendantViewer {
   // Render a single frame on demand
   renderOnce() {
     if (this.controls) this.controls.update();
+    this.renderer.shadowMap.needsUpdate = true;
     if (this.composer) {
       this.composer.render();
     } else {

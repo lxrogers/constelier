@@ -1,0 +1,480 @@
+{
+  "url": "http://localhost:3006/prototypes/rings",
+  "started": "2026-10-30T04:30:27.825Z",
+  "errors": [],
+  "externalFailures": [],
+  "sliders": [
+    {
+      "label": "Inside diameter",
+      "old": "17.8",
+      "value": "21.9",
+      "meshChanged": true
+    },
+    {
+      "label": "Band width",
+      "old": "4.3",
+      "value": "5.8",
+      "meshChanged": true
+    },
+    {
+      "label": "Radial thickness",
+      "old": "1.65",
+      "value": "2.8",
+      "meshChanged": true
+    },
+    {
+      "label": "Section shape",
+      "old": "0.42",
+      "value": "0.79",
+      "meshChanged": true
+    },
+    {
+      "label": "Wave count",
+      "old": "3",
+      "value": "5",
+      "meshChanged": true
+    },
+    {
+      "label": "Axial wave",
+      "old": "1.25",
+      "value": "1.6",
+      "meshChanged": true
+    },
+    {
+      "label": "Radial variation",
+      "old": "0.9",
+      "value": "1.6",
+      "meshChanged": true
+    }
+  ],
+  "screenshots": [
+    "/workspace/ring-evidence/family-wave-browser/tide-gold.png",
+    "/workspace/ring-evidence/family-wave-browser/ribbon-gold.png",
+    "/workspace/ring-evidence/family-wave-browser/swell-gold.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-gold.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-clay.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-clay-top.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-clay-profile.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-clay-close.png",
+    "/workspace/ring-evidence/family-wave-browser/tide-gold-close.png",
+    "/workspace/ring-evidence/family-wave-browser/maximum-gold.png",
+    "/workspace/ring-evidence/family-wave-browser/maximum-clay.png",
+    "/workspace/ring-evidence/family-wave-browser/mobile-gold.png"
+  ],
+  "performance": {
+    "before": {
+      "metrics": [
+        {
+          "name": "Timestamp",
+          "value": 4591.020625
+        },
+        {
+          "name": "AudioHandlers",
+          "value": 0
+        },
+        {
+          "name": "AudioWorkletProcessors",
+          "value": 0
+        },
+        {
+          "name": "Documents",
+          "value": 1
+        },
+        {
+          "name": "Frames",
+          "value": 1
+        },
+        {
+          "name": "JSEventListeners",
+          "value": 348
+        },
+        {
+          "name": "LayoutObjects",
+          "value": 269
+        },
+        {
+          "name": "MediaKeySessions",
+          "value": 0
+        },
+        {
+          "name": "MediaKeys",
+          "value": 0
+        },
+        {
+          "name": "Nodes",
+          "value": 413
+        },
+        {
+          "name": "Resources",
+          "value": 14
+        },
+        {
+          "name": "ContextLifecycleStateObservers",
+          "value": 17
+        },
+        {
+          "name": "V8PerContextDatas",
+          "value": 2
+        },
+        {
+          "name": "WorkerGlobalScopes",
+          "value": 1
+        },
+        {
+          "name": "UACSSResources",
+          "value": 0
+        },
+        {
+          "name": "RTCPeerConnections",
+          "value": 0
+        },
+        {
+          "name": "ResourceFetchers",
+          "value": 2
+        },
+        {
+          "name": "AdSubframes",
+          "value": 0
+        },
+        {
+          "name": "DetachedScriptStates",
+          "value": 0
+        },
+        {
+          "name": "ArrayBufferContents",
+          "value": 59
+        },
+        {
+          "name": "LayoutCount",
+          "value": 0
+        },
+        {
+          "name": "RecalcStyleCount",
+          "value": 0
+        },
+        {
+          "name": "LayoutDuration",
+          "value": 0
+        },
+        {
+          "name": "RecalcStyleDuration",
+          "value": 0
+        },
+        {
+          "name": "DevToolsCommandDuration",
+          "value": 0.00003
+        },
+        {
+          "name": "ScriptDuration",
+          "value": 0
+        },
+        {
+          "name": "V8CompileDuration",
+          "value": 0
+        },
+        {
+          "name": "TaskDuration",
+          "value": 0.025635
+        },
+        {
+          "name": "TaskOtherDuration",
+          "value": 0.025605
+        },
+        {
+          "name": "ThreadTime",
+          "value": 0.017395
+        },
+        {
+          "name": "ProcessTime",
+          "value": 15.38
+        },
+        {
+          "name": "JSHeapUsedSize",
+          "value": 7215944
+        },
+        {
+          "name": "JSHeapTotalSize",
+          "value": 8265728
+        },
+        {
+          "name": "FirstMeaningfulPaint",
+          "value": 4565.054796
+        },
+        {
+          "name": "DomContentLoaded",
+          "value": 4560.442668
+        },
+        {
+          "name": "NavigationStart",
+          "value": 4560.214079
+        }
+      ]
+    },
+    "gpuBefore": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 106,
+      "meshCommitCount": 79,
+      "displayedRequestId": 110,
+      "displayedFamily": "wave",
+      "displayedSelection": 0,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "neutral"
+    },
+    "realDragMs": 18724,
+    "realDragMoves": 192,
+    "after": {
+      "metrics": [
+        {
+          "name": "Timestamp",
+          "value": 4611.162499
+        },
+        {
+          "name": "AudioHandlers",
+          "value": 0
+        },
+        {
+          "name": "AudioWorkletProcessors",
+          "value": 0
+        },
+        {
+          "name": "Documents",
+          "value": 1
+        },
+        {
+          "name": "Frames",
+          "value": 1
+        },
+        {
+          "name": "JSEventListeners",
+          "value": 348
+        },
+        {
+          "name": "LayoutObjects",
+          "value": 269
+        },
+        {
+          "name": "MediaKeySessions",
+          "value": 0
+        },
+        {
+          "name": "MediaKeys",
+          "value": 0
+        },
+        {
+          "name": "Nodes",
+          "value": 413
+        },
+        {
+          "name": "Resources",
+          "value": 14
+        },
+        {
+          "name": "ContextLifecycleStateObservers",
+          "value": 17
+        },
+        {
+          "name": "V8PerContextDatas",
+          "value": 2
+        },
+        {
+          "name": "WorkerGlobalScopes",
+          "value": 1
+        },
+        {
+          "name": "UACSSResources",
+          "value": 0
+        },
+        {
+          "name": "RTCPeerConnections",
+          "value": 0
+        },
+        {
+          "name": "ResourceFetchers",
+          "value": 2
+        },
+        {
+          "name": "AdSubframes",
+          "value": 0
+        },
+        {
+          "name": "DetachedScriptStates",
+          "value": 0
+        },
+        {
+          "name": "ArrayBufferContents",
+          "value": 59
+        },
+        {
+          "name": "LayoutCount",
+          "value": 382
+        },
+        {
+          "name": "RecalcStyleCount",
+          "value": 226
+        },
+        {
+          "name": "LayoutDuration",
+          "value": 0.099495
+        },
+        {
+          "name": "RecalcStyleDuration",
+          "value": 0.049249
+        },
+        {
+          "name": "DevToolsCommandDuration",
+          "value": 0.096252
+        },
+        {
+          "name": "ScriptDuration",
+          "value": 0.88732
+        },
+        {
+          "name": "V8CompileDuration",
+          "value": 0
+        },
+        {
+          "name": "TaskDuration",
+          "value": 2.136978
+        },
+        {
+          "name": "TaskOtherDuration",
+          "value": 1.004662
+        },
+        {
+          "name": "ThreadTime",
+          "value": 1.31677
+        },
+        {
+          "name": "ProcessTime",
+          "value": 21.75
+        },
+        {
+          "name": "JSHeapUsedSize",
+          "value": 7668436
+        },
+        {
+          "name": "JSHeapTotalSize",
+          "value": 8527872
+        },
+        {
+          "name": "FirstMeaningfulPaint",
+          "value": 4565.054796
+        },
+        {
+          "name": "DomContentLoaded",
+          "value": 4560.442668
+        },
+        {
+          "name": "NavigationStart",
+          "value": 4560.214079
+        }
+      ]
+    },
+    "gpuAfter": {
+      "geometries": 3,
+      "textures": 4,
+      "triangles": 20482,
+      "renderCount": 295,
+      "meshCommitCount": 267,
+      "displayedRequestId": 906,
+      "displayedFamily": "wave",
+      "displayedSelection": 0,
+      "meshVisible": true,
+      "hdrLoaded": true,
+      "camera": [
+        28,
+        28.999999999999996,
+        38.00000000000001
+      ],
+      "material": "neutral"
+    },
+    "longTasks": [
+      {
+        "start": 153.1000000005588,
+        "duration": 60
+      },
+      {
+        "start": 346.70000000018626,
+        "duration": 356
+      },
+      {
+        "start": 853.9000000003725,
+        "duration": 4046
+      },
+      {
+        "start": 18131.200000000186,
+        "duration": 338
+      }
+    ],
+    "idleRendering": false
+  },
+  "initial": {
+    "geometries": 3,
+    "textures": 4,
+    "triangles": 20482,
+    "renderCount": 6,
+    "meshCommitCount": 2,
+    "displayedRequestId": 2,
+    "displayedFamily": "wave",
+    "displayedSelection": 0,
+    "meshVisible": true,
+    "hdrLoaded": true,
+    "camera": [
+      28,
+      28.999999999999996,
+      38.00000000000001
+    ],
+    "material": "gold"
+  },
+  "orbit": true,
+  "maximum": {
+    "params": {
+      "innerDiameter": 14,
+      "width": 7,
+      "thickness": 3.2,
+      "section": 1,
+      "waves": 6,
+      "amplitude": 0.85,
+      "radial": 2
+    },
+    "triangles": 23040
+  },
+  "export": {
+    "path": "/workspace/ring-evidence/family-wave-browser/browser-wave-mm.stl",
+    "triangles": 65536,
+    "bytes": 3276884
+  },
+  "exportSnapshot": {
+    "params": {
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9,
+      "innerDiameter": 17.8,
+      "width": 3.2,
+      "thickness": 1.65,
+      "section": 0.42
+    },
+    "path": "/workspace/ring-evidence/family-wave-browser/browser-snapshot-mm.stl",
+    "byteIdentical": true,
+    "presetChangedDuringExport": true
+  },
+  "serializedLink": true,
+  "mobile": {
+    "canvas": {
+      "x": 17,
+      "y": 204.890625,
+      "width": 356,
+      "height": 420
+    },
+    "overflow": false
+  },
+  "passed": true
+}

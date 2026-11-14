@@ -1,0 +1,66 @@
+/* The chart page's paper look and header. The site's global styles are
+   dark by default; this page keeps its cream grid. Scoped to pages that
+   show the chart so the rest of the site is untouched. */
+
+body:has(.chart-page) {
+  font-family: 'Graphik Web', system-ui, sans-serif;
+  background-color: #f5f0e6;
+  background-image:
+    linear-gradient(rgba(170,162,148,0.18) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(170,162,148,0.18) 0.5px, transparent 0.5px),
+    linear-gradient(rgba(180,172,158,0.10) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, rgba(180,172,158,0.10) 0.5px, transparent 0.5px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  color: #2c2c2c;
+}
+
+nav.site-nav {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 20px 24px 0 calc(5% + 20px);
+}
+nav.site-nav .logo {
+  font-family: 'Moulin', serif;
+  font-size: 30px;
+  color: #3a3630;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+nav.site-nav .nav-bag {
+  margin-left: auto;
+  margin-right: 5%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #3a3630;
+  text-decoration: none;
+  font-size: 14px;
+}
+nav.site-nav .nav-bag-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #2c2c2c;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+nav.site-nav .logo-icon { width: 34px; height: 34px; }
+
+@media (max-width: 768px) {
+  html:has(.chart-page), body:has(.chart-page) {
+    overflow: hidden !important;
+    height: 100dvh !important;
+  }
+  nav.site-nav { padding: 12px 12px 0 12px; min-height: 44px; }
+  nav.site-nav .logo { font-size: 24px; }
+  nav.site-nav .logo-icon { width: 28px; height: 28px; }
+}

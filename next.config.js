@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Local dev database (DATABASE_URL=pglite:…): loaded from node_modules at
+  // runtime instead of bundled, because it ships its own WebAssembly.
+  serverExternalPackages: ['@electric-sql/pglite'],
+  // No dev-mode badge in the corner (it covers buttons in screenshots).
+  devIndicators: false,
+  // Include WASM in the serverless bundle for the sun-arcs prototype API
+  // (the main pendant routes are mesh-only and don't need it).
+  outputFileTracingIncludes: {
+    '/api/prototypes/sun-arcs': ['./public/wasm/replicad_single.wasm'],
+  },
   // Turbopack config (Next.js 16 default bundler)
   turbopack: {
     resolveAlias: {

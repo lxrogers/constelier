@@ -1,0 +1,100 @@
+[
+  {
+    "label": "Inside diameter",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 11,
+    "latest": {
+      "innerDiameter": 22.7,
+      "width": 4.3,
+      "thickness": 1.65,
+      "section": 0.42,
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Band width",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 21,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 6.3,
+      "thickness": 1.65,
+      "section": 0.42,
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Radial thickness",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 34,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 4.3,
+      "thickness": 2.95,
+      "section": 0.42,
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Section shape",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 46,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 4.3,
+      "thickness": 1.65,
+      "section": 0.87,
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Wave count",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 59,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 4.3,
+      "thickness": 1.65,
+      "section": 0.42,
+      "waves": 5,
+      "amplitude": 1.25,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Axial wave",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 64,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 4.3,
+      "thickness": 1.65,
+      "section": 0.42,
+      "waves": 3,
+      "amplitude": 2.2,
+      "radial": 0.9
+    }
+  },
+  {
+    "label": "Radial variation",
+    "changedWhilePointerDown": true,
+    "renderCountWhileDown": 77,
+    "latest": {
+      "innerDiameter": 17.8,
+      "width": 4.3,
+      "thickness": 1.65,
+      "section": 0.42,
+      "waves": 3,
+      "amplitude": 1.25,
+      "radial": 1.75
+    }
+  }
+]

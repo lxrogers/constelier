@@ -4,6 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { bag, useBag, formatUSD } from '@/hooks/useBag';
 import { designQuery, MAX_QUANTITY } from '@/lib/commerce/design';
+import { SHIP_WITHIN_TEXT } from '@/lib/commerce/shop-terms';
+import LegalLinks from '@/components/LegalLinks';
+import { trackFunnel } from '@/lib/analytics';
+import { FINAL_SALE_SHORT } from '@/app/legal/policy';
 import '../bag.css';
 
 export default function BagView() {
@@ -14,11 +18,12 @@ export default function BagView() {
   async function handleCheckout() {
     setCheckingOut(true);
     setError('');
+    trackFunnel('checkout_started', { items: items.length, subtotal });
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity })) }),
+        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity, thumbnail: i.thumbnail })) }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.');
@@ -85,10 +90,12 @@ export default function BagView() {
               {checkingOut ? 'Opening secure checkout…' : 'Check out'}
             </button>
             <p className="bag-fineprint">
-              Payment is handled by Stripe. US shipping only. Each pendant is cast to order and ships within 3 weeks.
+              Payment is handled by Stripe. US shipping only, within {SHIP_WITHIN_TEXT}.{' '}
+              {FINAL_SALE_SHORT} <Link href="/legal/returns">Returns and final sale</Link>
             </p>
           </>
         )}
+        <LegalLinks />
       </div>
     </main>
   );
