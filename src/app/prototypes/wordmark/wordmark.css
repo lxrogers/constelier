@@ -22,7 +22,6 @@
   background: var(--surface-glass);
 }
 .wm-card.is-pick { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.wm-card.is-ref { opacity: 0.85; }
 .wm-card-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wm-n { font-family: var(--serif); font-size: 22px; color: var(--accent); }
 .wm-face { font-size: 12px; font-weight: 500; letter-spacing: var(--track-mark); text-transform: uppercase; }
