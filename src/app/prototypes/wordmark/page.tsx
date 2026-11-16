@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import type { CSSProperties } from 'react';
 import {
+  Libre_Bodoni, Newsreader, Noto_Serif_Display, Playfair, Playfair_Display,
   Bodoni_Moda, Cinzel, Cormorant_Garamond, Della_Respira, Fraunces, Gilda_Display, Gloock, Instrument_Serif, Italiana, Marcellus,
   Belleza, Comfortaa, Josefin_Sans, Jost, Julius_Sans_One, Lexend_Giga, Manrope, Poiret_One, Quicksand, Raleway, Syne, Tenor_Sans,
 } from 'next/font/google';
 import { LogoMark } from '@/components/Logo';
+import BodoniLab from './BodoniLab';
 import './wordmark.css';
 
 export const metadata: Metadata = { title: 'Wordmarks · CONSTELIER prototype', robots: { index: false, follow: false } };
@@ -36,7 +38,13 @@ const italiana = Italiana({ subsets: ['latin'], weight: ['400'], variable: '--f-
 const instrument = Instrument_Serif({ subsets: ['latin'], weight: ['400'], variable: '--f-instrument' });
 const respira = Della_Respira({ subsets: ['latin'], weight: ['400'], variable: '--f-respira' });
 const gloock = Gloock({ subsets: ['latin'], weight: ['400'], variable: '--f-gloock' });
-const FONT_VARS = [jost, syne, manrope, quicksand, comfortaa, belleza, tenor, josefin, raleway, lexend, julius, poiret,
+// Bodoni lab: variable files so each card can show three weights.
+const notodisplay = Noto_Serif_Display({ subsets: ['latin'], variable: '--f-notodisplay' });
+const playfair = Playfair({ subsets: ['latin'], axes: ['opsz'], variable: '--f-playfair' });
+const playfairdisplay = Playfair_Display({ subsets: ['latin'], variable: '--f-playfairdisplay' });
+const librebodoni = Libre_Bodoni({ subsets: ['latin'], variable: '--f-librebodoni' });
+const newsreader = Newsreader({ subsets: ['latin'], axes: ['opsz'], variable: '--f-newsreader' });
+const FONT_VARS = [notodisplay, playfair, playfairdisplay, librebodoni, newsreader, jost, syne, manrope, quicksand, comfortaa, belleza, tenor, josefin, raleway, lexend, julius, poiret,
   fraunces, cormorant, bodoni, gilda, marcellus, cinzel, italiana, instrument, respira, gloock].map((f) => f.variable).join(' ');
 
 type Option = {
@@ -131,8 +139,10 @@ export default function Page() {
       <header className="wm-head">
         <p className="eyebrow">Prototype · Wordmark</p>
         <h1 className="wm-h1">Wordmarks</h1>
-        <p className="wm-lede">CONSTELIER in ten serifs and thirteen sans faces, each in the real header with the star, on paper and on night. The serifs (N to W) are newest; the softer sans round (D to M), the first sans round and the serif on the site today follow.</p>
+        <p className="wm-lede">CONSTELIER in the real header with the star, on paper and on night. Newest first: Bodoni Moda and five faces like it, each in three weights, with live letter spacing and contrast. Below are the ten serifs, both sans rounds and the serif on the site today.</p>
       </header>
+
+      <BodoniLab />
 
       <section className="wm-section">
         <p className="eyebrow">Serifs · ten directions</p>

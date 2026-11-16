@@ -100,3 +100,40 @@
   .wm-cta { height: 34px; padding: 0 14px; font-size: 12px; }
   .wm-header .wm-mark { font-size: calc(var(--wm-size) * 0.86); }
 }
+
+/* Bodoni lab */
+.lab-controls {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 18px 36px;
+  padding: 16px 20px; border: 1px solid var(--line); border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+.lab-control { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--ink-2); min-width: 240px; flex: 1; }
+.lab-control b { color: var(--ink); font-weight: 500; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.lab-control small { font-size: 11px; color: var(--ink-3); }
+.lab-control input[type='range'] { width: 100%; accent-color: var(--accent); }
+.lab-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.lab-check input { accent-color: var(--accent); }
+
+.lab-n.is-fixed { -webkit-text-stroke: 0.028em currentColor; }
+
+.lab-weights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lab-weight {
+  display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 12px; background: none; cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+}
+.lab-weight.is-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.lab-weight-label { font-family: var(--sans); font-size: 11px; letter-spacing: var(--track-caps); color: var(--ink-3); padding: 8px 12px 0; }
+.lab-weight-paper, .lab-weight-night { display: flex; padding: 14px 12px; }
+.lab-weight-paper { color: var(--ink); }
+.lab-weight-night { background: var(--night, #07080d); color: var(--night-ink, #e9e3d6); }
+.lab-weight .wm-mark { font-size: calc(var(--wm-size) * 0.9); gap: 10px; }
+.lab-weight .wm-star { width: 16px; height: 16px; }
+.lab .wm-big .wm-text { position: static; }
+
+@media (max-width: 760px) {
+  .lab-weights { grid-template-columns: 1fr; }
+  .lab-controls { position: static; }
+}
