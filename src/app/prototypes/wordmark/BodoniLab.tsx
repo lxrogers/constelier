@@ -57,8 +57,8 @@ function Header({ theme, fixN }: { theme: 'paper' | 'night'; fixN: boolean }) {
 }
 
 export default function BodoniLab() {
-  const [track, setTrack] = useState(0.24);
-  const [contrast, setContrast] = useState(100);
+  const [track, setTrack] = useState(0.18);
+  const [contrast, setContrast] = useState(15);
   const [fixN, setFixN] = useState(false);
   const [picked, setPicked] = useState<Record<string, number>>({});
 

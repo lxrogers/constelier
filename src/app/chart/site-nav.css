@@ -21,7 +21,9 @@ nav.site-nav {
   padding: 20px 24px 0 calc(5% + 20px);
 }
 nav.site-nav .logo {
-  font-family: 'Moulin', serif;
+  font-family: var(--font-wordmark);
+  font-weight: var(--wordmark-weight);
+  font-variation-settings: var(--wordmark-opsz);
   font-size: 20px;
   line-height: 1;
   color: #3a3630;
@@ -35,8 +37,8 @@ nav.site-nav .logo-text {
   /* Caps sit high in the line box; drop them onto the star's center. */
   position: relative;
   top: 0.06em;
-  letter-spacing: var(--track-mark);
-  margin-right: calc(-1 * var(--track-mark));
+  letter-spacing: var(--track-wordmark);
+  margin-right: calc(-1 * var(--track-wordmark));
 }
 nav.site-nav .nav-bag {
   margin-left: auto;

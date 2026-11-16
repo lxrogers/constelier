@@ -50,13 +50,21 @@
      labels share one tracking to sit with it. */
   --track-caps: 0.16em;
   --track-mark: 0.26em;
+  /* Wordmark: Bodoni Moda 500 at a small optical size (15% along its
+     6-96 range), which thickens the hairlines so the N holds up. */
+  --font-wordmark: var(--f-wordmark), 'Moulin', 'Times New Roman', serif;
+  --wordmark-weight: 500;
+  --wordmark-opsz: 'opsz' 20;
+  --track-wordmark: 0.18em;
 }
 
 /* ── Wordmark ─────────────────────────────────────────────────
    CONSTELIER in tracked serif caps beside the star. Pages size it with
    font-size; the trailing tracking is pulled back so it centers true. */
 .wordmark {
-  font-family: var(--serif);
+  font-family: var(--font-wordmark);
+  font-weight: var(--wordmark-weight);
+  font-variation-settings: var(--wordmark-opsz);
   font-size: 18px;
   line-height: 1;
   display: inline-flex;
@@ -68,8 +76,8 @@
   /* Caps sit high in the line box; drop them onto the star's center. */
   position: relative;
   top: 0.06em;
-  letter-spacing: var(--track-mark);
-  margin-right: calc(-1 * var(--track-mark));
+  letter-spacing: var(--track-wordmark);
+  margin-right: calc(-1 * var(--track-wordmark));
   font-feature-settings: 'kern' 1, 'lnum' 1;
 }
 .wordmark-icon { width: 1.2em; height: 1.2em; flex: none; }
