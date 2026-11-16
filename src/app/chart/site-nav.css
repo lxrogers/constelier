@@ -22,13 +22,18 @@ nav.site-nav {
 }
 nav.site-nav .logo {
   font-family: 'Moulin', serif;
-  font-size: 30px;
+  font-size: 20px;
+  line-height: 1;
   color: #3a3630;
-  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 14px;
   text-decoration: none;
+  white-space: nowrap;
+}
+nav.site-nav .logo-text {
+  letter-spacing: var(--track-mark);
+  margin-right: calc(-1 * var(--track-mark));
 }
 nav.site-nav .nav-bag {
   margin-left: auto;
@@ -53,7 +58,7 @@ nav.site-nav .nav-bag-count {
   align-items: center;
   justify-content: center;
 }
-nav.site-nav .logo-icon { width: 34px; height: 34px; }
+nav.site-nav .logo-icon { width: 26px; height: 26px; flex: none; }
 
 @media (max-width: 768px) {
   /* (Not while the homepage hero is showing: that view scrolls.) */
@@ -63,6 +68,6 @@ nav.site-nav .logo-icon { width: 34px; height: 34px; }
     height: 100dvh !important;
   }
   nav.site-nav { padding: 12px 12px 0 12px; min-height: 44px; }
-  nav.site-nav .logo { font-size: 24px; }
-  nav.site-nav .logo-icon { width: 28px; height: 28px; }
+  nav.site-nav .logo { font-size: 16px; gap: 11px; }
+  nav.site-nav .logo-icon { width: 21px; height: 21px; }
 }

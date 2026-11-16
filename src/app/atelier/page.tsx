@@ -7,7 +7,7 @@ import NatalChart from '../chart/NatalChart';
 import DesignLink from './components/DesignLink';
 import './atelier.css';
 
-export const metadata: Metadata = { title: 'Constelier · Wear the sky you were born under' };
+export const metadata: Metadata = { title: 'CONSTELIER · Wear the sky you were born under' };
 
 const GALLERY = [
   { src: '/renders/pendant-front-1.webp', sky: 'June 21, 1994', time: '2:30 PM', place: 'New York' },

@@ -41,10 +41,10 @@
   position: relative;
 }
 .form-group label {
-  font-size: 12px;
+  font-size: 11px;
   color: #7a7568;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--track-caps);
 }
 input[type="text"] {
   background: #faf7f0;

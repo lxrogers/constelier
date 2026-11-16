@@ -8,7 +8,7 @@ import LegalLinks from '@/components/LegalLinks';
 import { SHIP_WITHIN_TEXT } from '@/lib/commerce/shop-terms';
 import '../../bag/bag.css';
 
-export const metadata: Metadata = { title: 'Order confirmed · Constelier' };
+export const metadata: Metadata = { title: 'Order confirmed · CONSTELIER' };
 export const dynamic = 'force-dynamic';
 
 export default async function OrderSuccessPage({ searchParams }: {

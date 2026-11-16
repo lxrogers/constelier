@@ -4,26 +4,26 @@ import '@/styles/globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.constelier.com'),
-  title: 'Constelier',
+  title: 'CONSTELIER',
   description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
   openGraph: {
-    title: 'Constelier',
+    title: 'CONSTELIER',
     description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
     url: 'https://www.constelier.com',
-    siteName: 'Constelier',
+    siteName: 'CONSTELIER',
     images: [
       {
         url: '/favicons/favicon-512x512.png',
         width: 512,
         height: 512,
-        alt: 'Constelier',
+        alt: 'CONSTELIER',
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Constelier',
+    title: 'CONSTELIER',
     description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
     images: ['/favicons/favicon-512x512.png'],
   },

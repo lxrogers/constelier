@@ -1,3 +1,7 @@
+// The brand is set in caps: CONSTELIER. Use BRAND in titles and the wordmark;
+// running prose can keep "Constelier".
+export const BRAND = 'CONSTELIER';
+
 export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision" aria-hidden="true">
@@ -17,7 +21,7 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={`wordmark ${className || ''}`}>
       <LogoMark className="wordmark-icon" />
-      Constelier
+      <span className="wordmark-text">{BRAND}</span>
     </span>
   );
 }

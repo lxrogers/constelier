@@ -46,7 +46,30 @@
   --gold: #d4b26a;
   --gold-hi: #f1d89a;
   --gold-deep: #a8823a;
+  /* Caps tracking. The wordmark is set in caps (CONSTELIER), so small caps
+     labels share one tracking to sit with it. */
+  --track-caps: 0.16em;
+  --track-mark: 0.26em;
 }
+
+/* ── Wordmark ─────────────────────────────────────────────────
+   CONSTELIER in tracked serif caps beside the star. Pages size it with
+   font-size; the trailing tracking is pulled back so it centers true. */
+.wordmark {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  white-space: nowrap;
+}
+.wordmark-text {
+  letter-spacing: var(--track-mark);
+  margin-right: calc(-1 * var(--track-mark));
+  font-feature-settings: 'kern' 1, 'lnum' 1;
+}
+.wordmark-icon { width: 1.2em; height: 1.2em; flex: none; }
 
 .theme-paper {
   --bg: #f5f0e6;
@@ -176,7 +199,7 @@ body {
   font-family: var(--sans);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--track-caps);
   text-transform: uppercase;
   color: var(--ink-3);
 }
