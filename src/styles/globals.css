@@ -80,7 +80,7 @@
   margin-right: calc(-1 * var(--track-wordmark));
   font-feature-settings: 'kern' 1, 'lnum' 1;
 }
-.wordmark-icon { width: 1.2em; height: 1.2em; flex: none; }
+.wordmark-icon { height: 1.55em; width: 1.09em; flex: none; }
 
 .theme-paper {
   --bg: #f5f0e6;

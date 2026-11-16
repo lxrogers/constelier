@@ -63,7 +63,7 @@ nav.site-nav .nav-bag-count {
   align-items: center;
   justify-content: center;
 }
-nav.site-nav .logo-icon { width: 26px; height: 26px; flex: none; }
+nav.site-nav .logo-icon { width: 22px; height: 31px; flex: none; }
 
 @media (max-width: 768px) {
   /* (Not while the homepage hero is showing: that view scrolls.) */
@@ -74,5 +74,5 @@ nav.site-nav .logo-icon { width: 26px; height: 26px; flex: none; }
   }
   nav.site-nav { padding: 12px 12px 0 12px; min-height: 44px; }
   nav.site-nav .logo { font-size: 16px; gap: 11px; }
-  nav.site-nav .logo-icon { width: 21px; height: 21px; }
+  nav.site-nav .logo-icon { width: 18px; height: 25px; }
 }
