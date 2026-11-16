@@ -1,24 +1,28 @@
 'use client';
 
 import { usePendantGrid } from '@/hooks/usePendantGrid';
-import { LAB_SAMPLES } from '@/config/lab-samples';
+import type { LabSample } from '@/config/lab-samples';
 import type { PendantParams } from '@/config/pendant-params';
 import type { PrintItem } from '@/lib/print-cart';
+import type { Chord } from '@/lib/natal-chords';
 
 interface Props {
+  samples: LabSample[];
   params: PendantParams;
   draft: boolean;
   onAddToCart: (item: Omit<PrintItem, 'id' | 'addedAt'>) => void;
+  onRender: (label: string, chords: Chord[]) => void;
+  canRender: boolean;
 }
 
-export default function PreviewGrid({ params, draft, onAddToCart }: Props) {
-  const { canvases, status, chords, thumbnail } = usePendantGrid(LAB_SAMPLES, params, draft);
+export default function PreviewGrid({ samples, params, draft, onAddToCart, onRender, canRender }: Props) {
+  const { canvases, status, chords, thumbnail } = usePendantGrid(samples, params, draft);
 
   return (
     <section className="lab-card lab-grid-wrap">
       <h2>Sample charts</h2>
       <div className="lab-grid">
-        {LAB_SAMPLES.map((s, i) => {
+        {samples.map((s, i) => {
           const st = status[i];
           return (
             <figure key={s.id} className="lab-sample">
@@ -34,6 +38,7 @@ export default function PreviewGrid({ params, draft, onAddToCart }: Props) {
                   {chords[i]?.length ?? 0} chords{st?.ms != null ? ` · ${Math.round(st.ms)} ms` : ''}
                 </span>
               </figcaption>
+              <div className="lab-sample-actions">
               <button type="button" className="lab-btn" disabled={!chords[i]?.length}
                 onClick={() => onAddToCart({
                   label: s.label.split(' (')[0],
@@ -44,6 +49,11 @@ export default function PreviewGrid({ params, draft, onAddToCart }: Props) {
                 })}>
                 + Print cart
               </button>
+              <button type="button" className="lab-btn" disabled={!canRender || !chords[i]?.length}
+                onClick={() => onRender(s.label.split(' (')[0], chords[i])}>
+                Render
+              </button>
+              </div>
             </figure>
           );
         })}

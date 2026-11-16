@@ -1,7 +1,8 @@
 'use client';
 
 // /lab: the full configurator with every setting exposed, a preview of the
-// same settings on four sample charts, and a 3D-print cart. "Save as
+// same settings on four sample charts, a 3D-print cart, and photo renders
+// of any of them (Blender on Modal). "Save as
 // default" writes src/config/pendant-defaults.json, which /chart reads.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -9,18 +10,29 @@ import NatalChart from '../chart/LabChart';
 import LabPanel from './components/LabPanel';
 import PreviewGrid from './components/PreviewGrid';
 import PrintCart from './components/PrintCart';
+import RenderPanel, { type SceneChoice } from './components/RenderPanel';
 import { usePrintCart } from '@/hooks/usePrintCart';
+import { useRenders } from '@/hooks/useRenders';
+import { snapshotLabel, snapshotMainChart } from '@/lib/main-chart-snapshot';
+import type { RenderQuality } from '@/lib/lab-render';
+import type { Chord } from '@/lib/natal-chords';
+import { LAB_SAMPLES, randomSamples, type LabSample } from '@/config/lab-samples';
 import { normalizeParams, withDerived, PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
 import './lab.css';
 
 const DRAFT_KEY = 'constelier-lab-params';
+const SAMPLES_KEY = 'constelier-lab-samples';
 
 export default function LabPage() {
   const [saved, setSaved] = useState<PendantParams>(PENDANT_DEFAULTS);
   const [canWrite, setCanWrite] = useState(true);
   const [params, setParams] = useState<PendantParams>(PENDANT_DEFAULTS);
   const [draft, setDraft] = useState(false);
+  const [samples, setSamples] = useState<LabSample[]>(LAB_SAMPLES);
   const cart = usePrintCart();
+  const renders = useRenders();
+  const [scene, setScene] = useState<SceneChoice>('wall');
+  const [quality, setQuality] = useState<RenderQuality>('draft');
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Restore the working settings from last time, and fetch the saved
@@ -30,10 +42,24 @@ export default function LabPage() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) setParams(normalizeParams(JSON.parse(raw), PENDANT_DEFAULTS));
     } catch {}
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAMPLES_KEY) || 'null');
+      if (Array.isArray(saved) && saved.length === LAB_SAMPLES.length) setSamples(saved);
+    } catch {}
     fetch('/api/lab/defaults').then((r) => r.json()).then((d) => {
       if (d?.defaults) setSaved(normalizeParams(d.defaults));
       setCanWrite(!!d?.canWrite);
     }).catch(() => {});
+  }, []);
+
+  // Random charts survive a reload until "Standard samples" puts the
+  // tuned four back.
+  const changeSamples = useCallback((next: LabSample[] | null) => {
+    setSamples(next ?? LAB_SAMPLES);
+    try {
+      if (next) localStorage.setItem(SAMPLES_KEY, JSON.stringify(next));
+      else localStorage.removeItem(SAMPLES_KEY);
+    } catch {}
   }, []);
 
   const update = useCallback((next: Partial<PendantParams>, isDraft: boolean) => {
@@ -59,6 +85,19 @@ export default function LabPage() {
     setSaved(normalizeParams(d.defaults));
   }
 
+  // Photo-render a pendant with the settings on screen right now.
+  const render = useCallback((label: string, chords: Chord[]) => {
+    renders.start(label, { ...params, aspects: [...params.aspects] }, chords,
+      scene === 'both' ? ['wall', 'stone'] : [scene], quality);
+  }, [renders, params, scene, quality]);
+
+  const renderMain = useCallback(() => {
+    const snap = snapshotMainChart();
+    if (!snap?.design.geometry.chords.length) return 'The main chart has no pendant yet.';
+    render(snapshotLabel(snap), snap.design.geometry.chords);
+    return null;
+  }, [render]);
+
   return (
     <div className="lab lab-root">
       <NatalChart
@@ -69,12 +108,18 @@ export default function LabPage() {
         orbit
         sidePanel={
           <LabPanel params={params} saved={saved} canWrite={canWrite}
-            onChange={update} onSave={saveDefaults} />
+            onChange={update} onSave={saveDefaults}
+            randomSamples={samples !== LAB_SAMPLES}
+            onNewSamples={() => changeSamples(randomSamples(LAB_SAMPLES.length))}
+            onStandardSamples={() => changeSamples(null)} />
         }
       />
       <div className="lab-bottom">
-        <PreviewGrid params={params} draft={draft} onAddToCart={cart.add} />
+        <PreviewGrid samples={samples} params={params} draft={draft} onAddToCart={cart.add}
+          onRender={render} canRender={!!renders.available} />
         <PrintCart cart={cart} params={params} />
+        <RenderPanel renders={renders} scene={scene} quality={quality}
+          onScene={setScene} onQuality={setQuality} onRenderMain={renderMain} />
       </div>
     </div>
   );

@@ -4,27 +4,11 @@ import { useState } from 'react';
 import type { usePrintCart } from '@/hooks/usePrintCart';
 import { exportPrintCart, downloadBlob } from '@/lib/print-cart';
 import type { PendantParams } from '@/config/pendant-params';
+import { snapshotLabel, snapshotMainChart } from '@/lib/main-chart-snapshot';
 
 interface Props {
   cart: ReturnType<typeof usePrintCart>;
   params: PendantParams;
-}
-
-interface Snapshot {
-  design: {
-    spec: { birth: { year: string; month: string; day: string; hour: string; minute: string; lat: number; lon: number; location: string } };
-    geometry: { chords: { a1: number; a2: number }[] };
-  };
-  thumbnail: string | null;
-}
-
-// Asks the main chart for its current pendant (same event the bag uses).
-function snapshotMainChart(): Snapshot | null {
-  let result: Snapshot | null = null;
-  document.getElementById('chart')?.dispatchEvent(new CustomEvent('design-snapshot', {
-    detail: { respond: (s: Snapshot | null) => { result = s; } },
-  }));
-  return result;
 }
 
 export default function PrintCart({ cart, params }: Props) {
@@ -36,9 +20,8 @@ export default function PrintCart({ cart, params }: Props) {
     const snap = snapshotMainChart();
     if (!snap) { setError('The main chart has no pendant yet.'); return; }
     const b = snap.design.spec.birth;
-    const place = b.location.split(',')[0].trim();
     cart.add({
-      label: `${b.month}/${b.day}/${b.year} ${b.hour.padStart(2, '0')}:${b.minute.padStart(2, '0')}${place ? ' · ' + place : ''}`,
+      label: snapshotLabel(snap),
       params: { ...params, aspects: [...params.aspects] },
       chords: snap.design.geometry.chords,
       birth: {
