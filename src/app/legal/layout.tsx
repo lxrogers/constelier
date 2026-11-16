@@ -7,7 +7,7 @@ import { LEGAL_DRAFT } from './policy';
 import './legal.css';
 
 export const metadata: Metadata = {
-  title: { template: '%s · Constelier', default: 'Policies · Constelier' },
+  title: { template: '%s · CONSTELIER', default: 'Policies · CONSTELIER' },
   // Drafts stay out of search results until LEGAL_DRAFT is false.
   robots: LEGAL_DRAFT ? { index: false, follow: true } : undefined,
 };

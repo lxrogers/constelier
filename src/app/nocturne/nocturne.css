@@ -51,8 +51,8 @@
 .noc-links a:hover { color: var(--ink); }
 .noc-nav-cta { height: 40px; padding: 0 20px; font-size: 13px; }
 
-.wordmark { font-family: var(--serif); font-size: 26px; display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
-.wordmark-icon { width: 26px; height: 26px; color: var(--accent); }
+.noc .wordmark { font-size: 19px; }
+.noc .wordmark-icon { color: var(--accent); }
 
 /* Hero */
 .noc-hero {
@@ -276,15 +276,13 @@
   color: var(--ink-3);
   font-size: 13px;
 }
-.noc-foot .wordmark { color: var(--ink-2); font-size: 20px; }
-.noc-foot .wordmark-icon { width: 20px; height: 20px; }
+.noc-foot .wordmark { color: var(--ink-2); font-size: 14px; }
 
 /* Phone */
 @media (max-width: 860px) {
   .noc-links { display: none; }
   .noc-nav { padding: 14px var(--pad); gap: 12px; justify-content: space-between; }
-  .wordmark { font-size: 22px; }
-  .wordmark-icon { width: 22px; height: 22px; }
+  .noc .wordmark { font-size: 16px; }
   .noc-nav-cta { height: 36px; padding: 0 16px; }
 
   .noc-hero {

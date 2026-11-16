@@ -8,8 +8,8 @@
   background: #000;
 }
 
-.ecl .wordmark { font-family: var(--serif); font-size: 24px; display: inline-flex; align-items: center; gap: 8px; line-height: 1; color: var(--ink); }
-.ecl .wordmark-icon { width: 24px; height: 24px; color: var(--ink); }
+.ecl .wordmark { font-size: 18px; color: var(--ink); }
+.ecl .wordmark-icon { color: var(--ink); }
 
 .ecl-nav {
   position: sticky;
@@ -237,16 +237,15 @@
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.ecl-foot .wordmark { font-size: 20px; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
-.ecl-foot .wordmark-icon { width: 20px; height: 20px; color: var(--ink-2); }
+.ecl-foot .wordmark { font-size: 14px; letter-spacing: 0; color: var(--ink-2); }
+.ecl-foot .wordmark-icon { color: var(--ink-2); }
 
 @media (prefers-reduced-motion: reduce) {
   .ecl-wheel, .ecl-hero-pendant { animation: none; }
 }
 
 @media (max-width: 860px) {
-  .ecl .wordmark { font-size: 21px; }
-  .ecl .wordmark-icon { width: 21px; height: 21px; }
+  .ecl .wordmark { font-size: 16px; }
   .ecl-nav { padding: 14px var(--pad); }
 
   .ecl-hero { grid-template-columns: 1fr; min-height: auto; padding-top: 0; padding-bottom: 72px; gap: 8px; }

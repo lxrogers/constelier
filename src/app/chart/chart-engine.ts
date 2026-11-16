@@ -66,7 +66,15 @@ export interface ChartEngineOptions {
   // Drag to orbit the 3D pendant, scroll to zoom, double-click to reset
   // (lab only). Emits `pendant-camera` on window with the view direction.
   orbit?: boolean;
+  // Return false to leave the address bar alone (the homepage hero shows the
+  // chart without putting birth details in the URL).
+  shouldSyncUrl?: () => boolean;
 }
+
+// Idle movement of the 3D pendant while it is only being looked at (the
+// homepage hero): `sway` rocks it a few degrees so the light travels across
+// the gold, `spin` also turns it slowly in its own plane.
+export type PendantMotion = 'sway' | 'spin';
 
 // What the reading is currently about: these aspect lines (and planets) are
 // highlighted, the 3D pendant fades so they show through, and with `zoom`
@@ -88,6 +96,8 @@ export interface ChartEngine {
   // `draft`: a slider is mid-drag, so a quick build is fine; a call with
   // draft false afterwards settles it at full quality.
   setParams(next: Partial<PendantParams>, opts?: { draft?: boolean }): void;
+  // Start idle movement, or (null) ease the pendant back flat on the chart.
+  setMotion(mode: PendantMotion | null): void;
 }
 
 export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasElement, options: ChartEngineOptions): ChartEngine {
@@ -895,6 +905,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── URL Sync ──────────────────────────────────────────────────
 
   function syncURL() {
+    if (options.shouldSyncUrl && !options.shouldSyncUrl()) return;
     const p = new URLSearchParams();
     // Keep page-level params (theme, where they came from, dev tools).
     const cur = new URLSearchParams(window.location.search);
@@ -1911,7 +1922,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // (unless orbited off top-down, where the backdrop no longer lines up)
       ctx.globalAlpha = pendantAlpha;
       ctx.fillStyle = T.paper;
-      if (!orbited) ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
+      if (!orbited && motionAmt === 0) ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
       ctx.restore();
       ctx.restore();
       return;
@@ -2354,6 +2365,71 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     emitCamera();
   }
 
+  // ── Idle motion (homepage hero) ────────────────────────────
+  // The viewer only renders on demand, so this loop runs just while the
+  // pendant is moving: it eases in, and after setMotion(null) eases back to
+  // flat (so the 2D lines underneath line up again) and stops.
+
+  let motionTarget: PendantMotion | null = null;
+  let motionKind: PendantMotion = 'sway';
+  let motionAmt = 0; // 0 flat on the chart .. 1 full movement
+  let motionT = 0;
+  let motionSpin = 0;
+  let motionLast = 0;
+  let motionId = 0;
+  const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setMotion(mode: PendantMotion | null) {
+    if (reducedMotion) mode = null;
+    motionTarget = mode;
+    if (mode) motionKind = mode;
+    if (!motionId && (mode || motionAmt > 0)) { motionLast = 0; motionId = requestAnimationFrame(motionStep); }
+  }
+
+  function motionStep(now: number) {
+    motionId = 0;
+    // 60 a second is plenty for something this slow (some screens offer 120).
+    if (motionLast && now - motionLast < 15) { motionId = requestAnimationFrame(motionStep); return; }
+    const dt = motionLast ? Math.min(0.05, (now - motionLast) / 1000) : 0;
+    motionLast = now;
+    const was = motionAmt;
+    const target = motionTarget ? 1 : 0;
+    // Slow to wake, quicker to settle (it lands as the layout moves).
+    motionAmt += (target - motionAmt) * (1 - Math.exp(-dt * (target ? 1.4 : 5)));
+    if (!target && motionAmt < 0.003) motionAmt = 0;
+    motionT += dt;
+    if (motionKind === 'spin') {
+      if (target) motionSpin += dt * 0.12;
+      // Not symmetric, so it has to come back to a whole turn.
+      else motionSpin += (Math.round(motionSpin / (2 * Math.PI)) * 2 * Math.PI - motionSpin) * (1 - Math.exp(-dt * 5));
+    }
+    applyMotion();
+    if ((was === 0) !== (motionAmt === 0) && displayState) drawChartState(displayState);
+    if (target || motionAmt > 0) motionId = requestAnimationFrame(motionStep);
+  }
+
+  function applyMotion() {
+    const v = pendantViewer;
+    if (!v || !shown3d) return;
+    const a = motionAmt;
+    const deg = Math.PI / 180;
+    const g = v.pendantGroup;
+    // Two slow, unrelated periods so it never visibly repeats. Off-centre on
+    // purpose: the softbox sits to one side, so tilting the other way turns
+    // the face dark. This range stays mostly bright and only dips toward
+    // bronze at the far end of each swing.
+    const pitch = (-1.5 + Math.sin(motionT * 0.43 + 1.1) * 2.5) * deg * a;
+    const roll = (2.5 + Math.sin(motionT * 0.31) * 4.5) * deg * a;
+    const still = a === 0;
+    g.rotation.set(Math.PI / 2 + pitch, roll, still || motionKind !== 'spin' ? 0 : motionSpin);
+    // Float it off the surface (a tilted edge would dip through its own
+    // shadow), with the lighter shadow of something not quite touching.
+    g.position.y = a * 9;
+    v.setShadowOpacity(0.2 - 0.09 * a);
+    v.setMoving(!still);
+    v.renderOnce();
+  }
+
   async function start3DTransition() {
     if (!pendantModelData?.model) return;
     _3dModelReady = false;
@@ -2394,7 +2470,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── Cleanup ────────────────────────────────────────────────
 
 
-  return { destroy, setParams, setFocus };
+  return { destroy, setParams, setFocus, setMotion };
 
   function destroy() {
     if (animFrameId) cancelAnimationFrame(animFrameId);
@@ -2403,6 +2479,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (pendantFadeId) cancelAnimationFrame(pendantFadeId);
     if (expansionAnimId) cancelAnimationFrame(expansionAnimId);
     if (_dotAnimId) cancelAnimationFrame(_dotAnimId);
+    if (motionId) cancelAnimationFrame(motionId);
 
     canvas.removeEventListener('mousemove', onMouseMove);
     canvas.removeEventListener('mouseleave', onMouseLeave);

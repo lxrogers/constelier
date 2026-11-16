@@ -1,8 +1,10 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { useGlide } from '@/hooks/useGlide';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useHomeView } from '@/hooks/useHomeView';
+import SiteNav from './SiteNav';
 import { trackFunnel } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
@@ -18,6 +20,20 @@ import './chart.css';
 // Off until launch: the last step stays the waitlist unless this is 'true'.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
 
+// The homepage's own parts. With these the page opens on the hero (the same
+// live chart, larger, beside the headline) and "Design yours" changes the
+// layout around it instead of loading /chart. See hooks/useHomeView.
+export interface HomeSlots {
+  // Classes for the element that wraps both layouts (the homepage's theme).
+  className: string;
+  nav: React.ReactNode;
+  hero: React.ReactNode;
+  // Sits over the chart (the handwritten note).
+  note?: React.ReactNode;
+  // Everything under the hero.
+  below: React.ReactNode;
+}
+
 interface NatalChartProps {
   // Controlled pendant settings (the lab). Without them the page uses the
   // saved defaults plus whatever the prod settings panel exposes.
@@ -31,9 +47,12 @@ interface NatalChartProps {
   // Extra column to the right of the chart (the lab's settings).
   sidePanel?: React.ReactNode;
   className?: string;
+  home?: HomeSlots;
 }
 
-export default function NatalChart({ params: controlledParams, draft = false, urlOverrides = true, orbit = false, sidePanel, className }: NatalChartProps = {}) {
+export default function NatalChart({ params: controlledParams, draft = false, urlOverrides = true, orbit = false, sidePanel, className, home }: NatalChartProps = {}) {
+  const { view, rootRef, goHome, isHome } = useHomeView(!!home);
+  const [engineReady, setEngineReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas3dRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -43,9 +62,15 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const [ownDraft, setOwnDraft] = useState(false);
   const params = controlledParams ?? ownParams;
   const isDraft = controlledParams ? draft : ownDraft;
-  const latest = useRef({ params, isDraft });
-  latest.current = { params, isDraft };
   const [step, setStep] = useState<'birth' | 'reading' | 'waitlist'>('birth');
+  // No bail while entering birth details or reading the lines: the pendant
+  // reads as the chart's shape. It joins the design at the last step.
+  const shownParams = useMemo(
+    () => (step === 'waitlist' ? params : { ...params, bailEnabled: false }),
+    [params, step],
+  );
+  const latest = useRef({ params: shownParams, isDraft });
+  latest.current = { params: shownParams, isDraft };
   const mainRef = useRef<HTMLDivElement>(null);
   // The model's box changes between steps; glide it there instead of jumping.
   const captureGlide = useGlide(mainRef, wrapperRef, step);
@@ -121,7 +146,10 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         params: latest.current.params,
         urlOverrides,
         orbit,
+        // Birth details stay out of the address bar on the homepage.
+        shouldSyncUrl: () => !isHome(),
       });
+      setEngineReady(true);
     })();
 
     return () => {
@@ -139,8 +167,30 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   // Push setting changes into the engine. (Changes made before it finished
   // loading are already in the params it was created with.)
   useEffect(() => {
-    engineRef.current?.setParams(params, { draft: isDraft });
-  }, [params, isDraft]);
+    engineRef.current?.setParams(shownParams, { draft: isDraft });
+  }, [shownParams, isDraft]);
+
+  // Back on the hero, the next visit to the design starts from birth details.
+  useEffect(() => {
+    if (view === 'home') setStep('birth');
+  }, [view]);
+
+  // The hero's pendant moves a little while it is only being looked at, and
+  // lies flat again for the design. (?motion=spin or ?motion=off to compare.)
+  useEffect(() => {
+    const engine = engineRef.current;
+    const stage = mainRef.current;
+    if (!home || !engineReady || !engine || !stage) return;
+    if (view !== 'home') { engine.setMotion(null); return; }
+    const q = new URLSearchParams(window.location.search).get('motion');
+    if (q === 'off') return;
+    const mode = q === 'spin' ? 'spin' : 'sway';
+    // Not while it is scrolled out of sight.
+    const io = new IntersectionObserver(([e]) => engine.setMotion(e.isIntersecting ? mode : null));
+    io.observe(stage);
+    return () => io.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, engineReady]);
 
   // Birth details and the reading share one layout: model left, text right.
   // (The lab keeps its card for birth details, beside its own side panel.)
@@ -148,9 +198,9 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   // reading doesn't flip the model to the other side.
   const flow = step === 'reading' || (!sidePanel && (step === 'birth' || step === 'waitlist'));
 
-  return (
+  const page = (
     <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
-      <div id="controls" ref={controlsRef}>
+      <div id="controls" ref={controlsRef} data-leave={home ? 'right' : undefined}>
         <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart' : 'Customize your Aspect Pendant'}</h2>
         {step === 'birth' && (
           <p className="controls-intro hide-mobile">
@@ -262,10 +312,11 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         </div>
       </div>
       <div id="main" ref={mainRef}>
-        <div className="chart-wrapper" ref={wrapperRef}>
+        <div className="chart-wrapper" ref={wrapperRef} data-glide>
           <canvas ref={canvasRef} id="chart" width="700" height="700"></canvas>
           <canvas ref={canvas3dRef} id="chart-3d" width="700" height="700"></canvas>
         </div>
+        {home?.note && <div className="home-only" data-leave="up">{home.note}</div>}
         {!controlledParams && (
           <SettingsPanel params={ownParams} onChange={(next, d) => {
             setOwnParams((p) => ({ ...p, ...next }));
@@ -274,6 +325,18 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         )}
       </div>
       {sidePanel}
+    </div>
+  );
+
+  if (!home) return page;
+
+  return (
+    <div ref={rootRef} className={`home-shell ${home.className}`} data-view={view}>
+      <div className="home-only" data-leave="up">{home.nav}</div>
+      <div className="design-only"><SiteNav onHome={goHome} /></div>
+      <div className="home-only atl-hero-copy" data-leave="left">{home.hero}</div>
+      {page}
+      <div className="home-only atl-below">{home.below}</div>
     </div>
   );
 }
