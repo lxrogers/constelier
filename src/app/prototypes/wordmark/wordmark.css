@@ -116,7 +116,7 @@
 .lab-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
 .lab-check input { accent-color: var(--accent); }
 
-.lab-n.is-fixed { -webkit-text-stroke: 0.028em currentColor; }
+.lab-n.is-fixed { -webkit-text-stroke: var(--wm-nstroke, 0.02em) currentColor; }
 
 .lab-weights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .lab-weight {

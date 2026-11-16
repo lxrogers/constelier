@@ -15,17 +15,18 @@ type Face = {
   opsz?: [number, number]; // optical-size range the Contrast slider moves through
   kind: string;
   nNote: string;
+  nStroke: number; // em of stroke the N fix adds; tuned per face so the N matches its neighbors
   note: string;
   pick?: boolean;
 };
 
 const FACES: Face[] = [
-  { n: '1', face: 'Bodoni Moda', family: 'var(--f-bodoni)', weights: [400, 500, 700], size: 18, opsz: [6, 96], kind: 'Your favorite', nNote: 'N verticals are hairlines, much lighter than the T, L and I.', note: 'Lowering Contrast (a smaller optical size) thickens the hairlines and steadies the N.' },
-  { n: '2', face: 'Noto Serif Display', family: 'var(--f-notodisplay)', weights: [200, 300, 500], size: 19, kind: 'Fine Didone, light weights', pick: true, nNote: 'Same Didone N, but every stroke is finer, so it sits close to its neighbors.', note: 'The airiest of the six: long hairlines and lots of light between strokes, closest to your light-and-shadow feeling.' },
-  { n: '3', face: 'Playfair', family: 'var(--f-playfair)', weights: [300, 400, 600], size: 18, opsz: [12, 600], kind: 'Extreme-contrast display', nNote: 'At full contrast the N is as thin as Bodoni’s; lower Contrast fixes it.', note: 'The newer Playfair with an optical-size range up to poster size. Very dramatic and sharp.' },
-  { n: '4', face: 'Playfair Display', family: 'var(--f-playfairdisplay)', weights: [400, 500, 700], size: 18, kind: 'Transitional high contrast', nNote: 'Thin N verticals, but sturdier than Bodoni’s, so the gap is smaller.', note: 'Rounder and warmer than Bodoni; very familiar from editorial sites.' },
-  { n: '5', face: 'Libre Bodoni', family: 'var(--f-librebodoni)', weights: [400, 500, 700], size: 17, kind: 'Bodoni cut for smaller sizes', nNote: 'Thicker hairlines, so the N holds up well.', note: 'Same skeleton as Bodoni Moda with less contrast. Sturdier and darker, less spacey.' },
-  { n: '6', face: 'Newsreader Display', family: 'var(--f-newsreader)', weights: [200, 300, 500], size: 19, opsz: [6, 72], kind: 'Moderate contrast', nNote: 'The most balanced N of the six.', note: 'Softer contrast and gentle wedge serifs. Calm and readable, the least dramatic.' },
+  { n: '1', face: 'Bodoni Moda', nStroke: 0.03, family: 'var(--f-bodoni)', weights: [400, 500, 700], size: 18, opsz: [6, 96], kind: 'Your favorite', nNote: 'N verticals are hairlines, much lighter than the T, L and I.', note: 'Lowering Contrast (a smaller optical size) thickens the hairlines and steadies the N.' },
+  { n: '2', face: 'Noto Serif Display', nStroke: 0.01, family: 'var(--f-notodisplay)', weights: [200, 300, 500], size: 19, kind: 'Fine Didone, light weights', pick: true, nNote: 'Same Didone N, but every stroke is finer, so it sits close to its neighbors.', note: 'The airiest of the six: long hairlines and lots of light between strokes, closest to your light-and-shadow feeling.' },
+  { n: '3', face: 'Playfair', nStroke: 0.028, family: 'var(--f-playfair)', weights: [300, 400, 600], size: 18, opsz: [12, 600], kind: 'Extreme-contrast display', nNote: 'At full contrast the N is as thin as Bodoni’s; lower Contrast fixes it.', note: 'The newer Playfair with an optical-size range up to poster size. Very dramatic and sharp.' },
+  { n: '4', face: 'Playfair Display', nStroke: 0.018, family: 'var(--f-playfairdisplay)', weights: [400, 500, 700], size: 18, kind: 'Transitional high contrast', nNote: 'Thin N verticals, but sturdier than Bodoni’s, so the gap is smaller.', note: 'Rounder and warmer than Bodoni; very familiar from editorial sites.' },
+  { n: '5', face: 'Libre Bodoni', nStroke: 0.01, family: 'var(--f-librebodoni)', weights: [400, 500, 700], size: 17, kind: 'Bodoni cut for smaller sizes', nNote: 'Thicker hairlines, so the N holds up well.', note: 'Same skeleton as Bodoni Moda with less contrast. Sturdier and darker, less spacey.' },
+  { n: '6', face: 'Newsreader Display', nStroke: 0.006, family: 'var(--f-newsreader)', weights: [200, 300, 500], size: 19, opsz: [6, 72], kind: 'Moderate contrast', nNote: 'The most balanced N of the six.', note: 'Softer contrast and gentle wedge serifs. Calm and readable, the least dramatic.' },
 ];
 
 function Word({ fixN }: { fixN: boolean }) {
@@ -89,6 +90,7 @@ export default function BodoniLab() {
             '--wm-size': `${f.size}px`,
             '--wm-track': `${track}em`,
             '--wm-nudge': '0.02em',
+            '--wm-nstroke': `${f.nStroke}em`,
             '--wm-fvs': opsz ? `'opsz' ${opsz.toFixed(0)}` : 'normal',
           } as CSSProperties;
           const at = (w: number) => ({ ...base, '--wm-weight': w }) as CSSProperties;
