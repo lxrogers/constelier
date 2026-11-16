@@ -4,15 +4,18 @@ import { usePendantGrid } from '@/hooks/usePendantGrid';
 import type { LabSample } from '@/config/lab-samples';
 import type { PendantParams } from '@/config/pendant-params';
 import type { PrintItem } from '@/lib/print-cart';
+import type { Chord } from '@/lib/natal-chords';
 
 interface Props {
   samples: LabSample[];
   params: PendantParams;
   draft: boolean;
   onAddToCart: (item: Omit<PrintItem, 'id' | 'addedAt'>) => void;
+  onRender: (label: string, chords: Chord[]) => void;
+  canRender: boolean;
 }
 
-export default function PreviewGrid({ samples, params, draft, onAddToCart }: Props) {
+export default function PreviewGrid({ samples, params, draft, onAddToCart, onRender, canRender }: Props) {
   const { canvases, status, chords, thumbnail } = usePendantGrid(samples, params, draft);
 
   return (
@@ -35,6 +38,7 @@ export default function PreviewGrid({ samples, params, draft, onAddToCart }: Pro
                   {chords[i]?.length ?? 0} chords{st?.ms != null ? ` · ${Math.round(st.ms)} ms` : ''}
                 </span>
               </figcaption>
+              <div className="lab-sample-actions">
               <button type="button" className="lab-btn" disabled={!chords[i]?.length}
                 onClick={() => onAddToCart({
                   label: s.label.split(' (')[0],
@@ -45,6 +49,11 @@ export default function PreviewGrid({ samples, params, draft, onAddToCart }: Pro
                 })}>
                 + Print cart
               </button>
+              <button type="button" className="lab-btn" disabled={!canRender || !chords[i]?.length}
+                onClick={() => onRender(s.label.split(' (')[0], chords[i])}>
+                Render
+              </button>
+              </div>
             </figure>
           );
         })}
