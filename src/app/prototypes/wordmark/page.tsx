@@ -15,7 +15,7 @@ type Option = { id: string; n: string; face: string; spec: string; note: string;
 
 const OPTIONS: Option[] = [
   { id: 'graphik', n: 'A', face: 'Graphik', spec: 'Medium, 0.34em tracking', note: 'The site’s own body face, widely spaced. Crisp and calm like Linear or Stripe, and it ties the mark to the UI, but it has the least character of the three.' },
-  { id: 'jost', n: 'B', face: 'Jost', spec: 'Regular, 0.36em tracking', pick: true, note: 'A Futura-style geometric with round Os and pointed Ns. Reads like a quiet fashion house: mysterious and expensive without the stuffy serif.' },
+  { id: 'jost', n: 'B', face: 'Jost', spec: 'Regular, 0.36em tracking', pick: true, note: 'A Futura-style geometric with perfectly round Os and a light, even stroke. Reads like a quiet fashion house: mysterious and expensive without the stuffy serif.' },
   { id: 'syne', n: 'C', face: 'Syne', spec: 'SemiBold, 0.16em tracking', note: 'Wide, slightly odd letterforms from an art-school foundry. The most edge and the most Gen Z, but it pulls attention from the pendant.' },
 ];
 
