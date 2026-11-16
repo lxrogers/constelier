@@ -65,6 +65,9 @@
   white-space: nowrap;
 }
 .wordmark-text {
+  /* Caps sit high in the line box; drop them onto the star's center. */
+  position: relative;
+  top: 0.06em;
   letter-spacing: var(--track-mark);
   margin-right: calc(-1 * var(--track-mark));
   font-feature-settings: 'kern' 1, 'lnum' 1;

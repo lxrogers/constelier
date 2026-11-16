@@ -26,16 +26,17 @@ function Svg({ size, children, title }: { size: number; children: ReactNode; tit
   );
 }
 
-/** 1 · Aspect disc: the chart itself. A ring and three chords. */
+/** 1 · Aspect disc: the chart itself. A ring and the chords of one sky,
+ *  laid out like the pendant: a long diagonal and a small triangle. */
 export function AspectDisc({ size = 64 }: { size?: number }) {
   const heavy = size <= 24;
-  const w = heavy ? 5 : 3;
+  const w = heavy ? 4.5 : 2.6;
   return (
     <Svg size={size}>
-      <circle cx={C} cy={C} r={27} fill="none" stroke="currentColor" strokeWidth={w + 0.5} />
-      <line {...chord(205, 35, 27)} stroke="currentColor" strokeWidth={w} />
-      {!heavy && <line {...chord(120, 262, 27)} stroke="currentColor" strokeWidth={w * 0.8} />}
-      <line {...chord(150, 330, 27)} stroke="currentColor" strokeWidth={heavy ? w : w * 0.8} strokeOpacity={heavy ? 1 : 0.85} />
+      <circle cx={C} cy={C} r={27} fill="none" stroke="currentColor" strokeWidth={w + 0.6} />
+      <line {...chord(228, 42, 27)} stroke="currentColor" strokeWidth={w} />
+      <line {...chord(246, 104, 27)} stroke="currentColor" strokeWidth={w} />
+      {!heavy && <line {...chord(96, 22, 27)} stroke="currentColor" strokeWidth={w * 0.75} />}
     </Svg>
   );
 }
