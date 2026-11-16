@@ -9,7 +9,7 @@ import BirthTeaser from './BirthTeaser';
 import { ASPECT_TYPES, READING_ORDER } from '@/lib/reading';
 import './eclipse.css';
 
-export const metadata: Metadata = { title: 'Constelier · The stars had opinions about you' };
+export const metadata: Metadata = { title: 'CONSTELIER · The stars had opinions about you' };
 
 const CTA = '/chart?theme=mono&from=eclipse';
 

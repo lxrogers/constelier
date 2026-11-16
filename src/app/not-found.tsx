@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './status-page.css';
 
-export const metadata: Metadata = { title: 'Not found · Constelier' };
+export const metadata: Metadata = { title: 'Not found · CONSTELIER' };
 
 export default function NotFound() {
   return (

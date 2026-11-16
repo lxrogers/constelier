@@ -8,7 +8,7 @@ import CursorGlow from '@/components/CursorGlow';
 import { ASPECT_TYPES, READING_ORDER } from '@/lib/reading';
 import './nocturne.css';
 
-export const metadata: Metadata = { title: 'Constelier · Your birth chart, cast in gold' };
+export const metadata: Metadata = { title: 'CONSTELIER · Your birth chart, cast in gold' };
 
 const CTA = '/chart?theme=night&from=nocturne';
 

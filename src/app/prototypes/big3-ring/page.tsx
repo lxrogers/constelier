@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Big3Ring from './Big3Ring';
 
 export const metadata: Metadata = {
-  title: 'Big Three Ring (prototype) | Constelier',
+  title: 'Big Three Ring (prototype) | CONSTELIER',
   robots: { index: false },
 };
 

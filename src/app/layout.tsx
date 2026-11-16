@@ -1,29 +1,34 @@
 import type { Metadata, Viewport } from 'next';
+import { Bodoni_Moda } from 'next/font/google';
 import SiteAnalytics from '@/components/SiteAnalytics';
 import '@/styles/globals.css';
 
+// Wordmark face: Bodoni Moda (variable, with optical size). globals.css sets
+// the weight, optical size and tracking for .wordmark and the chart nav logo.
+const wordmarkFont = Bodoni_Moda({ subsets: ['latin'], axes: ['opsz'], variable: '--f-wordmark', display: 'swap' });
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.constelier.com'),
-  title: 'Constelier',
+  title: 'CONSTELIER',
   description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
   openGraph: {
-    title: 'Constelier',
+    title: 'CONSTELIER',
     description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
     url: 'https://www.constelier.com',
-    siteName: 'Constelier',
+    siteName: 'CONSTELIER',
     images: [
       {
         url: '/favicons/favicon-512x512.png',
         width: 512,
         height: 512,
-        alt: 'Constelier',
+        alt: 'CONSTELIER',
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Constelier',
+    title: 'CONSTELIER',
     description: 'Generate a custom gold pendant from the planetary aspects in your natal chart.',
     images: ['/favicons/favicon-512x512.png'],
   },
@@ -49,7 +54,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={wordmarkFont.variable}>
       <body>
         {children}
         <SiteAnalytics />

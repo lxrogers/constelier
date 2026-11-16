@@ -46,7 +46,41 @@
   --gold: #d4b26a;
   --gold-hi: #f1d89a;
   --gold-deep: #a8823a;
+  /* Caps tracking. The wordmark is set in caps (CONSTELIER), so small caps
+     labels share one tracking to sit with it. */
+  --track-caps: 0.16em;
+  --track-mark: 0.26em;
+  /* Wordmark: Bodoni Moda 500 at a small optical size (15% along its
+     6-96 range), which thickens the hairlines so the N holds up. */
+  --font-wordmark: var(--f-wordmark), 'Moulin', 'Times New Roman', serif;
+  --wordmark-weight: 500;
+  --wordmark-opsz: 'opsz' 20;
+  --track-wordmark: 0.18em;
 }
+
+/* ── Wordmark ─────────────────────────────────────────────────
+   CONSTELIER in tracked serif caps beside the star. Pages size it with
+   font-size; the trailing tracking is pulled back so it centers true. */
+.wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: var(--wordmark-weight);
+  font-variation-settings: var(--wordmark-opsz);
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  white-space: nowrap;
+}
+.wordmark-text {
+  /* Caps sit high in the line box; drop them onto the star's center. */
+  position: relative;
+  top: 0.06em;
+  letter-spacing: var(--track-wordmark);
+  margin-right: calc(-1 * var(--track-wordmark));
+  font-feature-settings: 'kern' 1, 'lnum' 1;
+}
+.wordmark-icon { height: 1.55em; width: 1.09em; flex: none; }
 
 .theme-paper {
   --bg: #f5f0e6;
@@ -176,7 +210,7 @@ body {
   font-family: var(--sans);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--track-caps);
   text-transform: uppercase;
   color: var(--ink-3);
 }
