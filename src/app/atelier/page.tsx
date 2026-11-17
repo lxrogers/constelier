@@ -7,12 +7,15 @@ import NatalChart from '../chart/NatalChart';
 import DesignLink from './components/DesignLink';
 import './atelier.css';
 
-export const metadata: Metadata = { title: 'CONSTELIER · Wear the sky you were born under' };
+export const metadata: Metadata = { title: 'CONSTELIER · The Aspect Pendant' };
 
-const GALLERY = [
-  { src: '/renders/pendant-front-1.webp', sky: 'June 21, 1994', time: '2:30 PM', place: 'New York' },
-  { src: '/renders/pendant-front-2.webp', sky: 'January 1, 2000', time: '12:00 PM', place: 'Lexington' },
-  { src: '/renders/pendant-front-3.webp', sky: 'October 3, 1989', time: '6:10 AM', place: 'Los Angeles' },
+// Blender renders (tools/blender), grey studio scene. Fill in each
+// pendant's birth date, time and place to show its caption on the photo.
+const GALLERY: { src: string; sky?: string; time?: string; place?: string }[] = [
+  { src: '/renders/studio-1.webp' },
+  { src: '/renders/studio-2.webp' },
+  { src: '/renders/studio-3.webp' },
+  { src: '/renders/studio-4.webp' },
 ];
 
 // The hero is the live chart itself (NatalChart): the same pendant that the
@@ -27,7 +30,7 @@ export default function Atelier() {
           <header className="atl-nav">
             <a href="#top" className="atl-home" aria-label="Constelier home"><Wordmark /></a>
             <nav className="atl-links" aria-label="Sections">
-              <a href="#skies">Skies</a>
+              <a href="#skies">Pendants</a>
               <a href="#process">Process</a>
               <a href="#reading">Reading</a>
             </nav>
@@ -37,23 +40,16 @@ export default function Atelier() {
         hero: (
           <>
             <h1 className="atl-h1">
-              <span className="reveal">Wear the sky</span>{' '}
-              <span className="reveal" style={{ ['--d' as string]: '80ms' }}>you were</span>{' '}
-              <span className="reveal" style={{ ['--d' as string]: '160ms' }}><em>born under.</em></span>
+              <span className="reveal">The Aspect</span>{' '}
+              <span className="reveal" style={{ ['--d' as string]: '80ms' }}>Pendant</span>
             </h1>
-            <p className="atl-lede reveal" style={{ ['--d' as string]: '260ms' }}>
-              We map your planets at the minute you arrived, draw every aspect between them as a line, and cast the result in solid gold.
+            <p className="atl-lede reveal" style={{ ['--d' as string]: '180ms' }}>
+              A one-of-one pendant made from your natal chart. Enter your birth date, time and place, and the lines between your planets become the design. Cast to order in solid gold.
             </p>
-            <div className="atl-hero-cta reveal" style={{ ['--d' as string]: '360ms' }}>
+            <div className="atl-hero-cta reveal" style={{ ['--d' as string]: '280ms' }}>
               <DesignLink className="btn">Design yours <span className="btn-arrow" aria-hidden="true">&rarr;</span></DesignLink>
             </div>
           </>
-        ),
-        note: (
-          <p className="atl-note reveal" style={{ ['--d' as string]: '1600ms' }}>
-            <svg width="70" height="40" viewBox="0 0 70 40" aria-hidden="true"><path d="M2 36 C 20 30, 40 22, 66 4" fill="none" stroke="currentColor" strokeWidth="1" /><path d="M58 4 L66 4 L63 11" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
-            <span>every line,<br />an aspect</span>
-          </p>
         ),
         below: <Sections />,
       }}
@@ -66,19 +62,19 @@ function Sections() {
     <>
       <InView as="section" className="atl-gallery">
         <div id="skies" className="atl-anchor" />
-        <div className="atl-sec-head">
-          <h2 className="atl-h2 rise">No two are alike, because no two skies are.</h2>
-        </div>
+        <p className="eyebrow rise">Examples</p>
         <ul className="atl-gallery-grid">
           {GALLERY.map((g, i) => (
             <li key={g.src} className="rise" style={{ ['--i' as string]: i + 1 }}>
-              <div className="atl-gallery-img">
-                <Image src={g.src} alt={`Pendant for a sky on ${g.sky}`} width={800} height={800} sizes="(max-width: 768px) 80vw, 30vw" />
-              </div>
-              <p className="atl-gallery-cap">
-                <span>{g.sky}</span>
-                <span>{g.time} · {g.place}</span>
-              </p>
+              <figure className="atl-gallery-img">
+                <Image src={g.src} alt={g.sky ? `Gold pendant drawn from a sky on ${g.sky} in ${g.place}` : 'Gold pendant drawn from a natal chart'} width={1600} height={2000} sizes="(max-width: 768px) 70vw, (max-width: 1100px) 45vw, 23vw" />
+                {g.sky && (
+                  <figcaption className="atl-gallery-cap">
+                    <span>{g.sky}</span>
+                    <span>{g.time} · {g.place}</span>
+                  </figcaption>
+                )}
+              </figure>
             </li>
           ))}
         </ul>
@@ -87,12 +83,12 @@ function Sections() {
       <InView as="section" className="atl-process">
         <div id="process" className="atl-anchor" />
         <div className="atl-sec-head">
-          <h2 className="atl-h2 rise">From a minute in time to a piece you keep.</h2>
+          <h2 className="atl-h2 rise">How it&rsquo;s made</h2>
         </div>
         <ol className="atl-steps">
           <li className="rise" style={{ ['--i' as string]: 1 }}><span>01</span><h3>Map</h3><p>Your date, time and place of birth give the position of every planet.</p></li>
-          <li className="rise" style={{ ['--i' as string]: 2 }}><span>02</span><h3>Read</h3><p>Each angle between two planets is an aspect. We read every one with you before anything is drawn in metal.</p></li>
-          <li className="rise" style={{ ['--i' as string]: 3 }}><span>03</span><h3>Shape</h3><p>Choose how the gold moves: Liquid, Pebble or Crisp. The lines thicken, meet and close into one form.</p></li>
+          <li className="rise" style={{ ['--i' as string]: 2 }}><span>02</span><h3>Read</h3><p>Each angle between two planets is an aspect. You read each one before the pendant is drawn.</p></li>
+          <li className="rise" style={{ ['--i' as string]: 3 }}><span>03</span><h3>Shape</h3><p>Choose a style: Liquid, Pebble or Crisp. The lines thicken and join into one piece.</p></li>
           <li className="rise" style={{ ['--i' as string]: 4 }}><span>04</span><h3>Cast</h3><p>Cast to order and finished by hand.</p></li>
         </ol>
       </InView>
@@ -100,7 +96,7 @@ function Sections() {
       <InView as="section" className="atl-reading">
         <div id="reading" className="atl-anchor" />
         <div className="atl-sec-head">
-          <h2 className="atl-h2 rise">Every line says something.</h2>
+          <h2 className="atl-h2 rise">What the lines mean</h2>
         </div>
         <ul className="atl-types">
           {READING_ORDER.map((k, i) => {
@@ -118,7 +114,7 @@ function Sections() {
       </InView>
 
       <InView as="section" className="atl-close">
-        <h2 className="atl-close-h rise">Your sky is waiting.</h2>
+        <h2 className="atl-close-h rise">See your own chart.</h2>
         <DesignLink className="btn rise" style={{ ['--i' as string]: 1 }}>Design yours <span className="btn-arrow" aria-hidden="true">&rarr;</span></DesignLink>
       </InView>
 
