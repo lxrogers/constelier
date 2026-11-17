@@ -1842,6 +1842,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // The 3D pendant has finished flowing in. Until then the 2D outline stays
   // drawn underneath it, so the metal arrives over the drawing.
   let flowedIn = false;
+  let flowedInAt = 0;
+  const OUTLINE_FADE_MS = 250;
 
   function _startDotAnim() {
     if (_dotAnimId) return;
@@ -1915,16 +1917,22 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     }
     ctx.clip('evenodd');
 
-    if (_3dModelReady && flowedIn && !growth?.loops) {
-      // 3D model is fully in — skip dot grid, just fill solid background
-      // (unless orbited off top-down, where the backdrop no longer lines up)
-      ctx.globalAlpha = pendantAlpha;
+    // Once the 3D model is fully in, the dot grid and outline give way to a
+    // solid background (unless orbited off top-down, where the backdrop no
+    // longer lines up). They cross-fade over a moment rather than switching.
+    const solid = _3dModelReady && flowedIn && !growth?.loops ? Math.min(1, (performance.now() - flowedInAt) / OUTLINE_FADE_MS) : 0;
+    if (solid > 0) {
+      ctx.globalAlpha = pendantAlpha * solid;
       ctx.fillStyle = T.paper;
       if (!orbited) ctx.fillRect(-outerR, -outerR, outerR * 2, outerR * 2);
-      ctx.restore();
-      ctx.restore();
-      return;
+      if (solid >= 1) {
+        ctx.restore();
+        ctx.restore();
+        _stopDotAnim();
+        return;
+      }
     }
+    const detail = pendantAlpha * (1 - solid);
 
     const dotSpacing = 6.0 / scale;
     const dotSize = 1.4 / scale;
@@ -1942,14 +1950,14 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         const smooth = (wave + 1) / 2; // remap -1..1 to 0..1
         const alpha = 0.15 + 0.85 * Math.pow(smooth, waveWidth);
 
-        ctx.globalAlpha = pendantAlpha * alpha;
+        ctx.globalAlpha = detail * alpha;
         ctx.fillStyle = T.dot;
         ctx.fillRect(gx - dotSize / 2, gy - dotSize / 2, dotSize, dotSize);
       }
     }
     ctx.restore();
 
-    ctx.globalAlpha = pendantAlpha;
+    ctx.globalAlpha = detail;
     ctx.strokeStyle = T.outline;
     ctx.lineWidth = 1.0 / scale;
     ctx.beginPath();
@@ -2238,7 +2246,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function tracedInfo(mesh) {
     const opts = previewOpts();
     return {
-      thickness: opts.thickness, edgeRound: mesh.filletR, rimRound: mesh.outerFilletR, rimDrop: opts.outerFilletZ,
+      thickness: opts.thickness, edgeRound: mesh.filletR, rimRound: mesh.outerFilletR, rimDrop: opts.outerFilletZ, rimWidth: borderThickness,
       extent: pendantExtent(opts, borderThickness), rimR: 100,
     };
   }
@@ -2409,8 +2417,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       }
       pendantViewer.traced.onArrived = () => {
         flowedIn = true;
-        _stopDotAnim();
-        if (displayState) drawChartState(displayState);
+        flowedInAt = performance.now();
+        if (displayState) drawChartState(displayState);   // the dot loop keeps redrawing until the outline has faded
       };
       pendantViewer.traced.reveal(res.mesh, tracedInfo(res.mesh), undefined, early?.sdf);
       applyPreviewLoops(res.loops);

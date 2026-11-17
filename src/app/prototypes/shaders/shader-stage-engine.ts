@@ -15,7 +15,7 @@ export interface RevealPlay { kind: RevealKind; ms: number; loop: boolean; keepR
 // A CSS-style cubic-bezier timing curve: [x1, y1, x2, y2].
 export type Curve = [number, number, number, number];
 export interface StageOptions { scene: StageScene; look: StageLook; trace: boolean; shadows: boolean; card: boolean }
-export interface StageMesh { vertices: Float32Array; normals: Float32Array; triangles: Uint32Array; thickness: number; edgeRound: number; rimRound: number; rimDrop: number; extent: number }
+export interface StageMesh { vertices: Float32Array; normals: Float32Array; triangles: Uint32Array; thickness: number; edgeRound: number; rimRound: number; rimDrop: number; rimWidth: number; extent: number }
 export interface StageStats { fps: number; width: number; height: number; triangles: number; sdfMs: number }
 
 const v3 = (a: readonly number[]) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -82,7 +82,7 @@ export class ShaderStage {
   setMesh(m: StageMesh) {
     this.half = m.thickness / 2;
     this.model.position.z = this.half;
-    const arriving = this.traced.setMesh(m, { thickness: m.thickness, edgeRound: m.edgeRound, rimRound: m.rimRound, rimDrop: m.rimDrop, extent: m.extent, rimR: 100 });
+    const arriving = this.traced.setMesh(m, { thickness: m.thickness, edgeRound: m.edgeRound, rimRound: m.rimRound, rimDrop: m.rimDrop, rimWidth: m.rimWidth, extent: m.extent, rimR: 100 });
     this.stockMesh.geometry = this.traced.mesh.geometry;
     this.applyScene(false);
     // Once its distance map is in, pick the round back up on the new pendant.

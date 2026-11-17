@@ -28,7 +28,7 @@ uniform float uTrace, uShadows, uSurface, uGobo, uAo;   // uSurface: 0 speckled 
 uniform vec3 uCam;                                        // the camera, in rig space
 // Reveal animation. uMode: 0 none, 1 outline first, 2 rise, 3 liquid, 4 pour, 5 flow in.
 // With uKeepRim the rim (everything beyond radius uRimR) is there throughout and only the inside animates.
-uniform float uKeepRim, uRimR;
+uniform float uKeepRim, uRimR, uSplit;   // uSplit: a radius on the rim's flat top; beyond it the kept rim is always the real mesh
 bool gRimOnly = false;
 bool gFinished = false;   // set while shading the real mesh, which is always the finished shape
 uniform float uMode, uP, uRise, uDome, uDrop, uOutR, uOutZ, uTop, uAlpha, uShadowGain, uGlint;
@@ -292,7 +292,8 @@ void main() {
   vec3 n = normalize(vN), v = normalize(uCam - vP);
   if (dot(n, v) < 0.0) n = -n;
   gFinished = true;
-  float a = uKeepRim > 0.5 && uMode < 0.5 ? mix(uAlpha, 1.0, smoothstep(uRimR - 1.5, uRimR + 0.5, length(vP.xy))) : uAlpha;
+  // A kept rim is always drawn from the mesh, out from uSplit, so its outline never changes hands; only the inside fades.
+  float a = uKeepRim > 0.5 ? mix(uAlpha, 1.0, step(uSplit, length(vP.xy))) : uAlpha;
   gl_FragColor = vec4(display(goldColor(vP, n, v)), a);
   #include <colorspace_fragment>
 }
@@ -314,7 +315,8 @@ void main() {
     p += rd * max(d, 0.04);
     if (outside(p) || p.z < -uHalf - 0.4 || p.z > uTop + 0.4) break;
   }
-  if (!hit) discard;
+  // Beyond uSplit a kept rim is the mesh's to draw (see GOLD_FRAG); the two overlap slightly on the rim's flat top, where they match.
+  if (!hit || (uKeepRim > 0.5 && length(p.xy) > uSplit + 0.5)) discard;
   gl_FragColor = vec4(display(goldColor(p, fieldNormal(p), -rd)), 1.0);
   #include <colorspace_fragment>
 }
