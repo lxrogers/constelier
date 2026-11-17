@@ -6,6 +6,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "Constelier" — a natal chart (astrology) pendant generator. Users input birth details, the app computes planetary aspects as chord lines inside a circle, and renders them as both a 2D SVG chart and a 3D gold pendant with filleted edges.
 
+## Design direction
+
+What the owner is going for, written down from the homepage work in November 2026. These are observations of what was asked for and what was rejected; where they are a reading rather than a stated rule, they say so. Ask before departing from them.
+
+### The feel
+- Warm, soft and quiet, closer to a wellness or fine-jewelry brand than a storefront. The stated reference for the homepage layout is ouraring.com. A white, bold-sans, sportswear-style storefront was tried first and dropped.
+- One look only: the cream theme. Page `#f6f1ea`, warm charcoal ink `#3a3834` (never pure black), hairlines in a slightly darker cream. The dark, night and mono themes were tried and abandoned; do not bring them back unasked.
+- The gold is the only strong colour on the page, and it comes from the pendant itself. (Reading: no accent colours competing with it.)
+- Type: Moulin (serif) for headlines, light and in sentence case; Graphik for body and controls; the CONSTELIER wordmark in Bodoni Moda caps. No uppercase shouting, no heavy weights.
+
+### Pictures
+- Photography leads. Show the real thing: realistic renders of the pendant on stone or against a wall in sunlight, the maker at the bench, and the real configurator on screen. No illustrations or abstract decoration standing in for the product.
+- The story is craft: "Handcrafted in Brooklyn, New York", made by hand, one piece per person.
+- Stand-in images are fine while the real one is being made, as long as they are marked as stand-ins in the code.
+
+### Chrome and layout
+- Plain and calm. The nav is a full-width bar pinned to the top, solid page colour with a hairline, with room on the right for the bag and later an account icon. No floating or card-style nav.
+- Do not stack card on card. The configurator's control panel is already a card, so nothing else near it should be a second panel with its own background.
+- No announcement bars. One clear action per section ("Design yours"); extra buttons were removed when offered.
+- Labels stay minimal: "1, 2, 3" rather than "01 Design".
+- Rounded picture cards (about 14px), generous spacing, native scrolling, gentle fade-and-rise on entry.
+
+### Copy
+- Short, plain and concrete. A specific line ("Handcrafted in Brooklyn, New York") beats a generic one ("How it's made", which the owner called lame).
+- Do not invent claims about materials, process, shipping or customers. Reuse what the site already says or ask.
+
+### Polish
+- Things must separate cleanly from what is behind them. A sheet the same colour as the page reads as a mistake; give it a white surface and a soft shadow, or a hairline.
+- The homepage and the configurator should read as one site: same wordmark size, same nav treatment, same palette.
+- Check work in a real browser at desktop and phone widths before calling it done.
+- No leftovers. When a direction is dropped, delete its pages, components, styles, images and any code that only existed for it, rather than keeping them "for comparison".
+- The owner works by trying things quickly ("let's try it") and reacting to what is on screen, so make the change and show it rather than describing options at length.
+
 ## Commands
 
 - `npm run dev` — Start Next.js dev server (Turbopack)
@@ -23,8 +56,8 @@ The project has two parallel entry points for the same core logic:
 - **`3d-viewer.html`** — Isolated 3D pendant preview tool with mesh quality controls.
 
 ### Next.js App (`src/`)
-- Uses the App Router (`src/app/`). Root `/` redirects to `/chart`.
-- `src/app/chart/page.tsx` renders a `NatalChart` component (currently references an unbuilt component).
+- Uses the App Router (`src/app/`). `/` is the homepage (`src/app/page.tsx`, with its parts in `src/app/halo/`); `/chart` is the configurator.
+- `src/app/chart/page.tsx` renders the `NatalChart` component (`src/app/chart/NatalChart.tsx`), which drives the chart engine.
 - `src/lib/horoscope.ts` re-exports from the root `horoscope-bundle.js`.
 - Tailwind CSS v4 via `@tailwindcss/postcss`. Custom fonts (Graphik, Moulin) in `public/fonts/`.
 
