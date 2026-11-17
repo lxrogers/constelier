@@ -1,0 +1,254 @@
+/* Direction E · Halo: warm and soft. Cream page, light serif headlines, a
+   floating nav, rounded picture cards, and a dark footer. */
+
+.halo {
+  --pad: clamp(20px, 4.4vw, 64px);
+  --bg: #f6f1ea;
+  --hero: #e9e2da;
+  --tile: #ece5db;
+  --ink: #3a3834;
+  --ink-2: #6e6a63;
+  --line: #ddd5c9;
+  --dark: #1f1e1c;
+  --dark-2: #2b2a27;
+  --cream: #f6f1ea;
+  --btn: #3a3834;
+  --btn-ink: #f6f1ea;
+  --radius: 14px;
+  --nav-h: 72px;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: clip;
+}
+.halo a:not(.btn) { color: inherit; }
+.halo .btn { height: 46px; padding: 0 22px; font-size: 15px; font-weight: 400; letter-spacing: 0; }
+.halo .btn:hover { transform: none; background: #55524c; }
+.halo .halo-btn-light { background: var(--cream); color: var(--ink); }
+.halo .halo-btn-light:hover { background: #ffffff; }
+.halo section { position: relative; }
+.halo-anchor { position: absolute; top: calc(-1 * var(--nav-h) - 24px); }
+
+/* ── Header ───────────────────────────────────────────────── */
+
+/* A plain full-width bar pinned to the top: solid page colour, no card. The
+   wordmark is the size it is in the configurator's header
+   (chart/site-nav.css), so the two pages read as one site. */
+.halo-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--nav-h);
+  padding: 0 var(--pad);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.halo-home { text-decoration: none; justify-self: start; }
+.halo-nav .wordmark { font-size: 20px; }
+.halo-nav-links { display: flex; gap: 36px; }
+.halo-nav-links a { text-decoration: none; font-size: 15px; }
+.halo-nav-links a:hover { color: var(--ink-2); }
+.halo-nav-end { justify-self: end; display: flex; align-items: center; gap: 16px; }
+.halo .halo-nav-cta { height: 38px; padding: 0 18px; font-size: 14px; }
+
+/* ── Type ─────────────────────────────────────────────────── */
+
+.halo-h1, .halo-h2, .halo-step-title, .halo-type-quote, .halo-foot-line {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+.halo-h1 { font-size: clamp(44px, 5.6vw, 84px); line-height: 1.02; }
+.halo-h2 { font-size: clamp(34px, 4.2vw, 60px); line-height: 1.06; text-wrap: balance; }
+.halo-lede { font-size: clamp(17px, 1.5vw, 21px); line-height: 1.45; max-width: 30em; text-wrap: pretty; }
+.halo-body { font-size: 16px; line-height: 1.55; color: var(--ink-2); max-width: 30em; }
+.halo-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+
+/* ── Hero ─────────────────────────────────────────────────── */
+
+.halo-hero {
+  display: flex;
+  align-items: center;
+  min-height: min(100svh - var(--nav-h), 860px);
+  padding: 80px var(--pad);
+  background: var(--hero);
+  overflow: hidden;
+}
+.halo-hero-img {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 62%;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 34%);
+  mask-image: linear-gradient(to right, transparent, #000 34%);
+}
+.halo-hero-img img { object-fit: cover; object-position: 50% 58%; }
+.halo-hero-copy { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 24px; max-width: 58%; }
+
+/* ── Sections ─────────────────────────────────────────────── */
+
+.halo-sec { padding: clamp(80px, 10vw, 140px) var(--pad) 0; display: flex; flex-direction: column; gap: clamp(36px, 5vw, 64px); }
+.halo-intro { display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; max-width: 900px; margin: 0 auto; }
+
+/* How it works: three panels */
+.halo-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.halo-step { display: flex; flex-direction: column; gap: 10px; }
+.halo-step-img { position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; background: var(--tile); margin-bottom: 14px; box-shadow: 0 0 0 1px var(--line); }
+.halo-step-img img { object-fit: cover; transition: transform 1s var(--ease-out); }
+.halo-step:hover .halo-step-img img { transform: scale(1.03); }
+.halo-step-title { font-size: clamp(26px, 2.4vw, 34px); line-height: 1.1; }
+.halo-chip {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(40, 38, 35, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-size: 13px;
+}
+.halo-step-img.is-empty { background: linear-gradient(160deg, #4a443c, #2a2723); }
+.halo-step-empty {
+  position: absolute;
+  inset: 12px;
+  border: 1px dashed rgba(246, 241, 234, 0.35);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: rgba(246, 241, 234, 0.8);
+  font-size: 14px;
+}
+.halo-step-empty span:first-of-type { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 8px; }
+.halo-step-empty span:last-child { color: rgba(246, 241, 234, 0.55); }
+
+/* Rail of skies */
+.halo-rail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.halo-sec-head { display: flex; flex-direction: column; gap: 14px; }
+.halo-rail-btns { display: flex; gap: 10px; flex: none; }
+.halo-rail-btns button {
+  appearance: none;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.halo-rail-btns button:hover { background: var(--tile); }
+.halo-rail-btns button:disabled { opacity: 0.35; cursor: default; background: transparent; }
+.halo-rail {
+  list-style: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 60px) / 4);
+  column-gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pad);
+  margin: 0 calc(-1 * var(--pad));
+  padding: 0 var(--pad);
+  scrollbar-width: none;
+}
+.halo-rail::-webkit-scrollbar { display: none; }
+.halo-card { scroll-snap-align: start; }
+.halo-card-img { position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); background: var(--tile); overflow: hidden; margin-bottom: 14px; }
+.halo-card-img img { object-fit: cover; }
+.halo-card-img.is-cutout img { object-fit: contain; padding: 16%; filter: drop-shadow(0 18px 20px rgba(80, 60, 20, 0.2)); }
+.halo-card-title { font-size: 17px; line-height: 1.4; }
+.halo-card-sub { font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+
+/* Aspect types */
+.halo-types { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.halo-types li {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 300px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.halo-type-quote { font-size: clamp(22px, 1.9vw, 28px); line-height: 1.2; text-wrap: pretty; }
+.halo-type-name { margin-top: auto; display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.halo-type-name span { font-size: 22px; line-height: 1; }
+
+/* Closing picture card */
+.halo-closing { position: relative; min-height: min(78svh, 720px); border-radius: var(--radius); overflow: hidden; display: flex; align-items: flex-end; }
+.halo-closing img { object-fit: cover; object-position: 50% 50%; }
+.halo-closing::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(20, 18, 15, 0.6), transparent 55%); }
+.halo-closing-copy { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 20px; padding: clamp(24px, 4vw, 56px); color: #ffffff; }
+.halo-closing-copy .halo-chip { position: static; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+
+.halo-foot {
+  margin-top: clamp(80px, 10vw, 140px);
+  padding: clamp(48px, 6vw, 88px) var(--pad) 36px;
+  border-radius: 28px 28px 0 0;
+  background: var(--dark);
+  color: var(--cream);
+}
+.halo-foot-top { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
+.halo-foot-lead { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
+.halo-foot .wordmark { font-size: 22px; }
+.halo-foot-line { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.1; color: rgba(246, 241, 234, 0.72); max-width: 12em; }
+.halo-foot nav { display: flex; flex-direction: column; gap: 12px; }
+.halo-foot h3 { font-size: 15px; font-weight: 400; color: rgba(246, 241, 234, 0.55); margin-bottom: 4px; }
+.halo-foot nav a { font-size: 15px; text-decoration: none; }
+.halo-foot nav a:hover { color: rgba(246, 241, 234, 0.7); }
+.halo-foot-legal { margin-top: 72px; padding-top: 24px; border-top: 1px solid rgba(246, 241, 234, 0.14); font-size: 13px; color: rgba(246, 241, 234, 0.55); }
+
+@media (max-width: 860px) {
+  .halo { --nav-h: 56px; }
+  .halo-nav { grid-template-columns: 1fr auto; }
+  .halo-nav-links { display: none; }
+  .halo-nav-end { gap: 12px; }
+  .halo-nav .nav-bag > span:not(.nav-bag-count) { display: none; }
+  .halo-nav .wordmark { font-size: 16px; }
+
+  .halo-hero { flex-direction: column; align-items: stretch; min-height: 0; padding: 0 0 56px; }
+  .halo-hero-img { position: relative; inset: auto; width: 100%; height: 112vw; max-height: 68svh; -webkit-mask-image: none; mask-image: none; }
+  .halo-hero-copy { max-width: none; padding: 32px var(--pad) 0; gap: 18px; }
+
+  .halo-steps, .halo-types {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 82%;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--pad);
+    margin: 0 calc(-1 * var(--pad));
+    padding: 0 var(--pad);
+    scrollbar-width: none;
+  }
+  .halo-steps::-webkit-scrollbar, .halo-types::-webkit-scrollbar { display: none; }
+  .halo-steps > li, .halo-types > li { scroll-snap-align: start; }
+  .halo-types li { min-height: 260px; }
+
+  .halo-rail-btns { display: none; }
+  .halo-rail { grid-auto-columns: 70%; column-gap: 14px; }
+
+  .halo-closing { min-height: 120vw; }
+  .halo-foot { border-radius: 20px 20px 0 0; }
+  .halo-foot-top { grid-template-columns: 1fr 1fr; row-gap: 40px; }
+  .halo-foot-lead { grid-column: 1 / -1; }
+}
