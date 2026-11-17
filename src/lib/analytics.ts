@@ -9,7 +9,8 @@ export type FunnelEvent =
   | 'quote_shown'
   | 'added_to_bag'
   | 'checkout_started'
-  | 'waitlist_joined';
+  | 'waitlist_joined'
+  | 'quote_requested';
 
 type Props = Record<string, string | number | boolean | null>;
 

@@ -1,0 +1,338 @@
+/* A customer's pendant page (/pendant/[offerId]): photos on the left,
+   everything needed to buy on the right. Phones stack it, with the price
+   and checkout pinned to the bottom. */
+
+/* Plain paper here: the grid of the other pages slides oddly under a long
+   scrolling page. */
+.theme-paper.theme-root.pdp-shell { background-image: none; }
+
+.pdp {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px max(16px, 4%) 96px;
+  color: var(--ink);
+}
+.pdp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+/* ── Gallery ───────────────────────────────────────────────── */
+.pdp-gallery {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.pdp-stage {
+  border-radius: 20px;
+  overflow: hidden;
+  background: #e9e3d6;
+}
+.pdp-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.pdp-track::-webkit-scrollbar { display: none; }
+.pdp-slide {
+  position: relative;
+  flex: 0 0 100%;
+  aspect-ratio: 4 / 5;
+  max-height: calc(100dvh - 170px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+.pdp-slide img,
+.pdp-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+/* The configurator's own square snapshot: shown whole, on its paper. */
+.pdp-slide img.is-square { object-fit: contain; background: #f5f0e6; }
+.pdp-slide img.is-stand-in { filter: grayscale(1) contrast(1.04) brightness(1.05); }
+.pdp-chart { background: #f5f0e6; font-family: var(--sans); }
+
+.pdp-stand-in {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  color: #5a524a;
+}
+
+/* Arrows either side of the dots, under the picture. */
+.pdp-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.pdp-arrow {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-size: 17px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.pdp-arrow:hover { background: rgba(60, 45, 20, 0.08); }
+.pdp-dots { display: flex; align-items: center; gap: 8px; }
+.pdp-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(44, 42, 38, 0.22);
+  overflow: hidden;
+  cursor: pointer;
+  transition: width 0.35s var(--ease-out), background 0.2s;
+}
+.pdp-dot:hover { background: rgba(44, 42, 38, 0.4); }
+.pdp-dot.on { width: 40px; }
+.pdp-dot-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ink);
+  transform-origin: left;
+  animation: pdp-dot-fill linear both;
+}
+@keyframes pdp-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* Held while the pointer or the keyboard is on the gallery. */
+.pdp-gallery:hover .pdp-dot-fill,
+.pdp-gallery:focus-within .pdp-dot-fill { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .pdp-dot-fill { animation: none; }
+}
+
+/* ── Info column ───────────────────────────────────────────── */
+.pdp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  max-width: 480px;
+  padding-top: 8px;
+}
+.pdp-head { display: flex; flex-direction: column; gap: 8px; }
+.pdp-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+}
+.pdp-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1.08;
+}
+.pdp-subtitle { margin: 0; font-size: 15px; color: var(--ink-2); }
+
+.pdp-note {
+  margin: 0;
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 1px solid #d9d1c1;
+}
+.pdp-note blockquote { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.pdp-note p { margin: 0; font-size: 15px; line-height: 1.6; color: #3a3630; }
+.pdp-note figcaption {
+  margin-top: 12px;
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.pdp-option { margin: 0; padding: 0; border: 0; min-width: 0; }
+.pdp-option legend {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.pdp-option legend span { font-size: 14px; font-weight: 400; color: var(--ink-2); }
+
+.pdp-metals { display: flex; gap: 12px; }
+.pdp-size {
+  border: 1px solid #d9d1c1;
+  border-radius: 14px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pdp-size:hover { border-color: #b9b0a0; }
+.pdp-size.on {
+  border-color: #2c2c2c;
+  box-shadow: inset 0 0 0 1px #2c2c2c;
+}
+/* A swatch inside a ring; the ring darkens on the chosen metal. */
+.pdp-metal {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: inset 0 0 0 1px transparent;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.pdp-metal:hover { box-shadow: inset 0 0 0 1px #b9b0a0; }
+.pdp-metal.on { box-shadow: inset 0 0 0 2px #2c2c2c; }
+.pdp-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.pdp-swatch.is-gold14 { background: linear-gradient(135deg, #f3dc9a, #d2a84a 55%, #b88a2c); }
+.pdp-swatch.is-gold10 { background: linear-gradient(135deg, #f1e2b4, #d6b871 55%, #bd9b52); }
+.pdp-swatch.is-silver { background: linear-gradient(135deg, #f4f4f2, #c9cbcc 55%, #a6a9ab); }
+
+.pdp-sizes { display: flex; flex-direction: column; gap: 8px; }
+.pdp-size {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  text-align: left;
+}
+.pdp-size-disc {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+}
+.pdp-size-disc span { aspect-ratio: 1; border-radius: 50%; border: 1.5px solid #6f695e; }
+.pdp-size.on .pdp-size-disc span { border-color: #2c2c2c; }
+.pdp-size-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pdp-size-mm { font-size: 15px; font-weight: 500; }
+.pdp-size-blurb { font-size: 13px; color: var(--ink-2); }
+
+.pdp-buy { display: flex; flex-direction: column; gap: 14px; }
+.pdp-price-row { display: flex; flex-direction: column; gap: 4px; }
+.pdp-price {
+  font-family: var(--serif);
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.pdp-price-what { font-size: 14px; color: var(--ink-2); }
+.pdp-checkout {
+  min-height: 54px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: #2c2c2c;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.pdp-checkout:hover { background: #111; }
+.pdp-checkout:disabled { opacity: 0.6; cursor: default; }
+.pdp-lead { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.pdp-error { margin: 0; font-size: 14px; color: #a3412f; }
+
+.pdp-details { border-top: 1px solid var(--line); }
+.pdp-details details { border-bottom: 1px solid var(--line); }
+.pdp-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+.pdp-details summary::-webkit-details-marker { display: none; }
+.pdp-details summary::after { content: '+'; font-size: 18px; font-weight: 400; color: var(--ink-2); }
+.pdp-details details[open] summary::after { content: '\2212'; }
+.pdp-details p,
+.pdp-details ul {
+  margin: 0;
+  padding: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4a443c;
+}
+.pdp-details ul { padding-left: 18px; }
+.pdp-details li + li { margin-top: 4px; }
+.pdp-details .pdp-reopen { padding: 16px 0 0; }
+.pdp-reopen a { color: var(--ink-2); text-underline-offset: 3px; }
+
+.pdp-bar { display: none; }
+
+/* ── Tablets and phones ────────────────────────────────────── */
+@media (max-width: 900px) {
+  .pdp-grid { gap: 32px; }
+  .pdp-title { font-size: 34px; }
+}
+@media (max-width: 768px) {
+  .pdp { padding: 0 0 calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .pdp-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .pdp-gallery { position: static; }
+  .pdp-stage { border-radius: 0; }
+  .pdp-slide { max-height: 62dvh; width: 100%; }
+  .pdp-gallery { gap: 10px; }
+  .pdp-arrow { display: none; }
+
+  .pdp-info { max-width: none; gap: 24px; padding: 0 16px; }
+  .pdp-title { font-size: 30px; }
+  .pdp-price { font-size: 34px; }
+  .pdp-note { padding: 16px 18px; }
+  /* The pinned bar below carries the button on phones. */
+  .pdp-buy > .pdp-checkout { display: none; }
+
+  .pdp-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: #faf7f0;
+    border-top: 1px solid var(--line);
+  }
+  .pdp-bar-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .pdp-bar-price { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .pdp-bar-what { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pdp-bar .pdp-checkout { min-height: 46px; padding: 0 26px; font-size: 15px; }
+}

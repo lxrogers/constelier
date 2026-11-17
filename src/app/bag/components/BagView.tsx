@@ -23,7 +23,7 @@ export default function BagView() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity, thumbnail: i.thumbnail })) }),
+        body: JSON.stringify({ items: items.map((i) => ({ design: i.design, quantity: i.quantity, thumbnail: i.thumbnail, offer: i.offer })) }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.');
@@ -70,7 +70,9 @@ export default function BagView() {
                           ))}
                         </select>
                       </label>
-                      <Link href={`/chart?${designQuery(item.design.spec)}`} className="bag-text-btn">Edit design</Link>
+                      {item.offer
+                        ? <Link href={`/pendant/${item.offer.offerId}`} className="bag-text-btn">Change metal or size</Link>
+                        : <Link href={`/chart?${designQuery(item.design.spec)}`} className="bag-text-btn">Edit design</Link>}
                       <button className="bag-text-btn" onClick={() => bag.remove(item.id)}>Remove</button>
                     </div>
                   </div>

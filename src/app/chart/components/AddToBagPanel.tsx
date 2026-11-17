@@ -3,22 +3,15 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import { bag, formatUSD } from '@/hooks/useBag';
-import { describeDesign, type PendantDesign } from '@/lib/commerce/design';
+import { describeDesign } from '@/lib/commerce/design';
+import { requestSnapshot } from './design-snapshot';
 import './AddToBagPanel.css';
 import { trackFunnel } from '@/lib/analytics';
 
-interface Snapshot { design: PendantDesign; thumbnail: string | null }
 interface Quote { unitAmount: number; grams: number; metal: string }
 
 const RETRY_MS = 500;
 const RETRY_LIMIT = 30; // ~15 s before concluding there is no pendant
-
-// Asks the chart engine (which owns the canvas) for the current design.
-function requestSnapshot(canvas: HTMLCanvasElement | null): Snapshot | null {
-  let result: Snapshot | null = null;
-  canvas?.dispatchEvent(new CustomEvent('design-snapshot', { detail: { respond: (s: Snapshot | null) => { result = s; } } }));
-  return result;
-}
 
 export default function AddToBagPanel({ canvasRef, active }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;

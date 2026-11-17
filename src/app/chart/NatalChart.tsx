@@ -9,6 +9,7 @@ import { trackFunnel } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
 import AddToBagPanel from './components/AddToBagPanel';
+import QuoteRequestPanel from './components/QuoteRequestPanel';
 import ReadingScroll from './components/reading/ReadingScroll';
 import type { ChartAspect, ChartBodies } from '@/lib/reading/aspect-reading';
 import { PENDANT_DEFAULTS, type PendantParams } from '@/config/pendant-params';
@@ -201,7 +202,8 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const page = (
     <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
       <div id="controls" ref={controlsRef} data-leave={home ? 'right' : undefined}>
-        <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart' : 'Customize your Aspect Pendant'}</h2>
+        <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart'
+          : SHOP_ENABLED ? 'Customize your Aspect Pendant' : submitted ? 'Thank you' : 'Request your quote'}</h2>
         {step === 'birth' && (
           <p className="controls-intro hide-mobile">
             Your date, time and place of birth set the lines. The pendant redraws as you change them.
@@ -214,7 +216,7 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         )}
         {step !== 'reading' && (
           <h3 className="controls-subheading">
-            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Join the Waitlist'}
+            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Request a Quote'}
           </h3>
         )}
 
@@ -302,12 +304,12 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
           {SHOP_ENABLED ? (
             <AddToBagPanel canvasRef={canvasRef} active={step === 'waitlist'} />
-          ) : submitted ? (
-            <div className="waitlist-thanks">
-              <p>Thank you for signing up! We&apos;ll be in touch.</p>
-            </div>
           ) : (
-            <WaitlistForm onSubmitted={() => { setSubmitted(true); trackFunnel('waitlist_joined'); }} />
+            <QuoteRequestPanel
+              canvasRef={canvasRef}
+              submitted={submitted}
+              onSubmitted={() => { setSubmitted(true); trackFunnel('quote_requested'); }}
+            />
           )}
         </div>
       </div>
@@ -341,78 +343,3 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   );
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-// Replace with your Formspree form ID from https://formspree.io
-const FORMSPREE_ID = 'xjgeozgv';
-
-function WaitlistForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
-
-  function getBirthMeta() {
-    const year = (document.getElementById('birth-year') as HTMLInputElement)?.value || '';
-    const month = (document.getElementById('birth-month') as HTMLInputElement)?.value || '';
-    const day = (document.getElementById('birth-day') as HTMLInputElement)?.value || '';
-    const hour = (document.getElementById('birth-hour') as HTMLSelectElement)?.value || '';
-    const minute = (document.getElementById('birth-minute') as HTMLSelectElement)?.value || '';
-    const location = (document.getElementById('location') as HTMLInputElement)?.value || '';
-    const monthName = MONTHS[parseInt(month) - 1] || month;
-    return {
-      birthdate: `${monthName} ${day}, ${year}`,
-      birthtime: `${hour}:${minute}`,
-      location,
-    };
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email || sending) return;
-    setSending(true);
-    const meta = getBirthMeta();
-    try {
-      await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          birthdate: meta.birthdate,
-          birthtime: meta.birthtime,
-          location: meta.location,
-        }),
-      });
-      onSubmitted();
-    } catch {
-      setSending(false);
-    }
-  }
-
-  return (
-    <div className="waitlist-form">
-      <p className="waitlist-intro">
-        Constelier is a work in progress. Sign up to be notified when we launch
-        and to receive your personalized pendant design.
-      </p>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Email</label>
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="controls-step-btn" disabled={sending}>
-          {sending ? 'Submitting...' : 'Join Waitlist'}
-        </button>
-      </form>
-      <p className="waitlist-disclosure">
-        Your birth date, time, and location will be shared with Constelier
-        so we can generate your pendant. We won&apos;t share your data with
-        anyone else.
-      </p>
-    </div>
-  );
-}

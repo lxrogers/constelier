@@ -11,6 +11,11 @@ export function getStripe(): Stripe {
   return client;
 }
 
+// True when the configured key is a live one, so charges are real.
+export function stripeLiveMode() {
+  return /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY ?? '');
+}
+
 export function siteUrl(request: Request) {
   return process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
 }
