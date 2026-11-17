@@ -5,7 +5,6 @@
 import { Horoscope, Origin } from '@/lib/horoscope';
 import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
 import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
-import { buildRingPreviewMesh } from '@/modules/fast-pendant-mesh';
 import { buildPreview, buildOutlineLoops, meshOptionsFor, pendantExtent, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
 import { chordsFromHoroscope } from '@/lib/natal-chords';
 import { withDerived, type PendantParams } from '@/config/pendant-params';
@@ -119,7 +118,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     aspectAnimLines = [];
     aspectAnimDone = false;
     if (pendantViewer && shown3d) {
-      crossFadeToRing(400);
+      drainPendant();
     }
     if (displayState) drawChartState(displayState);
     startAspectAnim();
@@ -622,7 +621,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     stopGrowIn();
     stopGrowth();
     if (pendantViewer && shown3d) {
-      crossFadeToRing(400);
+      drainPendant();
     }
     spreadT = 0;
     aspectAnimLines = [];
@@ -947,9 +946,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   });
   function applyHdri() {
     if (!pendantViewer) return;
-    if (pendantViewer.scene.environmentRotation !== undefined) {
-      pendantViewer.scene.environmentRotation.set(P.hdriRx * Math.PI / 180, P.hdriRy * Math.PI / 180, 0);
-    }
+    pendantViewer.traced.setEnvRotation(P.hdriRx, P.hdriRy);
     pendantViewer.renderOnce();
   }
 
@@ -1549,7 +1546,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let pendantChords = null;
   let pendantExpansion = 0;
   const EXPANSION_STEP = 0.3;
-  const EXPANSION_DURATION = 2000;
+  const EXPANSION_DURATION = 1000;   // how long the 2D outline takes to thicken
   let expansionAnimId = null;
   let expansionAnimStart = null;
 
@@ -1570,11 +1567,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       pendantExpansion = 0;
       pendantAlpha = 1;
 
-      // Fire server request immediately with final expansion value,
-      // so it runs in parallel with the expansion animation
-      // Start the viewer (and its HDRI download) now, so it is ready by the
-      // time the 2 s expansion animation ends instead of starting then.
-      ensureViewer().catch(() => {});
+      // Start the viewer (and its HDRI download) and the finished pendant's
+      // 3D build now, so both are ready when the 2D outline has thickened
+      // instead of starting then.
+      prepare3D();
 
       if (outlineStyle === 'current') startExpansionAnim();
       else startGrowIn(result.model);
@@ -1703,6 +1699,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   // Each frame is held at least this long; a slow build just holds longer.
   const GROW_STEPS = [0.08, 0.16, 0.25, 0.35, 0.46, 0.58, 0.7, 0.82, 0.92, 1];
+  // The grow-in runs at twice the frame rate over half the time.
+  const GROW_IN_STEPS = Array.from({ length: 20 }, (_, i) => (i + 1) / 20);
 
   let growInId = null;
 
@@ -1714,23 +1712,26 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     stopGrowIn();
     const chords = pendantChords;
     const frames = [];
-    const hold = EXPANSION_DURATION / GROW_STEPS.length;
+    const hold = EXPANSION_DURATION / GROW_IN_STEPS.length;
     let shown = -1;
     let lastSwitch = 0;
-    requestOutlineFrames(GROW_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
+    const t0 = performance.now();
+    requestOutlineFrames(GROW_IN_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
     const tick = (now) => {
       if (pendantChords !== chords) { growInId = null; return; }
       if (frames[shown + 1] && now - lastSwitch >= hold) {
         shown++;
         lastSwitch = now;
-        pendantExpansion = lineThickness * GROW_STEPS[shown];
+        pendantExpansion = lineThickness * GROW_IN_STEPS[shown];
         pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
         if (displayState) drawChartState(displayState);
       }
-      if (shown < GROW_STEPS.length - 1) {
+      if (shown < GROW_IN_STEPS.length - 1) {
         growInId = requestAnimationFrame(tick);
       } else {
         growInId = null;
+        if (urlParams.get('perf') === '1') console.log(`[grow-in] ${GROW_IN_STEPS.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
+        if (urlParams.get('perf') === '1') flowWaitFrom = performance.now();
         start3DTransition();
       }
     };
@@ -1838,6 +1839,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let _dotAnimId = null;
   let _dotLastDraw = 0;
   let _3dModelReady = false;
+  // The 3D pendant has finished flowing in. Until then the 2D outline stays
+  // drawn underneath it, so the metal arrives over the drawing.
+  let flowedIn = false;
 
   function _startDotAnim() {
     if (_dotAnimId) return;
@@ -1911,8 +1915,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     }
     ctx.clip('evenodd');
 
-    if (_3dModelReady && !growth?.loops) {
-      // 3D model is visible — skip dot grid, just fill solid background
+    if (_3dModelReady && flowedIn && !growth?.loops) {
+      // 3D model is fully in — skip dot grid, just fill solid background
       // (unless orbited off top-down, where the backdrop no longer lines up)
       ctx.globalAlpha = pendantAlpha;
       ctx.fillStyle = T.paper;
@@ -2089,17 +2093,15 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantModelData.loops = loops;
   }
 
-  // Reshape the pendant already on screen to the current settings.
-  // `mode`: 'swap' replaces the mesh instantly (slider drag), 'fade' cross-fades.
+  // Reshape the pendant already on screen to the current settings, in place.
   let lastBuildWasDraft = false;
-  function refreshLivePendant(mode, draft) {
+  function refreshLivePendant(draft) {
     if (!pendantModelData || !pendantViewer || !_3dModelReady) return;
     const gen = previewGen;
     lastBuildWasDraft = draft;
     requestPreview(previewParams(draft)).then((res) => {
       if (!res || gen !== previewGen || !pendantViewer || !_3dModelReady) return;
-      if (mode === 'swap') pendantViewer.swapMeshFromData(res.mesh);
-      else pendantViewer.crossFadeMeshFromData(res.mesh, 450);
+      pendantViewer.traced.setMesh(res.mesh, tracedInfo(res.mesh));
       applyPreviewLoops(res.loops);
       if (displayState) drawChartState(displayState);
     });
@@ -2125,9 +2127,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       return a !== b;
     };
 
-    if (changed('roughness') && pendantViewer) { pendantViewer.setRoughness(P.roughness); pendantViewer.renderOnce(); }
+    if (changed('roughness') && pendantViewer) { pendantViewer.traced.setRoughness(P.roughness); pendantViewer.renderOnce(); }
     if (changed('hdriRx') || changed('hdriRy')) applyHdri();
-    if (changed('thickness') && pendantViewer) pendantViewer.setShadowPlaneY(-(P.thickness + 2));
     // A bail change can change how much the view has to zoom out.
     const scaleBefore = lastViewScale;
     lastViewScale = viewScale();
@@ -2153,9 +2154,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       paramsVersion++;
       if (changed('outlineStyle') && pendantModelData) pendantModelData.loops = null;
       if (changed('outlineStyle') || changed('liquidity')) syncURL();
-      refreshLivePendant(changed('outlineStyle') ? 'fade' : 'swap', draft);
+      refreshLivePendant(draft);
     } else if (!draft && lastBuildWasDraft) {
-      refreshLivePendant('swap', false);
+      refreshLivePendant(false);
     }
   }
 
@@ -2224,10 +2225,22 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
   canvas.addEventListener('design-snapshot', onDesignSnapshot);
 
-  function crossFadeToRing(duration) {
+  // The chart is changing: the pendant's inside drains away and its rim
+  // stays, until the new pendant flows in (start3DTransition).
+  function drainPendant() {
     if (!pendantViewer) return;
     previewGen++;
-    pendantViewer.crossFadeMeshFromData(buildRingPreviewMesh(100, borderThickness, previewOpts()), duration);
+    flowedIn = false;
+    pendantViewer.traced.drain();
+  }
+
+  // What the traced gold needs to know about a mesh besides its triangles.
+  function tracedInfo(mesh) {
+    const opts = previewOpts();
+    return {
+      thickness: opts.thickness, edgeRound: mesh.filletR, rimRound: mesh.outerFilletR, rimDrop: opts.outerFilletZ,
+      extent: pendantExtent(opts, borderThickness), rimR: 100,
+    };
   }
 
   // Below 1 when a bail reaches past the canvas: the pendant (2D and 3D
@@ -2251,7 +2264,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const outerR = FIT_R;
     pendantViewer.fitToRegionExact(compute3DHalf(), outerR);
     pendantViewer.pendantGroup.scale.setScalar(scale3d);
-    pendantViewer.setShadowPlaneY(-(P.thickness + 2));
   }
 
   function ensureViewer() {
@@ -2268,7 +2280,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       enableHDRI: true,
       // 2048x1024 downscale of softbox.hdr: 4.2 MB instead of 14.4 MB
       hdriPath: '/softbox-2k.hdr',
-      enablePostProcessing: true,
+      traced: true,
       background: null,
       roughness: P.roughness,
     });
@@ -2276,9 +2288,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     // Pages can tune the gold (e.g. a warmer, less saturated alloy on dark
     // backgrounds) with --pendant-gold on the chart wrapper.
     const gold = getComputedStyle(canvas.parentElement || canvas).getPropertyValue('--pendant-gold').trim();
-    if (gold) { try { viewer._faceMat.color.set(gold); } catch {} }
+    if (gold) { try { viewer.traced.setGold(gold); } catch {} }
     const rough = parseFloat(getComputedStyle(canvas.parentElement || canvas).getPropertyValue('--pendant-roughness'));
-    if (Number.isFinite(rough)) viewer._faceMat.roughness = rough;
+    if (Number.isFinite(rough)) viewer.traced.setRoughness(rough);
 
     // The renderer pinned the canvas to its size at creation, so it stopped
     // following the 2D chart when the page resized. Let CSS size it and
@@ -2289,7 +2301,6 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const w = chart3dCanvas.clientWidth, h = chart3dCanvas.clientHeight;
       if (!w || !h) return;
       viewer.renderer.setSize(w, h, false);
-      viewer.composer?.setSize(w, h);
       viewer.camera.aspect = w / h;
       viewer.camera.updateProjectionMatrix();
       // It only renders on demand, and a resize clears the canvas.
@@ -2300,12 +2311,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       resizeObserver.observe(chart3dCanvas);
     }
 
-    if (viewer.scene.environmentRotation !== undefined) {
-      viewer.scene.environmentRotation.set(P.hdriRx * Math.PI / 180, P.hdriRy * Math.PI / 180, 0);
-    }
+    viewer.traced.setEnvRotation(P.hdriRx, P.hdriRy);
 
     if (viewer.hdriReady) await viewer.hdriReady;
-    viewer.addShadowPlane(-(P.thickness + 2));
     viewer.start();
     pendantViewer = viewer;
     // ?capture: expose the viewer so a script can pose the pendant for
@@ -2359,6 +2367,20 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     emitCamera();
   }
 
+  // The finished pendant's mesh and distance map, started while the 2D
+  // outline is still thickening. `chords` and `version` say which pendant
+  // and settings it was built for.
+  let prepared3d = null;
+  let flowWaitFrom = 0;   // ?perf=1: when the 2D outline finished, to time the wait for the 3D
+  function prepare3D() {
+    const chords = pendantChords, version = paramsVersion;
+    const ready = ensureViewer()
+      .then(() => (chords === pendantChords ? requestPreview({ ...outlineParams(chords, false), circleRadius: 100 }) : null))
+      .then((res) => res && { res, sdf: pendantViewer.traced.prepare(res.mesh, tracedInfo(res.mesh)) })
+      .catch(() => null);
+    prepared3d = { chords, version, ready };
+  }
+
   async function start3DTransition() {
     if (!pendantModelData?.model) return;
     _3dModelReady = false;
@@ -2368,23 +2390,34 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     try {
       await ensureViewer();
       lastBuildWasDraft = false;
-      const res = await requestPreview(previewParams(false));
+      const early = prepared3d && prepared3d.chords === data.chords && prepared3d.version === version ? await prepared3d.ready : null;
+      prepared3d = null;
+      const res = early?.res || await requestPreview(previewParams(false));
       if (!res || gen !== previewGen || data !== pendantModelData) return;
 
-      const r = data.r;
       if (!shown3d) {
-        pendantViewer.updateMeshFromData(buildRingPreviewMesh(r, borderThickness, previewOpts()));
         update3DCamera();
         shown3d = true;
         apply3DFade(0.8);
       }
-      pendantViewer.crossFadeMeshFromData(res.mesh, 800);
+      // Flows in from the rim (the first time, the rim arrives with it).
+      flowedIn = false;
+      if (flowWaitFrom) {
+        const from = flowWaitFrom;
+        flowWaitFrom = 0;
+        pendantViewer.traced.onArriving = () => console.log(`[flow-in] started ${(performance.now() - from).toFixed(0)} ms after the 2D outline finished`);
+      }
+      pendantViewer.traced.onArrived = () => {
+        flowedIn = true;
+        _stopDotAnim();
+        if (displayState) drawChartState(displayState);
+      };
+      pendantViewer.traced.reveal(res.mesh, tracedInfo(res.mesh), undefined, early?.sdf);
       applyPreviewLoops(res.loops);
       _3dModelReady = true;
-      _stopDotAnim();
       if (displayState) drawChartState(displayState);
       // Settings moved while this was building.
-      if (version !== paramsVersion) refreshLivePendant('swap', false);
+      if (version !== paramsVersion) refreshLivePendant(false);
     } catch (err) {
       console.error('3D transition error:', err);
     }

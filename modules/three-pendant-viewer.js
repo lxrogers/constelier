@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
+import { TracedPendant, LOOKS } from "./traced-gold/traced-pendant.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
@@ -78,7 +79,7 @@ export class PendantViewer {
     this._initLighting();
     if (options.enableGroundPlane !== false) this._initGroundPlane();
     if (options.enableControls !== false) this._initControls();
-    if (options.enablePostProcessing !== false) this._initPostProcessing();
+    if (options.enablePostProcessing !== false && !options.traced) this._initPostProcessing();
     if (options.enableHDRI !== false) this._loadHDRI(options.hdriPath || './softbox.hdr');
 
     this.pendantGroup = new THREE.Group();
@@ -86,6 +87,18 @@ export class PendantViewer {
     // Top-down camera sees: screen-right = +x, screen-down = +y (matches canvas Y-down)
     this.pendantGroup.rotation.x = Math.PI / 2;
     this.scene.add(this.pendantGroup);
+
+    // `traced`: the pendant is drawn by the traced gold shaders (./traced-gold)
+    // through `this.traced`, which also casts its shadow and animates it in
+    // and out. It renders straight to the canvas, so the shadow maps, the
+    // lights and the post-processing passes are not used.
+    if (options.traced) {
+      this.traced = new TracedPendant({ requestRender: () => this.renderOnce() });
+      this.traced.setLook(LOOKS.page);
+      this.traced.setRoughness(options.roughness ?? 0);
+      this.pendantGroup.add(this.traced.object);
+      this.renderer.shadowMap.enabled = false;
+    }
 
     this._faceMat = new THREE.MeshStandardMaterial({
       color: 0xFFD700,
@@ -261,7 +274,8 @@ export class PendantViewer {
       rgbeLoader.load(path, (hdrEquirect) => {
         hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
         this._hdrTexture = hdrEquirect;
-        this.scene.environment = hdrEquirect;
+        if (this.traced) this.traced.setEnvironment(hdrEquirect);
+        else this.scene.environment = hdrEquirect;
         resolve();
       }, undefined, (err) => {
         console.error('HDRI load error:', err);
@@ -678,6 +692,7 @@ export class PendantViewer {
   // Render a single frame on demand
   renderOnce() {
     if (this.controls) this.controls.update();
+    if (this.traced) { this.camera.updateMatrixWorld(); this.traced.update(this.camera); }
     this.renderer.shadowMap.needsUpdate = true;
     if (this.composer) {
       this.composer.render();
@@ -706,6 +721,7 @@ export class PendantViewer {
       if (child.geometry) child.geometry.dispose();
       this.pendantGroup.remove(child);
     }
+    this.traced?.dispose();
     this._faceMat.dispose();
     this._edgeMat.dispose();
     this.renderer.dispose();

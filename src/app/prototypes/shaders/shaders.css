@@ -1,0 +1,54 @@
+.sl { display: grid; grid-template-columns: minmax(0, 1fr) 320px; height: 100dvh; background: #f6f1ea; color: #3a3834; font-family: 'Graphik Web', system-ui, sans-serif; }
+.sl-stage { min-height: 0; overflow: hidden; }
+.sl-stage canvas { display: block; }
+.sl-panel { padding: 28px 24px; overflow-y: auto; border-left: 1px solid #e4dccf; display: flex; flex-direction: column; gap: 18px; }
+.sl-panel h1 { font-family: 'Moulin', 'Times New Roman', serif; font-weight: 300; font-size: 30px; line-height: 1.1; margin: 0; }
+.sl-lede { margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: #7a746a; }
+.sl-field { display: flex; flex-direction: column; gap: 6px; }
+.sl-label { font-size: 12px; color: #7a746a; padding: 0; }
+.sl-seg { display: flex; border: 1px solid #d9d0c1; border-radius: 999px; padding: 2px; }
+.sl-seg button { flex: 1; font: inherit; font-size: 13px; border: 0; background: none; color: inherit; border-radius: 999px; padding: 7px 8px; cursor: pointer; }
+.sl-seg button[aria-pressed='true'] { background: #3a3834; color: #f6f1ea; }
+.sl-field select { font: inherit; font-size: 13px; color: inherit; background: #fff; border: 1px solid #d9d0c1; border-radius: 10px; padding: 8px 10px; }
+.sl-toggles { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sl-toggles:disabled { opacity: 0.45; }
+.sl-toggles label { font-size: 14px; display: grid; grid-template-columns: 20px 1fr; column-gap: 6px; align-items: start; cursor: pointer; }
+.sl-toggles input { margin: 3px 0 0; accent-color: #3a3834; }
+.sl-toggles small { grid-column: 2; font-size: 12px; color: #7a746a; }
+.sl-stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: 13px; padding-top: 14px; border-top: 1px solid #e4dccf; }
+.sl-stats dt { color: #7a746a; }
+.sl-stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+.sl-bench { font: inherit; font-size: 13px; align-self: start; border: 1px solid #3a3834; background: none; color: inherit; border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.sl-note { margin: -8px 0 0; font-size: 13px; color: #7a746a; }
+.sl-error { margin: 0; font-size: 13px; color: #9b3b2a; }
+
+@media (max-width: 760px) {
+  .sl { grid-template-columns: 1fr; grid-template-rows: 58dvh auto; height: auto; }
+  .sl-panel { border-left: 0; border-top: 1px solid #e4dccf; }
+}
+
+.sl-reveal { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sl-reveal:disabled { opacity: 0.45; }
+.sl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+.sl-grid button { font: inherit; font-size: 13px; border: 1px solid #d9d0c1; background: none; color: inherit; border-radius: 999px; padding: 7px 4px; cursor: pointer; }
+.sl-grid button[aria-pressed='true'] { background: #3a3834; border-color: #3a3834; color: #f6f1ea; }
+.sl-reveal .sl-note { margin: 0; min-height: 3em; }
+.sl-range { display: grid; grid-template-columns: auto 1fr 54px; gap: 10px; align-items: center; font-size: 13px; }
+.sl-range input { accent-color: #3a3834; min-width: 0; }
+.sl-range output { text-align: right; font-variant-numeric: tabular-nums; }
+.sl-row { display: flex; align-items: center; gap: 16px; font-size: 13px; }
+.sl-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sl-row input { accent-color: #3a3834; }
+
+.sl-bezier { display: grid; grid-template-columns: 132px 1fr; gap: 12px; align-items: end; }
+.sl-bezier svg { width: 132px; height: 132px; touch-action: none; overflow: visible; }
+.sl-bezier .frame { fill: #fff; stroke: #d9d0c1; }
+.sl-bezier .arm { stroke: #b9b0a2; stroke-width: 1; }
+.sl-bezier .curve { fill: none; stroke: #3a3834; stroke-width: 1.75; }
+.sl-bezier .handle { fill: #3a3834; stroke: #f6f1ea; stroke-width: 2; cursor: grab; }
+.sl-bezier .handle:focus-visible { outline: 2px solid #3a3834; outline-offset: 2px; }
+.sl-bezier-side { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #7a746a; min-width: 0; }
+.sl-bezier-side code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #3a3834; overflow-wrap: anywhere; }
+.sl-bezier-side button { font: inherit; align-self: start; border: 1px solid #d9d0c1; background: none; color: #3a3834; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.sl-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.sl-reveal .sl-note-short { min-height: 1.5em; }
