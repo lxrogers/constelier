@@ -61,7 +61,7 @@
   min-height: 48px;
   padding: 0 28px;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 14px;
 }
 .reading-scroll-section + .reading-scroll-section { border-top: 1px solid #ebe5d9; }
 
@@ -79,8 +79,7 @@
     padding: 20px 44px 14px;
     background: rgba(253, 251, 247, 0.92);
   }
-  .chart-page.is-reading.reading-scroll .reading-title { font-size: 38px; line-height: 1.08; }
-  .chart-page.is-reading.reading-scroll .reading-themes { font-size: 16px; gap: 10px; }
+  .chart-page.is-reading.reading-scroll .reading-themes { font-size: 15px; gap: 10px; }
 }
 @media (max-width: 768px) {
   /* No top padding, so the pinned bar is the sheet's own top edge. */
@@ -129,7 +128,7 @@
   .reading-scroll-section.is-intro + .reading-scroll-section { padding-top: 3vh; }
   .reading-scroll-section.is-summary { padding-bottom: 10vh; }
   .reading-scroll-section { scroll-margin-top: 48px; }
-  .chart-page.is-reading.reading-scroll .reading-title { font-size: 23px; line-height: 1.12; }
+  .chart-page.is-reading.reading-scroll .reading-title { font-size: 20px; line-height: 1.15; }
   .chart-page.is-reading.reading-scroll .reading-text,
   .chart-page.is-reading.reading-scroll .reading-text-lg { font-size: 14px; line-height: 1.55; }
   .chart-page.is-reading.reading-scroll .reading-big3 { gap: 6px; }
@@ -157,9 +156,6 @@
     margin: 0 -28px;
     padding: 20px 28px 14px;
   }
-  .chart-page.is-reading.reading-scroll .reading-title { font-size: 30px; }
-  .chart-page.is-reading.reading-scroll .reading-text,
-  .chart-page.is-reading.reading-scroll .reading-text-lg { font-size: 16px; }
   .chart-page .reading-scroll-bar .reading-scroll-finish { padding: 0 16px; }
 }
 

@@ -376,7 +376,7 @@ input[type="range"]::-moz-range-thumb {
   opacity: 0;
   transition: opacity 0.8s ease;
   pointer-events: none;
-  clip-path: circle(calc(50% * 310 / 350) at center);
+  clip-path: circle(50% at center);
   z-index: 2;
 }
 #chart {
@@ -491,7 +491,7 @@ input[type="range"]::-moz-range-thumb {
   #chart-3d {
     width: 100%;
     height: 100%;
-    clip-path: circle(calc(50% * 310 / 350) at center);
+    clip-path: circle(50% at center);
   }
 }
 
@@ -556,16 +556,16 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-flow #controls h2 {
     font-family: 'Moulin', serif;
     font-weight: 400;
-    font-size: 48px;
-    line-height: 1.04;
+    font-size: 32px;
+    line-height: 1.1;
     color: #2c2c2c;
     padding: 0;
     border: 0;
   }
   .chart-page.is-flow .controls-intro {
     margin: 0 0 12px;
-    font-size: 17px;
-    line-height: 1.55;
+    font-size: 15px;
+    line-height: 1.6;
     color: #3a3630;
   }
   .chart-page.is-flow #controls > div:has(.birth-field) {
@@ -589,7 +589,7 @@ input[type="range"]::-moz-range-thumb {
     min-height: 48px;
     padding: 0 28px;
     border-radius: 999px;
-    font-size: 15px;
+    font-size: 14px;
   }
   .chart-page.is-flow #controls > div > .controls-step-btn { margin-top: 8px; }
 
@@ -597,10 +597,10 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-reading #controls h2 { display: none; }
   .chart-page.is-reading .reading { gap: 28px; }
   .chart-page.is-reading .reading-body { gap: 20px; }
-  .chart-page.is-reading .reading-title { font-size: 48px; line-height: 1.04; }
-  .chart-page.is-reading .reading-text { font-size: 17px; }
-  .chart-page.is-reading .reading-text-lg { font-size: 19px; line-height: 1.6; }
-  .chart-page.is-reading .reading-where { font-size: 14px; }
+  .chart-page.is-reading .reading-title { font-size: 28px; line-height: 1.12; }
+  .chart-page.is-reading .reading-text,
+  .chart-page.is-reading .reading-text-lg { font-size: 15px; line-height: 1.65; }
+  .chart-page.is-reading .reading-where { font-size: 13px; }
 }
 
 /* Mobile: a smaller model (it zooms anyway) and a compact sheet, so each
@@ -679,7 +679,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* ── Last step (bag / waitlist) in the flow layout ──────────── */
 @media (min-width: 769px) {
-  .chart-page.is-flow.is-finish #controls h2 { font-size: 40px; order: 1; }
+  .chart-page.is-flow.is-finish #controls h2 { font-size: 32px; order: 1; }
   .chart-page.is-flow.is-finish .controls-back-btn {
     display: block;
     order: 0;
@@ -689,11 +689,11 @@ input[type="range"]::-moz-range-thumb {
   .chart-page.is-flow.is-finish #controls > div { order: 2; }
   .chart-page.is-flow.is-finish .add-to-bag,
   .chart-page.is-flow.is-finish .waitlist-form { gap: 18px; }
-  .chart-page.is-flow.is-finish .atb-price { font-size: 44px; }
-  .chart-page.is-flow.is-finish .atb-metal { font-size: 14px; }
+  .chart-page.is-flow.is-finish .atb-price { font-size: 32px; }
+  .chart-page.is-flow.is-finish .atb-metal { font-size: 13px; }
   .chart-page.is-flow.is-finish .atb-note,
   .chart-page.is-flow.is-finish .waitlist-intro,
-  .chart-page.is-flow.is-finish .waitlist-thanks p { font-size: 17px; line-height: 1.55; }
+  .chart-page.is-flow.is-finish .waitlist-thanks p { font-size: 15px; line-height: 1.6; }
   .chart-page.is-flow.is-finish .add-to-bag > .controls-step-btn,
   .chart-page.is-flow.is-finish .waitlist-form .controls-step-btn,
   .chart-page.is-flow.is-finish .atb-added .btn-row > * {
@@ -703,7 +703,7 @@ input[type="range"]::-moz-range-thumb {
     min-height: 48px;
     padding: 0 28px;
     border-radius: 999px;
-    font-size: 15px;
+    font-size: 14px;
   }
   .chart-page.is-flow.is-finish .waitlist-form input[type="email"] {
     min-height: 48px;

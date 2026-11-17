@@ -52,6 +52,9 @@ export interface BagItem {
   unitAmount: number;
   quantity: number;
   addedAt: number;
+  // Set when the item came from a pendant page (a quoted offer): which
+  // offer, metal and size. Checkout prices these from the offer.
+  offer?: { offerId: string; metal: string; mm: number };
 }
 
 export const MAX_BAG_ITEMS = 10;

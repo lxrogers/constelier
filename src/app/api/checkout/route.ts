@@ -1,12 +1,13 @@
 import type Stripe from 'stripe';
 import { after } from 'next/server';
 import { parseDesign, describeDesign, MAX_BAG_ITEMS, MAX_QUANTITY } from '@/lib/commerce/design';
-import { quoteDesign } from '@/lib/commerce/pricing';
+import { quoteDesign, type Quote } from '@/lib/commerce/pricing';
+import { getOffer, offerPrice, SAMPLE_OFFER_ID } from '@/lib/commerce/offer';
 import { encodeDesignMetadata, designId } from '@/lib/commerce/order-metadata';
 import { saveDesigns, designsWithoutThumbnail, setDesignThumbnail } from '@/lib/commerce/orders';
 import { parseThumbnail, blobConfigured, storeThumbnail } from '@/lib/commerce/thumbnails';
 import { getDb } from '@/lib/db/client';
-import { getStripe, siteUrl } from '@/lib/commerce/stripe';
+import { getStripe, siteUrl, stripeLiveMode } from '@/lib/commerce/stripe';
 import {
   SHIPPING_OPTIONS, PENDANT_TAX_CODE, PRODUCTION_NOTE, automaticTaxEnabled,
 } from '@/lib/commerce/checkout';
@@ -14,6 +15,9 @@ import {
 // Turns the bag into a Stripe Checkout Session. Every price is computed here
 // from the design's geometry; nothing the browser says about price is used.
 // With a database, each design is saved here first and Stripe only gets its id.
+//
+// An item from a pendant page (a quoted offer) names its offer, metal and
+// size instead: its price is the one written in that offer.
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const items = Array.isArray(body?.items) ? body.items : null;
@@ -30,14 +34,34 @@ export async function POST(request: Request) {
     if (!design || quantity < 1 || quantity > MAX_QUANTITY) {
       return Response.json({ error: 'invalid item in bag' }, { status: 400 });
     }
-    let quote;
-    try {
-      quote = quoteDesign(design);
-    } catch (err) {
-      console.error('Checkout pricing failed:', err);
-      return Response.json({ error: 'could not price an item in your bag' }, { status: 422 });
+    let quote: Quote;
+    let metadata: Record<string, string>;
+    let detail: string;
+    if (item?.offer) {
+      const offer = typeof item.offer.offerId === 'string' ? getOffer(item.offer.offerId) : null;
+      const priced = offer && offerPrice(offer, item.offer.metal, item.offer.mm);
+      if (!offer || !priced) return Response.json({ error: 'invalid item in bag' }, { status: 400 });
+      // The sample offer's prices are placeholders: never take real money for it.
+      if (offer.id === SAMPLE_OFFER_ID && stripeLiveMode()) {
+        return Response.json({ error: 'this pendant page is a sample and cannot be bought' }, { status: 400 });
+      }
+      design.spec.diameterMm = item.offer.mm;
+      quote = { unitAmount: priced.unitAmount, grams: 0, volumeMm3: 0, metal: priced.metal.name };
+      metadata = encodeDesignMetadata(design, quote, { includeDesign: !dbReady });
+      delete metadata.est_grams; // not worked out for a quoted price
+      metadata.offer_id = offer.id;
+      metadata.size_mm = String(item.offer.mm);
+      detail = `${priced.metal.name} · ${item.offer.mm} mm`;
+    } else {
+      try {
+        quote = quoteDesign(design);
+      } catch (err) {
+        console.error('Checkout pricing failed:', err);
+        return Response.json({ error: 'could not price an item in your bag' }, { status: 422 });
+      }
+      metadata = encodeDesignMetadata(design, quote, { includeDesign: !dbReady });
+      detail = quote.metal;
     }
-    const metadata = encodeDesignMetadata(design, quote, { includeDesign: !dbReady });
     toSave.push({ id: designId(design), design, thumbnail: parseThumbnail(item?.thumbnail) });
     const { title, subtitle } = describeDesign(design.spec);
     designIds.push(metadata.design_id);
@@ -49,7 +73,7 @@ export async function POST(request: Request) {
         tax_behavior: 'exclusive',
         product_data: {
           name: title,
-          description: `${subtitle} · ${quote.metal}`,
+          description: `${subtitle} · ${detail}`,
           tax_code: PENDANT_TAX_CODE,
           metadata,
         },

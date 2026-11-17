@@ -180,7 +180,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   let selectedLat = urlParams.has('lat') ? parseFloat(urlParams.get('lat')!) : 38.0464;
   let selectedLon = urlParams.has('lon') ? parseFloat(urlParams.get('lon')!) : -84.4970;
-  let chartOpacity = 0.6;
+  let chartOpacity = 0.85;
   let filletRadius = P.filletRadius;
   let borderThickness = P.borderThickness;
   let lineThickness = P.lineThickness;
@@ -995,8 +995,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // can restyle the chart (night, paper, mono) without touching the engine.
   // Fallbacks are the original paper palette.
   const THEME_DEFAULTS = {
-    paper: '#f5f0e6', ring: '#a89f92', ringInner: '#b8b0a2', label: '#8a8078',
-    tick: '#8b8078', glyph: '#2c2c2c', glyphHi: '#000000', aspect: '#2c2c2c',
+    paper: '#f5f0e6', ring: '#665e54', ringInner: '#766e63', label: '#4f4840',
+    tick: '#514a42', glyph: '#2c2c2c', glyphHi: '#000000', aspect: '#2c2c2c',
     aspectHi: '#2c2c2c', angle: '#5a524a', angle2: '#7a7268', angleText: '#3a3630',
     outline: '#5a524a', dot: '#c9a227', hover: 'rgba(0,0,0,0.4)', hoverFg: 'rgba(255,255,255,0.8)',
     hoverWidth: '30', dim: '0.3',
@@ -1346,9 +1346,13 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
-        ctx.strokeStyle = T.tick; ctx.globalAlpha = Math.min(ctx.globalAlpha, 0.3 * spreadT + 0.001);
+        // Fainter than the tick, for this line only: put the alpha back so
+        // the glyph and the next planets' ticks aren't drawn faint too.
+        const prevA = ctx.globalAlpha;
+        ctx.strokeStyle = T.tick; ctx.globalAlpha = Math.min(prevA, 0.5 * spreadT + 0.001);
         ctx.lineWidth = 0.5;
         ctx.stroke();
+        ctx.globalAlpha = prevA;
       }
 
       const glyphP = eclToXY(renderDeg, PLANET_R, ascDeg);
