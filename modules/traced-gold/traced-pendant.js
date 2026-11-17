@@ -114,7 +114,7 @@ export class TracedPendant {
       uCardColor: { value: new THREE.Vector3(1, 0.97, 0.92) }, uCardHalf: { value: new THREE.Vector2() }, uCardGain: { value: 2 }, uCardLo: { value: 0.3 },
       uTrace: { value: 1 }, uShadows: { value: 1 }, uSurface: { value: 0 }, uGobo: { value: 0 }, uAo: { value: 0.6 },
       uMode: { value: 0 }, uP: { value: 1 }, uRise: { value: 1 }, uDome: { value: 2 }, uDrop: { value: 2 }, uOutR: { value: 2 }, uOutZ: { value: 2 }, uTop: { value: 6 },
-      uAlpha: { value: 1 }, uShadowGain: { value: 1 }, uGlint: { value: 1e5 }, uKeepRim: { value: 0 }, uRimR: { value: 100 },
+      uAlpha: { value: 1 }, uShadowGain: { value: 1 }, uGlint: { value: 1e5 }, uKeepRim: { value: 0 }, uRimR: { value: 100 }, uSplit: { value: 105 },
     };
     const material = (fragmentShader, extra) => new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader, transparent: true, ...extra });
     this.goldMat = material(GOLD_FRAG);
@@ -196,7 +196,7 @@ export class TracedPendant {
   // ── Geometry ────────────────────────────────────────────────────────────
   // `mesh`: { vertices, normals, triangles } as the pendant builder makes it
   // (flat in XY, z from 0 to its thickness). `info`: { thickness, edgeRound,
-  // rimRound, rimDrop, extent, rimR } in the same units.
+  // rimRound, rimDrop, rimWidth, extent, rimR } in the same units.
 
   // The distance map for a mesh, built from its rig-space outline. One is
   // built at a time; a request that is no longer wanted by the time its turn
@@ -234,6 +234,7 @@ export class TracedPendant {
     u.uOutR.value = Math.max(info.rimRound, 0.01);
     u.uOutZ.value = Math.min(info.rimDrop, this.half);
     u.uRimR.value = info.rimR ?? 100;
+    u.uSplit.value = u.uRimR.value + Math.min(5, 0.4 * (info.rimWidth ?? 12));
     u.uPlaneZ.value = this.plane.position.z = -this.half - this.look.gap;
   }
 
@@ -387,7 +388,7 @@ export class TracedPendant {
     u.uMode.value = p.keepRim ? 5 : 0;   // "flow in" at its very start is exactly the rim
     u.uP.value = 0; u.uAlpha.value = 0; u.uGlint.value = 1e5;
     u.uShadowGain.value = p.keepRim ? 1 : 0;
-    this.mesh.visible = false;
+    this.mesh.visible = p.keepRim;   // the rim's outer part; its inside is at uAlpha 0
     this.box.visible = p.keepRim;
     this.shape(1, u.uRound.value, u.uRound.value);
   }
@@ -400,7 +401,7 @@ export class TracedPendant {
     u.uMode.value = mode;
     // The reshaping arrivals end by dissolving into the real mesh over their slow tail, rather than cutting to it.
     const handover = marched ? smooth((q - 0.95) / 0.05) : 0;
-    this.mesh.visible = marched ? handover > 0 : true;
+    this.mesh.visible = !marched || handover > 0 || p.keepRim;
     this.box.visible = marched;
     u.uAlpha.value = marched ? handover : p.kind === 'glint' ? smooth(q / 0.55) : q;
     u.uShadowGain.value = marched ? 1 : u.uAlpha.value;
@@ -421,10 +422,10 @@ export class TracedPendant {
     u.uGlint.value = 1e5;
     u.uMode.value = p.exit === 'sink' ? 3 : p.exit === 'drain' ? 5 : 0;   // sink: the liquid arrival backwards; drain: flow in backwards
     u.uP.value = 1 - e;
-    // Sink and drain start by dissolving from the real mesh into the changing solid, the arrival's hand-over in reverse.
-    u.uAlpha.value = marched ? 1 - smooth(e / 0.2) : 1 - e;
+    // Sink and drain dissolve from the real mesh into the changing solid over their first half, the arrival's hand-over in reverse.
+    u.uAlpha.value = marched ? 1 - smooth(e / 0.5) : 1 - e;
     u.uShadowGain.value = marched ? 1 : 1 - e;
-    this.mesh.visible = u.uAlpha.value > 0 || (!marched && p.keepRim);
+    this.mesh.visible = u.uAlpha.value > 0 || p.keepRim;
     this.box.visible = marched;
     this.shape(p.exit === 'sink' ? Math.max(0.03, 1 - e) : 1, lerp(round, p.exit === 'sink' ? 14 : 8, e), lerp(round, 2 * this.half, e));
   }

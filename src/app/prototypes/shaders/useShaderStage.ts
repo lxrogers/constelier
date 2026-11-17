@@ -35,7 +35,7 @@ export function useShaderStage(sample: LabSample, options: StageOptions) {
       const { mesh } = buildPreview(outlineParamsFor(p, chordsForBirth(sample, p.aspects)), opts);
       stage.current.setMesh({
         vertices: mesh.vertices, normals: mesh.normals, triangles: mesh.triangles,
-        thickness: opts.thickness, edgeRound: mesh.filletR, rimRound: mesh.outerFilletR, rimDrop: opts.outerFilletZ, extent: pendantExtent(opts, p.borderThickness),
+        thickness: opts.thickness, edgeRound: mesh.filletR, rimRound: mesh.outerFilletR, rimDrop: opts.outerFilletZ, rimWidth: p.borderThickness, extent: pendantExtent(opts, p.borderThickness),
       });
       setError('');
     } catch (e) { setError(String(e?.message || e)); }
