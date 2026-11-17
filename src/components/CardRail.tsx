@@ -5,12 +5,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// `prefix` names the page's own classes (stu-rail, halo-rail, ...), so each
-// homepage direction styles the rail itself.
-export default function CardRail({ title, lede, prefix = 'stu', children }: {
+// `prefix` names the page's own classes (halo-rail, halo-rail-btns, ...), so
+// the page that uses the rail styles it.
+export default function CardRail({ title, lede, prefix, children }: {
   title: string;
   lede?: string;
-  prefix?: string;
+  prefix: string;
   children: React.ReactNode;
 }) {
   const rail = useRef<HTMLUListElement>(null);

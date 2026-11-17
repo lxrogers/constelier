@@ -66,9 +66,8 @@ nav.site-nav .nav-bag-count {
 nav.site-nav .logo-icon { width: 22px; height: 31px; flex: none; }
 
 @media (max-width: 768px) {
-  /* (Not while the homepage hero is showing: that view scrolls.) */
-  html:has(.chart-page):not(:has([data-view='home'])),
-  html:not(:has([data-view='home'])) body:has(.chart-page) {
+  html:has(.chart-page),
+  body:has(.chart-page) {
     overflow: hidden !important;
     height: 100dvh !important;
   }

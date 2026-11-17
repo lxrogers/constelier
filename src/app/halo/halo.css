@@ -1,5 +1,5 @@
-/* Direction E · Halo: warm and soft. Cream page, light serif headlines, a
-   floating nav, rounded picture cards, and a dark footer. */
+/* The homepage (app/page.tsx): warm and soft. Cream page, light serif
+   headlines, a pinned nav, rounded picture cards, and a dark footer. */
 
 .halo {
   --pad: clamp(20px, 4.4vw, 64px);

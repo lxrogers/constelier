@@ -35,8 +35,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ── Themes ───────────────────────────────────────────────────
-   One set of tokens per world. Pages put a theme class on their root
-   (.theme-night, .theme-paper, .theme-mono). The --chart-* tokens restyle
+   Pages put the theme class (.theme-paper) on their root. The --chart-* tokens restyle
    the canvas chart (read by chart-engine). */
 
 :root {
@@ -104,78 +103,6 @@
   --chart-glyph-hi: #7a5c22;
   --chart-dim: 0.35;
   color-scheme: light;
-}
-
-.theme-night {
-  --bg: #07080d;
-  --bg-2: #0c0e16;
-  --surface: #10121b;
-  --surface-glass: rgba(13, 15, 23, 0.78);
-  --ink: #ede7da;
-  --ink-2: rgba(237, 231, 218, 0.64);
-  --ink-3: rgba(237, 231, 218, 0.38);
-  --line: rgba(237, 231, 218, 0.11);
-  --line-strong: rgba(237, 231, 218, 0.22);
-  --accent: #e2c27e;
-  --accent-ink: #0b0b10;
-  --btn: #ede7da;
-  --btn-ink: #0b0b10;
-  --chart-paper: #090a10;
-  --chart-ring: rgba(237, 231, 218, 0.30);
-  --chart-ring-inner: rgba(237, 231, 218, 0.22);
-  --chart-label: rgba(237, 231, 218, 0.62);
-  --chart-tick: rgba(237, 231, 218, 0.5);
-  --chart-glyph: #ede7da;
-  --chart-glyph-hi: #f6dfa4;
-  --chart-aspect: #ede7da;
-  --chart-aspect-hi: #f6dfa4;
-  --chart-angle: rgba(237, 231, 218, 0.55);
-  --chart-angle-2: rgba(237, 231, 218, 0.4);
-  --chart-angle-text: #ede7da;
-  --chart-outline: rgba(226, 194, 126, 0.55);
-  --chart-dot: #e2c27e;
-  --chart-hover: rgba(246, 223, 164, 0.16);
-  --chart-hover-fg: #f6dfa4;
-  --chart-hover-width: 18;
-  --chart-dim: 0.22;
-  --pendant-gold: #f4cd7a;
-  --pendant-roughness: 0.06;
-  color-scheme: dark;
-}
-
-.theme-mono {
-  --bg: #000000;
-  --bg-2: #0a0a0a;
-  --surface: #0d0d0d;
-  --surface-glass: rgba(8, 8, 8, 0.8);
-  --ink: #f4f4f2;
-  --ink-2: rgba(244, 244, 242, 0.62);
-  --ink-3: rgba(244, 244, 242, 0.36);
-  --line: rgba(244, 244, 242, 0.14);
-  --line-strong: rgba(244, 244, 242, 0.3);
-  --accent: #f4f4f2;
-  --accent-ink: #000000;
-  --btn: #f4f4f2;
-  --btn-ink: #000000;
-  --chart-paper: #000000;
-  --chart-ring: rgba(244, 244, 242, 0.42);
-  --chart-ring-inner: rgba(244, 244, 242, 0.3);
-  --chart-label: rgba(244, 244, 242, 0.7);
-  --chart-tick: rgba(244, 244, 242, 0.6);
-  --chart-glyph: #f4f4f2;
-  --chart-glyph-hi: #ffffff;
-  --chart-aspect: #f4f4f2;
-  --chart-aspect-hi: #ffffff;
-  --chart-angle: rgba(244, 244, 242, 0.6);
-  --chart-angle-2: rgba(244, 244, 242, 0.45);
-  --chart-angle-text: #f4f4f2;
-  --chart-outline: rgba(244, 244, 242, 0.5);
-  --chart-dot: #d9c08a;
-  --chart-hover: rgba(255, 255, 255, 0.12);
-  --chart-hover-fg: #ffffff;
-  --chart-hover-width: 16;
-  --chart-dim: 0.22;
-  color-scheme: dark;
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -279,27 +206,6 @@ body {
   .inview .rise { opacity: 1; filter: none; transform: none; transition: none; }
 }
 
-/* SkyWheel chord draw-in */
-.sky-chord {
-  stroke-dashoffset: var(--len);
-  animation: sky-draw 1.6s var(--ease-out) forwards;
-  animation-delay: calc(400ms + var(--i) * 70ms);
-}
-@keyframes sky-draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .sky-chord { animation: none; stroke-dashoffset: 0; } }
-
-/* Cursor depth (CursorGlow): crisp dot + soft trailing halo. */
-.cursor-dot, .cursor-halo { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 200; opacity: 0; }
-.has-cursor-glow .cursor-dot, .has-cursor-glow .cursor-halo { opacity: 1; }
-.cursor-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--gold-hi); }
-.cursor-halo {
-  width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(241, 216, 154, 0.14), rgba(241, 216, 154, 0));
-  transition: width 0.4s var(--ease-out), height 0.4s var(--ease-out), margin 0.4s var(--ease-out), opacity 0.4s;
-}
-.cursor-hot .cursor-halo { width: 64px; height: 64px; margin: -32px 0 0 -32px; background: radial-gradient(closest-side, rgba(241, 216, 154, 0.28), rgba(241, 216, 154, 0)); }
-.theme-mono .cursor-dot { background: #fff; }
-.theme-mono .cursor-halo { background: radial-gradient(closest-side, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0)); }
 /* Shop: bag link and the header on /bag and /order (shop flag only). */
 .nav-bag {
   display: inline-flex;

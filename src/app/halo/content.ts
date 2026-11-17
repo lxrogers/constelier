@@ -1,4 +1,4 @@
-// Copy and imagery for the Halo homepage direction.
+// Copy and imagery for the homepage.
 
 export const DESIGN_PATH = '/chart';
 
