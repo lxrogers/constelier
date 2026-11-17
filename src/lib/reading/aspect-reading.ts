@@ -21,19 +21,20 @@ export interface ChartBodies {
 type Element = 'fire' | 'earth' | 'air' | 'water';
 type Mode = 'cardinal' | 'fixed' | 'mutable';
 
-export const SIGNS: { name: string; element: Element; mode: Mode }[] = [
-  { name: 'Aries', element: 'fire', mode: 'cardinal' },
-  { name: 'Taurus', element: 'earth', mode: 'fixed' },
-  { name: 'Gemini', element: 'air', mode: 'mutable' },
-  { name: 'Cancer', element: 'water', mode: 'cardinal' },
-  { name: 'Leo', element: 'fire', mode: 'fixed' },
-  { name: 'Virgo', element: 'earth', mode: 'mutable' },
-  { name: 'Libra', element: 'air', mode: 'cardinal' },
-  { name: 'Scorpio', element: 'water', mode: 'fixed' },
-  { name: 'Sagittarius', element: 'fire', mode: 'mutable' },
-  { name: 'Capricorn', element: 'earth', mode: 'cardinal' },
-  { name: 'Aquarius', element: 'air', mode: 'fixed' },
-  { name: 'Pisces', element: 'water', mode: 'mutable' },
+// manner: how a planet behaves in the sign, to finish "in Aries it works ...".
+export const SIGNS: { name: string; element: Element; mode: Mode; manner: string }[] = [
+  { name: 'Aries', element: 'fire', mode: 'cardinal', manner: 'head-on and fast' },
+  { name: 'Taurus', element: 'earth', mode: 'fixed', manner: 'slowly and steadily' },
+  { name: 'Gemini', element: 'air', mode: 'mutable', manner: 'with curiosity and quick turns' },
+  { name: 'Cancer', element: 'water', mode: 'cardinal', manner: 'protectively, guided by feeling' },
+  { name: 'Leo', element: 'fire', mode: 'fixed', manner: 'warmly and with flair' },
+  { name: 'Virgo', element: 'earth', mode: 'mutable', manner: 'carefully, with an eye for detail' },
+  { name: 'Libra', element: 'air', mode: 'cardinal', manner: 'gracefully, weighing both sides' },
+  { name: 'Scorpio', element: 'water', mode: 'fixed', manner: 'intensely, all or nothing' },
+  { name: 'Sagittarius', element: 'fire', mode: 'mutable', manner: 'freely, with big aims' },
+  { name: 'Capricorn', element: 'earth', mode: 'cardinal', manner: 'patiently, with a plan' },
+  { name: 'Aquarius', element: 'air', mode: 'fixed', manner: 'independently, on its own terms' },
+  { name: 'Pisces', element: 'water', mode: 'mutable', manner: 'softly, by intuition' },
 ];
 
 export function signOf(deg: number) {
@@ -120,26 +121,36 @@ function placement(key: string, deg?: number) {
   return `${p?.glyph ?? ''} ${degInSign(deg)}° ${signOf(deg).name}`;
 }
 
+// "The Sun is your core self and vitality, and in Aries it works head-on and fast."
+function portrait(p: PlanetInfo, deg?: number): string {
+  const name = p.name === 'Sun' || p.name === 'Moon' ? `The ${p.name}` : p.name;
+  const how = deg !== undefined ? `, and in ${signOf(deg).name} it works ${signOf(deg).manner}` : '';
+  return `${name} is ${p.essence}${how}.`;
+}
+
+// A short paragraph: where the two planets sit, what each one is, how the
+// aspect makes them relate, and what to do with it.
 function bodyFor(type: AspectKey, a: PlanetInfo, b: PlanetInfo, deg1?: number, deg2?: number): string {
   const s1 = deg1 !== undefined ? signOf(deg1) : null;
   const s2 = deg2 !== undefined ? signOf(deg2) : null;
   const where1 = s1 ? `Your ${a.name} in ${s1.name}` : `Your ${a.name}`;
   const where2 = s2 ? `your ${b.name} in ${s2.name}` : `your ${b.name}`;
+  const portraits = `${portrait(a, deg1)} ${portrait(b, deg2)}`;
   switch (type) {
     case 'opposition':
-      return `${where1} faces ${where2} across the chart. ${cap(a.essence)} and ${b.essence} pull opposite ways; the work is letting each keep the other honest.`;
+      return `${where1} faces ${where2} across the chart. ${portraits} With ${a.short} at one end and ${b.short} at the other, it can feel as if you have to choose. You tend to own one side and meet the other in the people around you. The work is letting each keep the other honest, rather than picking a winner.`;
     case 'trine': {
       const shared = s1 && s2 && s1.element === s2.element ? `, both in ${s1.element} signs` : '';
-      return `${where1} and ${where2} flow together${shared}. ${cap(a.short)} and ${b.short} support each other so easily it can go unnoticed.`;
+      return `${where1} and ${where2} flow together${shared}. ${portraits} ${cap(a.short)} and ${b.short} support each other so easily it can go unnoticed. You were born with this rather than earning it, which is why you may not count it as a talent. Use it on purpose and it becomes a real strength; leave it alone and it stays a comfortable habit.`;
     }
     case 'square': {
       const shared = s1 && s2 && s1.mode === s2.mode ? `, both ${s1.mode} signs` : '';
-      return `${where1} meets ${where2} at a right angle${shared}. ${cap(a.short)} and ${b.short} want different things at once, and the friction pushes you to act.`;
+      return `${where1} meets ${where2} at a right angle${shared}. ${portraits} ${cap(a.short)} and ${b.short} want different things at once, and neither will give way. You feel it as pressure, most of all when you try to stand still. That friction is the engine of this line: each time you act on it, both sides grow stronger.`;
     }
     case 'sextile':
-      return `${where1} and ${where2} are on friendly terms. ${cap(a.essence)} and ${b.essence} help each other once you reach for it.`;
+      return `${where1} and ${where2} are on friendly terms. ${portraits} ${cap(a.short)} and ${b.short} speak a similar language, so one readily opens a door for the other. Nothing happens here unprompted, though. This line is an invitation, and it pays off once you reach for it.`;
     case 'conjunction':
-      return `${where1} sits right beside ${where2}. ${cap(a.essence)} and ${b.essence} fuse, so one is rarely felt without the other.`;
+      return `${where1} sits right beside ${where2}. ${portraits} ${cap(a.short)} and ${b.short} fuse, so one is rarely felt without the other. That gives you focus and force in this part of your life, and a blind spot too, because you have never known one without the other.`;
   }
 }
 
