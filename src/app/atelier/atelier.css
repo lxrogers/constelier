@@ -60,7 +60,17 @@ body:has(.home-shell[data-view='home'] .chart-page) { overflow: visible; }
   padding: 0 var(--pad);
 }
 .home-shell[data-view='home'] > .home-only:first-child { grid-area: nav; margin: 0 calc(-1 * var(--pad)); position: sticky; top: 0; z-index: 50; }
-.atl-below { grid-area: below; margin: 0 calc(-1 * var(--pad)); align-self: stretch; }
+.atl-below { grid-area: below; margin: 0 calc(-1 * var(--pad)); align-self: stretch; position: relative; background: var(--bg); }
+/* The paper grid belongs to the hero: it fades out over the hero's last
+   stretch, and everything below sits on plain paper. */
+.atl-below::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 100% 0;
+  height: 160px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+}
 
 /* The chart page's own box steps aside; its chart is the hero art. */
 .home-shell[data-view='home'] .chart-page { display: contents; }
@@ -118,21 +128,6 @@ body:has(.home-shell[data-view='home'] .chart-page) { overflow: visible; }
 .atl-lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 28em; font-weight: 300; }
 .atl-hero-cta { display: flex; gap: 12px; }
 
-.atl-note {
-  position: absolute;
-  right: -2%;
-  top: 8%;
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 20px;
-  line-height: 1.1;
-  color: var(--accent);
-  transform: rotate(-4deg);
-}
-.atl-note svg { color: var(--accent); transform: scaleX(-1) translateY(18px); order: -1; }
 .atl-anchor { position: absolute; top: -90px; }
 .atl section { position: relative; }
 
@@ -146,40 +141,47 @@ body:has(.home-shell[data-view='home'] .chart-page) { overflow: visible; }
   text-wrap: balance;
 }
 
-/* Gallery */
-.atl-gallery { padding: 120px var(--pad); border-top: 1px solid var(--line-strong); display: flex; flex-direction: column; gap: 56px; }
-.atl-gallery-grid { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-.atl-gallery-grid li { display: flex; flex-direction: column; gap: 16px; }
+/* Gallery: example pendants as shop tiles. */
+.atl-gallery { padding: 0 var(--pad) 120px; display: flex; flex-direction: column; gap: 20px; }
+.atl-gallery-grid { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 1100px) and (min-width: 861px) { .atl-gallery-grid { grid-template-columns: repeat(2, 1fr); } }
 .atl-gallery-img {
+  position: relative;
+  margin: 0;
   aspect-ratio: 4 / 5;
-  background: #ece5d6;
-  border-radius: 4px;
-  display: grid;
-  place-items: center;
+  background: #e9e7e2;
   overflow: hidden;
-  transition: background 0.5s;
 }
-.atl-gallery-grid li:hover .atl-gallery-img { background: #e6dcc8; }
+/* The renders are mostly chain; zoom in on the pendant. */
 .atl-gallery-img img {
-  width: 72%;
-  height: auto;
-  filter: drop-shadow(0 18px 22px rgba(80, 60, 20, 0.25));
-  transition: transform 0.8s var(--ease-out);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.4);
+  transform-origin: 50% 76%;
+  transition: transform 1.2s var(--ease-out);
 }
-.atl-gallery-grid li:hover .atl-gallery-img img { transform: scale(1.04) rotate(-2deg); }
+.atl-gallery-grid li:hover .atl-gallery-img img { transform: scale(1.46); }
+/* Date and place sit on the photo, over a soft shade so they read on any scene. */
 .atl-gallery-cap {
+  position: absolute;
+  inset: auto 0 0 0;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 4px;
+  padding: 56px 18px 16px;
   font-size: 11px;
   letter-spacing: var(--track-caps);
   text-transform: uppercase;
-  color: var(--ink-2);
-  border-top: 1px solid var(--line-strong);
-  padding-top: 12px;
+  color: #fbf7ef;
+  text-shadow: 0 1px 8px rgba(20, 14, 6, 0.35);
+  background: linear-gradient(to top, rgba(28, 20, 10, 0.55), rgba(28, 20, 10, 0));
+  pointer-events: none;
 }
 
 /* Process */
-.atl-process { padding: 120px var(--pad); border-top: 1px solid var(--line-strong); display: flex; flex-direction: column; gap: 56px; }
+.atl-process { padding: 0 var(--pad) 120px; display: flex; flex-direction: column; gap: 56px; }
 .atl-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--ink); }
 .atl-steps li { padding: 24px 24px 0 0; display: flex; flex-direction: column; gap: 12px; }
 .atl-steps li + li { padding-left: 24px; border-left: 1px solid var(--line-strong); }
@@ -243,27 +245,27 @@ body:has(.home-shell[data-view='home'] .chart-page) { overflow: visible; }
   }
   .home-shell[data-view='home'] .chart-page #main { max-width: 440px; margin: 16px 0 40px; }
   .atl-hero-copy { padding: 0 0 72px; }
-  .atl-note { font-size: 15px; right: 4%; top: 0; }
-  .atl-note svg { width: 48px; }
+  .atl-below::before { height: 64px; }
   .atl-lede { font-size: 16px; }
   .atl-hero-cta .btn { width: 100%; }
 
-  .atl-gallery, .atl-process, .atl-reading { padding-top: 80px; padding-bottom: 80px; gap: 36px; }
+  .atl-gallery { padding-bottom: 80px; gap: 14px; }
+  .atl-process { padding-bottom: 80px; gap: 28px; }
+  .atl-reading { padding-top: 80px; padding-bottom: 80px; gap: 36px; }
   .atl-gallery-grid {
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: 78%;
+    grid-auto-columns: 72%;
+    gap: 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     margin: 0 calc(-1 * var(--pad));
-    padding: 0 var(--pad) 4px;
+    padding: 0 var(--pad);
     scroll-padding-inline: var(--pad);
-    gap: 14px;
     scrollbar-width: none;
   }
   .atl-gallery-grid::-webkit-scrollbar { display: none; }
   .atl-gallery-grid li { scroll-snap-align: start; }
-  .atl-gallery-cap { flex-direction: column; gap: 4px; font-size: 11px; }
 
   .atl-steps { grid-template-columns: 1fr 1fr; }
   .atl-steps li { padding: 20px 16px 20px 0; }
