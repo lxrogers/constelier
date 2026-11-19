@@ -96,22 +96,10 @@
   }
   .reading-scroll-bar {
     margin: 0 -20px;
-    padding: 16px 16px 10px;
+    padding: 12px 16px 10px;
     gap: 10px;
     background: #faf7f0;
     border-radius: 20px 20px 0 0;
-  }
-  /* grab handle */
-  .reading-scroll-bar::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    width: 36px;
-    height: 4px;
-    margin-left: -18px;
-    border-radius: 2px;
-    background: #d4cfc5;
   }
   .reading-scroll-back { font-size: 13px; }
   .chart-page .reading-scroll-bar .reading-scroll-finish {

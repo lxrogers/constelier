@@ -428,6 +428,13 @@ input[type="range"]::-moz-range-thumb {
     position: relative;
     height: calc(100dvh - 44px);
     overflow: hidden;
+    /* The layout is drawn for a phone about this wide. On anything wider
+       (large phones, small tablets) it stays this size, centred, rather
+       than stretching the chart and the sheet out of proportion. */
+    --phone-max: 400px;
+    width: 100%;
+    max-width: var(--phone-max);
+    margin: 0 auto;
   }
 
   #main {
@@ -723,9 +730,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Phones: the birth-details sheet matches the reading sheet: same white
-   card (with a soft shadow, so it lifts off the cream page) and grab handle, a centred serif heading, and pill buttons. Neither sheet uses a backdrop blur: the
-   chart behind them redraws while it animates, and blurring it every
-   frame is what made scrolling stutter. */
+   card (with a soft shadow, so it lifts off the cream page), a centred
+   serif heading, and pill buttons. Neither sheet uses a backdrop blur:
+   the chart behind them redraws while it animates, and blurring it
+   every frame is what made scrolling stutter. */
 @media (max-width: 768px) {
   .chart-page.is-flow #controls,
   .chart-page.is-reading #controls {
@@ -734,23 +742,12 @@ input[type="range"]::-moz-range-thumb {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  /* No title bar on the birth steps, just the grab handle. */
+  /* No title bar on the birth steps. */
   .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls {
-    padding-top: 26px;
+    padding-top: 22px;
     gap: 14px;
   }
   .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls h2 { display: none; }
-  .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    width: 36px;
-    height: 4px;
-    margin-left: -18px;
-    border-radius: 2px;
-    background: #d4cfc5;
-  }
   .chart-page.is-flow .birth-field .form-group > label {
     font-family: 'Moulin', serif;
     font-size: 19px;
@@ -792,6 +789,9 @@ input[type="range"]::-moz-range-thumb {
   .keyboard-open .chart-page.is-flow #controls {
     --kb-sheet-h: min(320px, calc(var(--vv-height, 100dvh) - 24px));
     position: fixed;
+    /* Fixed to the viewport now, so keep to the capped column by hand. */
+    left: max(8px, calc(50vw - var(--phone-max) / 2 + 8px));
+    right: max(8px, calc(50vw - var(--phone-max) / 2 + 8px));
     top: calc(var(--vv-top, 0px) + var(--vv-height, 100dvh) - var(--kb-sheet-h));
     bottom: auto;
     height: var(--kb-sheet-h);
