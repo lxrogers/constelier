@@ -498,7 +498,7 @@ input[type="range"]::-moz-range-thumb {
 /* ── Flow layout (birth details + reading) ──────────────────
    Desktop follows the design file: the model large on the left, the
    text on the right in a floating card. The zoomed model may slide under
-   the card, which blurs whatever passes behind it. */
+   the card. */
 @media (min-width: 769px) {
   body:has(.chart-page.is-flow) { overflow: hidden; }
   nav.site-nav { position: relative; z-index: 20; }
@@ -534,14 +534,14 @@ input[type="range"]::-moz-range-thumb {
     max-height: 100%;
     box-sizing: border-box;
     /* A floating card, the same in every step, so moving between birth
-       details and the reading only changes what's inside it. See-through
-       and blurred where the zoomed model slides under it. */
+       details and the reading only changes what's inside it. Nearly solid,
+       with no backdrop blur: the zoomed model slides under it and redraws
+       many times a second, and blurring that on every frame made the card
+       flicker while its text scrolled. */
     margin-left: 32px;
     padding: 48px;
     justify-content: center;
-    background: rgba(253, 251, 247, 0.6);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background: rgba(253, 251, 247, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 24px;
     box-shadow:
