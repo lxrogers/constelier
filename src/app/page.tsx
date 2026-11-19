@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import InView from '@/components/InView';
 import CardRail from '@/components/CardRail';
@@ -7,7 +6,8 @@ import { ASPECT_TYPES, READING_ORDER } from '@/lib/reading';
 import HaloHeader from './halo/components/HaloHeader';
 import HaloFooter from './halo/components/HaloFooter';
 import StepPanel from './halo/components/StepPanel';
-import { CLOSING_IMAGE, DESIGN_PATH, HERO_IMAGE, SKIES, STEPS } from './halo/content';
+import DesignLink from './halo/components/DesignLink';
+import { CLOSING_IMAGE, HERO_IMAGE, SKIES, STEPS } from './halo/content';
 import './halo/halo.css';
 
 export const metadata: Metadata = { title: 'CONSTELIER · Wear the sky you were born under' };
@@ -29,7 +29,7 @@ export default function Home() {
             <p className="halo-lede reveal" style={{ ['--d' as string]: '100ms' }}>
               Your planets at the minute you arrived, drawn as lines and cast in solid gold.
             </p>
-            <Link href={DESIGN_PATH} className="btn reveal" style={{ ['--d' as string]: '200ms' }}>Design yours</Link>
+            <DesignLink className="btn reveal" style={{ ['--d' as string]: '200ms' }}>Design yours</DesignLink>
           </div>
         </section>
 
@@ -87,7 +87,7 @@ export default function Home() {
             <div className="halo-closing-copy">
               <span className="halo-chip">{CLOSING_IMAGE.caption}</span>
               <h2 className="halo-h2">Your sky is waiting</h2>
-              <Link href={DESIGN_PATH} className="btn halo-btn-light">Design yours</Link>
+              <DesignLink className="btn halo-btn-light">Design yours</DesignLink>
             </div>
           </div>
         </InView>
