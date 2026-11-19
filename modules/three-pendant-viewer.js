@@ -66,6 +66,11 @@ function createGroundGradientTexture(size, middleStop, endStop, intensity) {
   return canvas;
 }
 
+// Three frames in a row longer than this (under 40 fps) and the moving metal
+// drops to 80% of its resolution, down to this floor.
+const LATE_FRAME_MS = 25;
+const MIN_MOTION_SCALE = 0.6;
+
 export class PendantViewer {
   constructor(container, options = {}) {
     this.container = container;
@@ -98,6 +103,7 @@ export class PendantViewer {
       this.traced.setRoughness(options.roughness ?? 0);
       this.pendantGroup.add(this.traced.object);
       this.renderer.shadowMap.enabled = false;
+      this.traced.precompile(this.renderer, this.camera, this.scene);   // after the line above: it is part of what a shader is compiled for
     }
 
     this._faceMat = new THREE.MeshStandardMaterial({
@@ -139,7 +145,10 @@ export class PendantViewer {
     this.renderer.setSize(w, h);
     // Phones report 3x; 2x is visually the same here and shades 2.25x fewer
     // pixels per pass (TAA renders the scene several times per frame).
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2));
+    // `pixelLoad` (?perf=1&slow=N) shades that many times the pixels, to stand in for a slower GPU.
+    this._pixelRatio = Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2) * Math.sqrt(this.options.pixelLoad || 1);
+    this.motionScale = 1;   // below 1 once this device has shown it cannot keep up (see _paceMotion)
+    this.renderer.setPixelRatio(this._pixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // TAA renders the scene several times per frame; the shadow maps only
@@ -692,13 +701,36 @@ export class PendantViewer {
   // Render a single frame on demand
   renderOnce() {
     if (this.controls) this.controls.update();
-    if (this.traced) { this.camera.updateMatrixWorld(); this.traced.update(this.camera); }
+    if (this.traced) { this.camera.updateMatrixWorld(); this.traced.update(this.camera); this._paceMotion(); }
     this.renderer.shadowMap.needsUpdate = true;
     if (this.composer) {
       this.composer.render();
     } else {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  // While the traced pendant is animating, frames that keep arriving late
+  // mean this device cannot shade the canvas in time. From then on the metal
+  // is drawn on fewer pixels while it moves (it is soft and in motion then);
+  // the finished piece is always drawn at full sharpness.
+  _paceMotion() {
+    var now = performance.now(), moving = this.traced.animating;
+    if (moving && this._wasMoving) {
+      var dt = now - this._lastFrame;
+      // A very long gap is the tab being away or the page stalling, not a slow GPU.
+      this._late = dt > LATE_FRAME_MS && dt < 250 ? (this._late || 0) + 1 : 0;
+      if (this._late >= 3 && this.motionScale > MIN_MOTION_SCALE) {
+        this.motionScale = Math.max(MIN_MOTION_SCALE, this.motionScale * 0.8);
+        this._late = 0;
+      }
+    } else {
+      this._late = 0;
+    }
+    this._wasMoving = moving;
+    this._lastFrame = now;
+    var ratio = this._pixelRatio * (moving ? this.motionScale : 1);
+    if (Math.abs(ratio - this.renderer.getPixelRatio()) > 1e-3) this.renderer.setPixelRatio(ratio);
   }
 
   resize() {

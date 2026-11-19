@@ -6,6 +6,7 @@
 // posting each as soon as it is ready; a newer request or `kind: 'cancel'`
 // stops the old list.
 import { buildPreview, buildOutlineLoops } from '@/modules/pendant-build';
+import { spin } from './perf-meter';
 
 let framesId = 0;
 
@@ -22,7 +23,10 @@ self.onmessage = (e: MessageEvent) => {
     const step = () => {
       if (framesId !== d.id || i >= d.paramsList.length) return;
       try {
-        post({ id: d.id, index: i, loops: buildOutlineLoops(d.paramsList[i]) });
+        const t0 = performance.now();
+        const loops = buildOutlineLoops(d.paramsList[i]);
+        if (d.slow > 1) spin((performance.now() - t0) * (d.slow - 1));   // ?perf=1&slow=N
+        post({ id: d.id, index: i, loops });
       } catch (err) {
         post({ id: d.id, index: i, error: String((err as Error)?.message || err) });
       }

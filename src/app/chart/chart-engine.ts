@@ -9,6 +9,7 @@ import { buildPreview, buildOutlineLoops, meshOptionsFor, pendantExtent, OUTLINE
 import { chordsFromHoroscope } from '@/lib/natal-chords';
 import { withDerived, type PendantParams } from '@/config/pendant-params';
 import makerjs from 'makerjs';
+import { createPerfMeter } from './perf-meter';
 
 const m = makerjs;
 
@@ -97,6 +98,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── URL Params ────────────────────────────────────────────────
 
   const urlParams = new URLSearchParams(window.location.search);
+  const perf = createPerfMeter(urlParams);   // ?perf=1 (see perf-meter.ts)
 
   // ── Enabled aspects ─────────────────────────────────────────
 
@@ -121,6 +123,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       drainPendant();
     }
     if (displayState) drawChartState(displayState);
+    prebuildGrowIn(displayState);
     startAspectAnim();
     syncURL();
   }
@@ -132,13 +135,16 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   const SIZE = 700;
   // Drawing is always in SIZE units; the backing store only needs enough
   // pixels for the size the canvas is shown at (plus the reading zoom).
-  // On a phone that is about a third of SIZE * dpr, and the chart is
-  // redrawn every frame while it animates, so this matters.
+  // The chart is redrawn every frame while it animates, so this matters:
+  // phones report 3x, and 2x with the zoom's headroom is still more than a
+  // device pixel each until the reading zooms in, for under half the pixels.
   const MAX_ZOOM = 1.9;
+  const MAX_DENSITY = 2;
   let canvasRes = 0;
   function sizeCanvas() {
     const shown = canvas.clientWidth || SIZE;
-    const res = Math.min(SIZE * dpr, Math.ceil((shown * dpr * MAX_ZOOM) / 50) * 50);
+    const density = Math.min(dpr, MAX_DENSITY);
+    const res = Math.min(SIZE * density, Math.ceil((shown * density * MAX_ZOOM) / 50) * 50);
     if (res === canvasRes) return false;
     canvasRes = res;
     canvas.width = res;
@@ -629,6 +635,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantAlpha = 0;
     _3dModelReady = false;
     pendantModelData = null;
+    prebuildGrowIn(newState);
 
     if (!displayState) {
       displayState = newState;
@@ -1015,6 +1022,11 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
 
   function drawChartState(state) {
+    if (perf.on) perf.work('draw 2D', () => paintChartState(state));
+    else paintChartState(state);
+  }
+
+  function paintChartState(state) {
     _updateFps();
     const { ascDeg, mcDeg, planets, cusps } = state;
     ctx.clearRect(0, 0, SIZE, SIZE);
@@ -1567,10 +1579,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       pendantExpansion = 0;
       pendantAlpha = 1;
 
-      // Start the viewer (and its HDRI download) and the finished pendant's
-      // 3D build now, so both are ready when the 2D outline has thickened
-      // instead of starting then.
-      prepare3D();
+      // The finished pendant's 3D build normally started with the chart's
+      // lines (prebuildGrowIn); if the chart has moved since, start it now.
+      if (prepared3d?.key !== growInKey(pendantChords)) prepare3D(pendantChords);
 
       if (outlineStyle === 'current') startExpansionAnim();
       else startGrowIn(result.model);
@@ -1675,7 +1686,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     let i = 0;
     const step = () => {
       if (framesJob !== job || i >= job.paramsList.length) return;
-      try { job.onFrame(i, buildOutlineLoops(job.paramsList[i])); } catch (err) { console.warn(err); }
+      try { job.onFrame(i, perf.work('outline', () => buildOutlineLoops(job.paramsList[i]))); } catch (err) { console.warn(err); }
       i++;
       setTimeout(step, 0);
     };
@@ -1688,8 +1699,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const job = { id: ++framesSeq, paramsList, onFrame };
     framesJob = job;
     const w = getFramesWorker();
-    if (w) w.postMessage({ kind: 'frames', id: job.id, paramsList });
+    if (w) w.postMessage({ kind: 'frames', id: job.id, paramsList, slow: perf.slow });
     else runFramesOnMain(job);
+    return job;
   }
 
   function cancelOutlineFrames() {
@@ -1704,34 +1716,69 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   let growInId = null;
 
+  // The grow-in's frames are built ahead, while the chart's lines are still
+  // drawing in, so that the outline thickens on the clock instead of at
+  // whatever pace this device builds them.
+  let growInAhead = null;   // { key, frames, job }
+
+  function growInKey(chords) {
+    return paramsVersion + '|' + JSON.stringify(chords.map(c => [c.a1, c.a2, c.p1, c.p2]));
+  }
+
+  function buildGrowInFrames(chords) {
+    const frames = [];
+    const job = requestOutlineFrames(GROW_IN_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
+    return { key: growInKey(chords), frames, job };
+  }
+
+  function prebuildGrowIn(state) {
+    growInAhead = null;
+    if (outlineStyle === 'current' || !state?.horoscope) return;
+    try {
+      const chords = chordsFromHoroscope(state.horoscope, state.ascDeg, enabledAspects);
+      if (!chords.length) return;
+      growInAhead = buildGrowInFrames(chords);
+      // The finished pendant too: its mesh and distance map take longer than the frames.
+      prepare3D(chords);
+    } catch {}
+  }
+
   function stopGrowIn() {
-    if (growInId) { cancelAnimationFrame(growInId); growInId = null; cancelOutlineFrames(); }
+    if (growInId) { cancelAnimationFrame(growInId); growInId = null; cancelOutlineFrames(); perf.end('outline'); }
   }
 
   function startGrowIn(finalModel) {
     stopGrowIn();
     const chords = pendantChords;
-    const frames = [];
+    // The frames started ahead, unless the chart or its settings have moved since.
+    const ahead = growInAhead && growInAhead.key === growInKey(chords) && growInAhead.job === framesJob ? growInAhead : buildGrowInFrames(chords);
+    growInAhead = null;
+    const frames = ahead.frames;
+    const last = GROW_IN_STEPS.length - 1;
     const hold = EXPANSION_DURATION / GROW_IN_STEPS.length;
     let shown = -1;
-    let lastSwitch = 0;
-    const t0 = performance.now();
-    requestOutlineFrames(GROW_IN_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
+    let start = 0;
+    perf.begin('outline', EXPANSION_DURATION);
     const tick = (now) => {
-      if (pendantChords !== chords) { growInId = null; return; }
-      if (frames[shown + 1] && now - lastSwitch >= hold) {
-        shown++;
-        lastSwitch = now;
-        pendantExpansion = lineThickness * GROW_IN_STEPS[shown];
-        pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
-        if (displayState) drawChartState(displayState);
+      if (pendantChords !== chords) { growInId = null; perf.end('outline'); return; }
+      if (!start && frames[0]) start = now;
+      if (start) {
+        // The frame the clock has reached, or the newest one built so far.
+        let want = Math.min(last, Math.floor((now - start) / hold));
+        while (want > shown && !frames[want]) want--;
+        if (want > shown) {
+          shown = want;
+          pendantExpansion = lineThickness * GROW_IN_STEPS[shown];
+          pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
+          if (displayState) drawChartState(displayState);
+        }
       }
-      if (shown < GROW_IN_STEPS.length - 1) {
+      if (shown < last) {
         growInId = requestAnimationFrame(tick);
       } else {
         growInId = null;
-        if (urlParams.get('perf') === '1') console.log(`[grow-in] ${GROW_IN_STEPS.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
-        if (urlParams.get('perf') === '1') flowWaitFrom = performance.now();
+        perf.end('outline');
+        perf.begin('wait');
         start3DTransition();
       }
     };
@@ -1941,19 +1988,22 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const waveFreq = 0.04;
     const waveWidth = 0.5;
 
-    for (let gx = -outerR; gx <= outerR; gx += dotSpacing) {
-      for (let gy = -outerR; gy <= outerR; gy += dotSpacing) {
+    // The wave runs along x + y, so every dot on one diagonal of the grid
+    // has the same brightness: each diagonal is one fill instead of a fill
+    // per dot (thousands of them, through the clip above).
+    const cells = Math.floor((2 * outerR) / dotSpacing);
+    ctx.fillStyle = T.dot;
+    for (let k = 0; k <= 2 * cells; k++) {
+      const wave = Math.sin((k * dotSpacing - 2 * outerR) * waveFreq - t * waveSpeed);
+      const smooth = (wave + 1) / 2; // remap -1..1 to 0..1
+      ctx.globalAlpha = detail * (0.15 + 0.85 * Math.pow(smooth, waveWidth));
+      ctx.beginPath();
+      for (let i = Math.max(0, k - cells); i <= Math.min(cells, k); i++) {
+        const gx = -outerR + i * dotSpacing, gy = -outerR + (k - i) * dotSpacing;
         if (gx * gx + gy * gy > outerR * outerR) continue;
-
-        const phase = (gx + gy) * waveFreq - t * waveSpeed;
-        const wave = Math.sin(phase);
-        const smooth = (wave + 1) / 2; // remap -1..1 to 0..1
-        const alpha = 0.15 + 0.85 * Math.pow(smooth, waveWidth);
-
-        ctx.globalAlpha = detail * alpha;
-        ctx.fillStyle = T.dot;
-        ctx.fillRect(gx - dotSize / 2, gy - dotSize / 2, dotSize, dotSize);
+        ctx.rect(gx - dotSize / 2, gy - dotSize / 2, dotSize, dotSize);
       }
+      ctx.fill();
     }
     ctx.restore();
 
@@ -2239,7 +2289,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (!pendantViewer) return;
     previewGen++;
     flowedIn = false;
-    pendantViewer.traced.drain();
+    const traced = pendantViewer.traced;
+    traced.drain();
+    if (perf.on && traced.anim?.phase === 'exit') perf.begin('drain', traced.anim.play.exitMs, () => traced.anim?.phase !== 'exit');
   }
 
   // What the traced gold needs to know about a mesh besides its triangles.
@@ -2289,6 +2341,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       // 2048x1024 downscale of softbox.hdr: 4.2 MB instead of 14.4 MB
       hdriPath: '/softbox-2k.hdr',
       traced: true,
+      pixelLoad: perf.slow,
       background: null,
       roughness: P.roughness,
     });
@@ -2376,17 +2429,16 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
 
   // The finished pendant's mesh and distance map, started while the 2D
-  // outline is still thickening. `chords` and `version` say which pendant
-  // and settings it was built for.
+  // lines are still drawing in. `key` says which pendant and settings it
+  // was built for.
   let prepared3d = null;
-  let flowWaitFrom = 0;   // ?perf=1: when the 2D outline finished, to time the wait for the 3D
-  function prepare3D() {
-    const chords = pendantChords, version = paramsVersion;
+  function prepare3D(chords) {
+    const key = growInKey(chords);
     const ready = ensureViewer()
-      .then(() => (chords === pendantChords ? requestPreview({ ...outlineParams(chords, false), circleRadius: 100 }) : null))
+      .then(() => (prepared3d?.key === key ? requestPreview({ ...outlineParams(chords, false), circleRadius: 100 }) : null))
       .then((res) => res && { res, sdf: pendantViewer.traced.prepare(res.mesh, tracedInfo(res.mesh)) })
       .catch(() => null);
-    prepared3d = { chords, version, ready };
+    prepared3d = { key, ready };
   }
 
   async function start3DTransition() {
@@ -2398,7 +2450,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     try {
       await ensureViewer();
       lastBuildWasDraft = false;
-      const early = prepared3d && prepared3d.chords === data.chords && prepared3d.version === version ? await prepared3d.ready : null;
+      const early = prepared3d && prepared3d.key === growInKey(data.chords) ? await prepared3d.ready : null;
       prepared3d = null;
       const res = early?.res || await requestPreview(previewParams(false));
       if (!res || gen !== previewGen || data !== pendantModelData) return;
@@ -2410,12 +2462,18 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       }
       // Flows in from the rim (the first time, the rim arrives with it).
       flowedIn = false;
-      if (flowWaitFrom) {
-        const from = flowWaitFrom;
-        flowWaitFrom = 0;
-        pendantViewer.traced.onArriving = () => console.log(`[flow-in] started ${(performance.now() - from).toFixed(0)} ms after the 2D outline finished`);
+      const traced = pendantViewer.traced;
+      if (perf.on) {
+        traced.onArriving = () => { perf.end('wait'); perf.begin('flow in', 1400); };
       }
       pendantViewer.traced.onArrived = () => {
+        if (perf.on) {
+          perf.end('flow in');
+          perf.note('3D canvas', `${chart3dCanvas.width}px, ${pendantViewer.motionScale < 1 ? `${Math.round(pendantViewer.motionScale * 100)}% while moving` : 'full while moving'}`);
+          perf.note('2D canvas', `${canvas.width}px`);
+          perf.note('distance map', `${traced.sdfMs.toFixed(0)} ms`);
+          perf.report();
+        }
         flowedIn = true;
         flowedInAt = performance.now();
         if (displayState) drawChartState(displayState);   // the dot loop keeps redrawing until the outline has faded

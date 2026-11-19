@@ -52,8 +52,8 @@ float smax(float a, float b, float k) {
 // metal, limited to where the reveal has got to. A kept rim is the finished
 // outline beyond uRimR, cut on that exact circle, joined to whatever has
 // arrived; metal that has arrived covers the joint, so it leaves no seam.
-float sd2v(vec2 p) {
-  float d = sd2(p), r = length(p);
+float sd2v(vec2 p, float d) {
+  float r = length(p);
   if (uMode < 0.5) return gRimOnly ? max(d, uRimR - r) : d;
   float shape;
   if (uMode < 1.5) shape = max(d, -d - mix(1.2, 46.0, uP * uP));                      // outline first: a ribbon along every edge, widening inward
@@ -67,6 +67,7 @@ float sd2v(vec2 p) {
   }
   return uKeepRim > 0.5 ? min(max(d, uRimR - r), shape) : shape;
 }
+float sd2v(vec2 p) { return sd2v(p, sd2(p)); }
 
 // Distance to a slab whose edge is rounded by a quarter ellipse a wide and b
 // tall. x: signed distance to the edge in plan (negative inside). z: height
@@ -85,11 +86,11 @@ float corner(float x, float z, float hh, float a, float b) {
 // it, so they do not shift when the reveal hands over to the mesh. Its
 // thickness and rounding are what let the metal swell, bead and settle.
 float sdField(vec3 p) {
-  float d = sd2v(p.xy);
+  vec2 f = texture2D(uSdf, p.xy / (2.0 * uExtent) + 0.5).rg;
+  float d = sd2v(p.xy, f.r);
   // 1 on the rim when it is being kept, so it holds its finished shape.
   float w = uKeepRim > 0.5 ? smoothstep(uRimR - 7.0, uRimR - 1.0, length(p.xy)) : 0.0;
   float rise = mix(uRise, 1.0, w), hh = uHalf * rise, z = abs(p.z + uHalf - hh);
-  vec2 f = texture2D(uSdf, p.xy / (2.0 * uExtent) + 0.5).rg;
   float toOuter = max(f.r, 0.0) - f.g;                               // signed distance to the outer edge alone, ignoring the voids
   float edges = corner(d, z, hh, mix(uDome, uRound, w), min(mix(uDrop, uRound, w), hh));
   float outer = corner(toOuter, z, hh, uOutR, min(uOutZ * rise, hh));
@@ -294,6 +295,7 @@ void main() {
   gFinished = true;
   // A kept rim is always drawn from the mesh, out from uSplit, so its outline never changes hands; only the inside fades.
   float a = uKeepRim > 0.5 ? mix(uAlpha, 1.0, step(uSplit, length(vP.xy))) : uAlpha;
+  if (a < 0.002) discard;   // mid-reveal most of the mesh is not showing: do not trace reflections for it
   gl_FragColor = vec4(display(goldColor(vP, n, v)), a);
   #include <colorspace_fragment>
 }
@@ -308,6 +310,9 @@ ${COMMON}
 ${SHADE}
 void main() {
   vec3 rd = normalize(vP - uCam), p = vP;
+  // A ray that enters over the kept rim and cannot get back inside uSplit
+  // before it leaves the slab would be discarded below: skip its march.
+  if (uKeepRim > 0.5 && length(vP.xy) - (uTop + uHalf + 0.8) * length(rd.xy) / max(abs(rd.z), 1e-3) > uSplit + 0.5) discard;
   bool hit = false;
   for (int i = 0; i < 96; i++) {
     float d = sdPendant(p);
