@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { Wordmark } from '@/components/Logo';
 import BagLink from '@/components/BagLink';
-import { DESIGN_PATH } from '../content';
+import DesignLink from './DesignLink';
 
 // A plain full-width bar that stays pinned to the top of the page.
 export default function HaloHeader() {
@@ -15,7 +14,7 @@ export default function HaloHeader() {
       </nav>
       <div className="halo-nav-end">
         <BagLink />
-        <Link href={DESIGN_PATH} className="btn halo-nav-cta">Design yours</Link>
+        <DesignLink className="btn halo-nav-cta">Design yours</DesignLink>
       </div>
     </header>
   );
