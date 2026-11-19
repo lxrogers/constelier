@@ -24,7 +24,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.status-title { font-family: 'Moulin', serif; font-weight: 400; font-size: 32px; line-height: 1.1; color: #3a3630; }
+.status-title { font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; color: #3a3630; }
 .status-lead { font-size: 14px; line-height: 1.55; color: #5a5548; margin-bottom: 8px; }
 .status-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .status-btn {

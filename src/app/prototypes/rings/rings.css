@@ -6,7 +6,7 @@ body:has(.ring-playground) nav.site-nav { padding: 22px 4.5% 0; }
 .ring-heading { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 26px; }
 .ring-eyebrow { font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-bottom: 11px; }
 .ring-eyebrow span { padding: 0 12px; color: #b2ae9f; }
-.ring-heading h1 { font-family: 'Moulin', Georgia, serif; font-size: clamp(34px, 3.6vw, 54px); line-height: 1.05; font-weight: 400; }
+.ring-heading h1 { font-family: var(--serif); font-size: clamp(34px, 3.6vw, 54px); line-height: 1.05; font-weight: 400; }
 .ring-intro { font-size: 12px; line-height: 1.8; color: var(--muted); padding-right: 4px; }
 .ring-families { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .ring-families button { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 10px 14px; font-size: 11px; border-radius: 2px; }
@@ -33,7 +33,7 @@ body:has(.ring-playground) nav.site-nav { padding: 22px 4.5% 0; }
 .ring-presets { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: #f9f8f3; }
 .ring-presets button { padding: 23px 20px; border: 0; border-right: 1px solid var(--line); border-top: 2px solid transparent; background: transparent; text-align: left; display: flex; align-items: center; gap: 13px; color: #797a6e; }
 .ring-presets button:last-child { border-right: 0; }.ring-presets button.selected { border-top-color: #797b63; background: #eeeee4; color: #333b2f; }
-.ring-presets strong { display: block; font-family: 'Moulin', Georgia, serif; font-weight: 400; font-size: 23px; margin-bottom: 4px; }
+.ring-presets strong { display: block; font-family: var(--serif); font-weight: 400; font-size: 23px; margin-bottom: 4px; }
 .ring-presets small { display: block; font-size: 9px; line-height: 1.5; }.ring-preset-number { font-size: 9px; align-self: flex-start; margin-top: 7px; opacity: 0.65; }.ring-preset-arrow { margin-left: auto; font-size: 17px; }
 .ring-sidebar { border-left: 1px solid var(--line); background: #faf9f5; padding: 24px 25px 18px; }
 .ring-sidebar-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }.ring-sidebar-title h2 { font-size: 13px; font-weight: 500; }.ring-reset { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 10px !important; border: 0; background: none; }

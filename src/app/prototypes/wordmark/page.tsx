@@ -93,7 +93,7 @@ const ROUND_1: Option[] = [
   { n: 'C', face: 'Syne', family: 'var(--f-syne)', weight: 600, size: 16, track: 0.16, kind: 'Wide, art-school', note: 'The most edge, and the loudest.' },
 ];
 
-const NOW: Option = { n: 'Now', face: 'Moulin (serif)', family: 'var(--serif)', weight: 400, size: 19, track: 0.26, nudge: 0.06, kind: 'On the site today', note: '' };
+const NOW: Option = { n: 'Now', face: 'Instrument Serif', family: 'var(--serif)', weight: 400, size: 19, track: 0.26, nudge: 0.06, kind: 'On the site today', note: '' };
 
 const vars = (o: Option) =>
   ({ '--wm-fvs': o.fvs ?? 'normal', '--wm-family': o.family, '--wm-weight': o.weight, '--wm-size': `${o.size}px`, '--wm-track': `${o.track}em`, '--wm-nudge': `${o.nudge ?? 0.02}em` }) as CSSProperties;

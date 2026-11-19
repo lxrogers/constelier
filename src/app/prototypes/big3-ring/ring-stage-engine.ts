@@ -473,7 +473,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       const who = focused === 'asc' ? big3.asc : focused === 'sun' ? big3.sun : big3.moon;
       const lines: Array<[string, string, string]> = [
         [focused === 'asc' ? 'ASCENDANT' : focused.toUpperCase(), `500 11px ${FONT}`, MUTED],
-        [formatPosition(who), `22px 'Moulin', serif`, INK],
+        [formatPosition(who), `22px 'Instrument Serif', serif`, INK],
         [focused === 'asc' ? 'rising' : formatHouse(who), `12px ${FONT}`, MUTED],
       ];
       ctx.textAlign = 'center';
@@ -557,7 +557,7 @@ export async function createRingStage(els: RingStageElements, initialDesign: Rin
       const align: CanvasTextAlign = dx > 0.3 ? 'left' : dx < -0.3 ? 'right' : 'center';
       const lines = [
         { text: it.name.toUpperCase(), font: `500 10.5px ${FONT}`, color: MUTED, h: 14, spacing: '0.9px' },
-        { text: it.where, font: `17px 'Moulin', serif`, color: INK, h: 20, spacing: '0px' },
+        { text: it.where, font: `17px 'Instrument Serif', serif`, color: INK, h: 20, spacing: '0px' },
         { text: it.extra, font: `11.5px ${FONT}`, color: MUTED, h: 15, spacing: '0px' },
       ].filter(l => l.text);
       let w = 0;

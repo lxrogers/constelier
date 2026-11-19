@@ -24,7 +24,7 @@ export function useReading(aspects: ChartAspect[], bodies: ChartBodies | null) {
   return { lines, big3, summary, chartKey, introFocus };
 }
 
-// "How to read a line": the chart's lines, with the pendant faded back.
+// "How to read an aspect line": the chart's lines, with the pendant faded back.
 export const linesFocus = (): FocusSpec => ({ aspects: [], view: 'lines' });
 
 export const lineFocus = (line: ReadingLine): FocusSpec => ({ aspects: [line.aspect], zoom: true });

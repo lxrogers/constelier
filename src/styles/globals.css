@@ -24,14 +24,6 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Moulin';
-  src: url('/fonts/Moulin-Regular-Web.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ── Themes ───────────────────────────────────────────────────
@@ -39,7 +31,8 @@
    the canvas chart (read by chart-engine). */
 
 :root {
-  --serif: 'Moulin', 'Times New Roman', serif;
+  /* Headline face: Instrument Serif, loaded in app/layout.tsx. */
+  --serif: var(--f-serif), 'Times New Roman', serif;
   --sans: 'Graphik Web', system-ui, -apple-system, sans-serif;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --gold: #d4b26a;
@@ -51,7 +44,7 @@
   --track-mark: 0.26em;
   /* Wordmark: Bodoni Moda 500 at a small optical size (15% along its
      6-96 range), which thickens the hairlines so the N holds up. */
-  --font-wordmark: var(--f-wordmark), 'Moulin', 'Times New Roman', serif;
+  --font-wordmark: var(--f-wordmark), 'Times New Roman', serif;
   --wordmark-weight: 500;
   --wordmark-opsz: 'opsz' 20;
   --track-wordmark: 0.18em;

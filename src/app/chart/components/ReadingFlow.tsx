@@ -102,7 +102,7 @@ export default function ReadingFlow({ aspects, bodies, active, onFocus, onBack, 
 
         {step === 1 && (
           <>
-            <h3 className="reading-title">How to read a line.</h3>
+            <h3 className="reading-title">How to read an aspect line.</h3>
             <p className="reading-text">
               Each line joins two planets. The angle between them, measured around the circle, sets the tone.
             </p>
