@@ -66,6 +66,13 @@ export interface ChartEngineOptions {
   // Drag to orbit the 3D pendant, scroll to zoom, double-click to reset
   // (lab only). Emits `pendant-camera` on window with the view direction.
   orbit?: boolean;
+  // false: leave the page's address alone (the homepage hero).
+  syncUrl?: boolean;
+  // For baking the chart to image frames (tools/blender): a fixed, larger
+  // drawing size for the 2D canvas in pixels, and more steps in the
+  // outline's thickening than the live page can afford.
+  canvasPx?: number;
+  growSteps?: number;
 }
 
 // What the reading is currently about: these aspect lines (and planets) are
@@ -88,6 +95,12 @@ export interface ChartEngine {
   // `draft`: a slider is mid-drag, so a quick build is fine; a call with
   // draft false afterwards settles it at full quality.
   setParams(next: Partial<PendantParams>, opts?: { draft?: boolean }): void;
+  // Redraw for another birth, as if the form had been changed.
+  setBirth(b: { year: number; month: number; day: number; hour: number; minute: number; lat: number; lon: number }): void;
+  // The 3D viewer, once it has loaded, and half the width the 2D canvas
+  // covers in the pendant's units: for a stage that films the chart itself.
+  viewer(): Promise<any>;
+  chartHalf(): number;
   // Start idle movement, or (null) ease the pendant back flat on the chart.
 }
 
@@ -144,7 +157,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   function sizeCanvas() {
     const shown = canvas.clientWidth || SIZE;
     const density = Math.min(dpr, MAX_DENSITY);
-    const res = Math.min(SIZE * density, Math.ceil((shown * density * MAX_ZOOM) / 50) * 50);
+    const res = options.canvasPx || Math.min(SIZE * density, Math.ceil((shown * density * MAX_ZOOM) / 50) * 50);
     if (res === canvasRes) return false;
     canvasRes = res;
     canvas.width = res;
@@ -199,6 +212,12 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let aspectAnimLines = [];
   let aspectAnimDone = false;
   let showPendantRing = false;
+  // The steps of the 2D drawing fade in rather than appearing at once: the
+  // bare rim when the lines begin, then the outline and its moving dots.
+  const STEP_FADE_MS = 450;
+  let ringShownAt = 0;       // when the bare rim last appeared
+  let outlineShownAt = 0;    // when the growing outline's first frame appeared
+  const fadeIn = (since) => { const x = Math.min(1, Math.max(0, (performance.now() - since) / STEP_FADE_MS)); return x * x * (3 - 2 * x); };
   const ASPECT_LINE_DURATION = 500;
   const ASPECT_STAGGER_INITIAL = 100;
   const ASPECT_STAGGER_MIN = 25;
@@ -699,6 +718,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     if (aspectAnimId) cancelAnimationFrame(aspectAnimId);
     aspectAnimDone = false;
     aspectAnimStart = null;
+    if (!showPendantRing) ringShownAt = performance.now();
     showPendantRing = true;
 
     aspectAnimLines = [];
@@ -902,6 +922,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── URL Sync ──────────────────────────────────────────────────
 
   function syncURL() {
+    if (options.syncUrl === false) return;
     const p = new URLSearchParams();
     // Keep page-level params (theme, where they came from, dev tools).
     const cur = new URLSearchParams(window.location.search);
@@ -1032,9 +1053,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     ctx.clearRect(0, 0, SIZE, SIZE);
 
     if (showPendantRing) {
-      const outerR = PENDANT_R * 1.08; // the default 8-unit border
+      const outerR = PENDANT_R * (1 + borderThickness / 100);   // the rim as it will be made, so the outline grows in on the same circle
       const innerR = PENDANT_R;
       ctx.save();
+      ctx.globalAlpha = fadeIn(ringShownAt);
       ctx.beginPath();
       ctx.arc(CX, CY, outerR, 0, Math.PI * 2);
       ctx.arc(CX, CY, innerR, 0, Math.PI * 2, true);
@@ -1712,7 +1734,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // Each frame is held at least this long; a slow build just holds longer.
   const GROW_STEPS = [0.08, 0.16, 0.25, 0.35, 0.46, 0.58, 0.7, 0.82, 0.92, 1];
   // The grow-in runs at twice the frame rate over half the time.
-  const GROW_IN_STEPS = Array.from({ length: 20 }, (_, i) => (i + 1) / 20);
+  const GROW_IN_COUNT = options.growSteps || 20;
+  const GROW_IN_STEPS = Array.from({ length: GROW_IN_COUNT }, (_, i) => (i + 1) / GROW_IN_COUNT);
 
   let growInId = null;
 
@@ -1767,6 +1790,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         let want = Math.min(last, Math.floor((now - start) / hold));
         while (want > shown && !frames[want]) want--;
         if (want > shown) {
+          if (shown < 0) outlineShownAt = now;
           shown = want;
           pendantExpansion = lineThickness * GROW_IN_STEPS[shown];
           pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
@@ -1779,6 +1803,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         growInId = null;
         perf.end('outline');
         perf.begin('wait');
+        canvas.dispatchEvent(new CustomEvent('outline-grown'));
         start3DTransition();
       }
     };
@@ -1979,7 +2004,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         return;
       }
     }
-    const detail = pendantAlpha * (1 - solid);
+    const detail = pendantAlpha * (1 - solid) * fadeIn(outlineShownAt);
 
     const dotSpacing = 6.0 / scale;
     const dotSize = 1.4 / scale;
@@ -2498,7 +2523,17 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // ── Cleanup ────────────────────────────────────────────────
 
 
-  return { destroy, setParams, setFocus };
+  return { destroy, setParams, setFocus, setBirth, viewer: () => ensureViewer().then(() => pendantViewer), chartHalf: compute3DHalf };
+
+  function setBirth(b) {
+    const set = (id, v) => { (document.getElementById(id) as HTMLSelectElement).value = String(v); };
+    set('birth-year', b.year); set('birth-month', b.month);
+    updateDayMax();
+    set('birth-day', b.day); set('birth-hour', b.hour); set('birth-minute', b.minute);
+    selectedLat = b.lat; selectedLon = b.lon;
+    generateChart();
+    syncURL();
+  }
 
   function destroy() {
     if (animFrameId) cancelAnimationFrame(animFrameId);

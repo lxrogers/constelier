@@ -2,11 +2,6 @@
 
 export const DESIGN_PATH = '/chart';
 
-export const HERO_IMAGE = {
-  src: '/renders/photo/studio-soft_sydney-2010.jpg',
-  alt: 'Gold pendant on a chain against a soft cream backdrop',
-};
-
 export interface Step {
   label: string;
   title: string;

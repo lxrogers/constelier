@@ -11,7 +11,7 @@ import { buildPendantSdf } from './pendant-sdf.js';
 
 // How the metal arrives: 'fade' and 'glint' fade the finished mesh; the rest
 // reshape the metal and are drawn by marching the distance map.
-const MARCHED = { outline: 1, rise: 2, liquid: 3, pour: 4, flow: 5 };
+const MARCHED = { outline: 1, rise: 2, liquid: 3, pour: 4, flow: 5, ceremony: 6 };
 const LEAD_MS = 350, HOLD_MS = 1100;   // pauses when a round repeats (the lab)
 const SDF_SIZE = 1024;
 
@@ -32,12 +32,20 @@ export const LOOKS = {
     surface: 1, sunDir: [-0.6, 0.62, 0.5], sunColor: [0.92, 0.86, 0.76], sunK: 12.7, ambient: [0.62, 0.63, 0.66], gobo: 0, ao: 0.25, gap: 9, up: [0, 1, 0],
     card: { dir: [-0.22, 0.1, 0.97], dist: 430, half: [300, 300], roll: 0.6, gain: 1.05, lo: 0.5 },
   },
+  // Lying on paper that has the natal chart drawn on it (setChart), in
+  // dappled sun: for a camera that moves over the chart and the pendant.
+  chart: {
+    surface: 3, sunDir: [-0.55, 0.45, 0.7], sunColor: [1.02, 0.93, 0.8], sunK: 16, ambient: [0.4, 0.41, 0.44], gobo: 0.3, ao: 0.5, gap: 0, up: [0, 0, 1],
+    window: 1, horizon: [0.6, 0.56, 0.48], sky: [0.5, 0.47, 0.41],
+    card: { dir: [0, 0, 1], dist: 420, half: [280, 240], roll: 0.5, gain: 0.66, lo: 0.5, follow: true },
+  },
   // Floating over the page behind the canvas: no surface of its own, only a
   // shadow. The wall's light, with the sun higher and softer so the shadow
   // stays close under the metal instead of reaching across the chart.
   page: {
     surface: 2, sunDir: [-0.38, 0.42, 0.82], sunColor: [0.92, 0.86, 0.76], sunK: 9, ambient: [0.62, 0.63, 0.66], gobo: 0, ao: 0.25, gap: 2, up: [0, 1, 0],
-    card: { dir: [-0.22, 0.1, 0.97], dist: 430, half: [300, 300], roll: 0.6, gain: 1.05, lo: 0.5 },
+    sky: [0.5, 0.47, 0.41], horizon: [0.6, 0.56, 0.48],
+    card: { dir: [-0.22, 0.1, 0.97], dist: 430, half: [300, 300], roll: 0.6, gain: 0.64, lo: 0.5, follow: true },
   },
 };
 
@@ -93,11 +101,18 @@ function requestSdf(vertices, triangles, extent) {
   });
 }
 
+// A distance map with no metal in it, so the surface can be drawn before any pendant exists.
+function emptySdf() {
+  const tex = new THREE.DataTexture(new Float32Array([1e3, 0, 1e3, 0, 1e3, 0, 1e3, 0]), 2, 2, THREE.RGFormat, THREE.FloatType);
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export class TracedPendant {
   constructor({ requestRender = null } = {}) {
     this.requestRender = requestRender;
     this.object = new THREE.Group();
-    this.object.visible = false;                 // nothing to show until the first distance map exists
+    this.object.visible = false;                 // shown once the first distance map exists (or by the owner, for the surface alone)
     // Rig space: the mesh turned over (its z = 0 face toward +z) and centred on its thickness.
     this.rig = new THREE.Group();
     this.rig.rotation.x = Math.PI;
@@ -105,7 +120,7 @@ export class TracedPendant {
 
     this.uniforms = {
       uRigInv: { value: new THREE.Matrix4() }, uCam: { value: new THREE.Vector3() },
-      uSdf: { value: null }, uExtent: { value: 130 }, uHalf: { value: 6 }, uRound: { value: 2 }, uPlaneZ: { value: -6 },
+      uSdf: { value: emptySdf() }, uExtent: { value: 130 }, uHalf: { value: 6 }, uRound: { value: 2 }, uPlaneZ: { value: -6 },
       uSunDir: { value: new THREE.Vector3() }, uSunColor: { value: new THREE.Vector3() }, uAmbient: { value: new THREE.Vector3() },
       uGold: { value: new THREE.Vector3(1.0, 0.74, 0.33) },   // the Blender scenes' gold, linear
       uSunK: { value: 20 }, uSunDisc: { value: Math.cos(0.05) },
@@ -113,6 +128,9 @@ export class TracedPendant {
       uCardPos: { value: new THREE.Vector3() }, uCardU: { value: new THREE.Vector3() }, uCardV: { value: new THREE.Vector3() },
       uCardColor: { value: new THREE.Vector3(1, 0.97, 0.92) }, uCardHalf: { value: new THREE.Vector2() }, uCardGain: { value: 2 }, uCardLo: { value: 0.3 },
       uTrace: { value: 1 }, uShadows: { value: 1 }, uSurface: { value: 0 }, uGobo: { value: 0 }, uAo: { value: 0.6 },
+      uChart: { value: null }, uChartHalf: { value: 150 }, uGoboDrift: { value: new THREE.Vector2() },
+      uRimP: { value: 1 }, uRimRise: { value: 1 }, uRimDome: { value: 2 }, uRimDrop: { value: 2 }, uRimW: { value: 12 },
+      uWindow: { value: 0 }, uGrid: { value: null }, uGridPitch: { value: 0 }, uBar: { value: new THREE.Vector4(1.152, -2035, 4000, 0.06) }, uBarSoft: { value: 15 }, uHorizon: { value: new THREE.Vector3() }, uSky: { value: new THREE.Vector3() },
       uMode: { value: 0 }, uP: { value: 1 }, uRise: { value: 1 }, uDome: { value: 2 }, uDrop: { value: 2 }, uOutR: { value: 2 }, uOutZ: { value: 2 }, uTop: { value: 6 },
       uAlpha: { value: 1 }, uShadowGain: { value: 1 }, uGlint: { value: 1e5 }, uKeepRim: { value: 0 }, uRimR: { value: 100 }, uSplit: { value: 105 },
     };
@@ -130,6 +148,7 @@ export class TracedPendant {
     this.half = 6;
     this.ready = false;        // a distance map is in place
     this.curve = [...DEFAULT_CURVE];
+    this.defaultPlay = DEFAULT_PLAY;   // how reveal() and drain() run unless told otherwise
     this.look = LOOKS.wall;
     this.toggles = { trace: true, shadows: true, card: true };
     this.envTilt = [0, 0];
@@ -160,6 +179,10 @@ export class TracedPendant {
   // ── Look ────────────────────────────────────────────────────────────────
 
   setLook(look) { this.look = look; this.applyLook(); }
+  // The 2D chart for LOOKS.chart: a texture of its canvas, and half the width it covers in the pendant's units.
+  // Pictures of other pendants laid out round this one on the paper (see gridTile in glsl.js); pitch 0 takes them away.
+  setGrid(texture, pitch) { this.uniforms.uGrid.value = texture; this.uniforms.uGridPitch.value = texture ? pitch : 0; }
+  setChart(texture, half) { this.uniforms.uChart.value = texture; this.uniforms.uChartHalf.value = half; }
   setToggles(toggles) { this.toggles = { ...this.toggles, ...toggles }; this.applyLook(); }
   setCurve(curve) { this.curve = [...curve]; }
   setRoughness(v) { this.uniforms.uRough.value = Math.max(0.04, v); }   // a true mirror shows every texel of the environment
@@ -167,6 +190,18 @@ export class TracedPendant {
   setGold(color) { const c = new THREE.Color(color); this.uniforms.uGold.value.set(c.r, c.g, c.b); }
   // Turn the environment's reflections about x and y, in degrees.
   setEnvRotation(rx, ry) { this.envTilt = [rx, ry]; this.applyLook(); }
+
+  // Stand the light card off in direction `dir` (rig space), facing the pendant; its gradient runs along its own u axis.
+  aimCard(dir) {
+    const u = this.uniforms, card = this.look.card;
+    dir.normalize();
+    const cu = new THREE.Vector3().crossVectors(v3(this.look.up), dir);
+    if (cu.lengthSq() < 1e-6) cu.set(1, 0, 0); else cu.normalize();
+    const cv = new THREE.Vector3().crossVectors(dir, cu);
+    u.uCardPos.value.copy(dir).multiplyScalar(card.dist);
+    u.uCardU.value.copy(cu).multiplyScalar(Math.cos(card.roll)).addScaledVector(cv, Math.sin(card.roll));
+    u.uCardV.value.crossVectors(dir, u.uCardU.value);
+  }
 
   // An equirectangular HDR. It is sampled directly, blurrier mips for rougher metal.
   setEnvironment(texture) {
@@ -186,6 +221,9 @@ export class TracedPendant {
     u.uSunK.value = s.sunK;
     u.uSurface.value = s.surface;
     u.uGobo.value = s.gobo;
+    u.uWindow.value = s.window ?? 0;
+    u.uHorizon.value.copy(v3(s.horizon ?? [0, 0, 0]));
+    u.uSky.value.copy(v3(s.sky ?? [0, 0, 0]));
     u.uAo.value = s.ao;
     u.uPlaneZ.value = this.plane.position.z = -this.half - s.gap;
     // Equirect maps treat +y as up; where the pendant lies flat, up is +z.
@@ -193,12 +231,7 @@ export class TracedPendant {
     if (s.up[2]) base.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
     const tilt = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(this.envTilt[0] * Math.PI / 180, this.envTilt[1] * Math.PI / 180, 0));
     u.uEnvRot.value.setFromMatrix4(base.multiply(tilt));
-    // The card faces the pendant from `dir`; its gradient runs along its own u axis.
-    const dir = v3(s.card.dir).normalize(), up = v3(s.up);
-    const cu = new THREE.Vector3().crossVectors(up, dir).normalize(), cv = new THREE.Vector3().crossVectors(dir, cu);
-    u.uCardPos.value.copy(dir).multiplyScalar(s.card.dist);
-    u.uCardU.value.copy(cu).multiplyScalar(Math.cos(s.card.roll)).addScaledVector(cv, Math.sin(s.card.roll));
-    u.uCardV.value.crossVectors(dir, u.uCardU.value);
+    this.aimCard(v3(s.card.dir));
     u.uCardHalf.value.set(s.card.half[0], s.card.half[1]);
     u.uCardLo.value = s.card.lo;
     u.uCardGain.value = t.card ? s.card.gain : 0;
@@ -240,14 +273,23 @@ export class TracedPendant {
     }
     this.triangles = mesh.triangles.length / 3;
     const u = this.uniforms;
-    this.half = info.thickness / 2;
-    this.rig.position.z = this.half;
-    u.uHalf.value = this.half;
+    this.setThickness(info.thickness);
     u.uRound.value = Math.min(info.edgeRound, this.half);
     u.uOutR.value = Math.max(info.rimRound, 0.01);
     u.uOutZ.value = Math.min(info.rimDrop, this.half);
     u.uRimR.value = info.rimR ?? 100;
     u.uSplit.value = u.uRimR.value + Math.min(5, 0.4 * (info.rimWidth ?? 12));
+    u.uRimW.value = info.rimWidth ?? 12;
+  }
+
+  // How thick the metal is. It sets where the surface under it lies, so a page
+  // that shows that surface before any pendant exists says so up front: left
+  // to the first pendant, the surface would shift as it arrives.
+  setThickness(thickness) {
+    const u = this.uniforms;
+    this.half = thickness / 2;
+    this.rig.position.z = this.half;
+    u.uHalf.value = this.half;
     u.uPlaneZ.value = this.plane.position.z = -this.half - this.look.gap;
   }
 
@@ -283,11 +325,13 @@ export class TracedPendant {
   // Bring a new pendant in. Whatever is showing drains out first (unless it
   // already has); the new metal then arrives from the rim. `prepared` is the
   // promise from prepare(), if the distance map was started early.
-  async reveal(mesh, info, play = DEFAULT_PLAY, prepared = null) {
+  async reveal(mesh, info, play = this.defaultPlay, prepared = null) {
     const gen = ++this.gen;
     const sdf = (prepared && await prepared) || await this.buildSdf(mesh, info, () => gen === this.gen);
     if (!sdf || gen !== this.gen) return false;
-    const arrive = () => { this.applyGeometry(mesh, info); this.applySdf(sdf); this.begin('arrive', play); this.onArriving?.(); this.onArriving = null; };
+    // A pendant arriving where there was none can have an entrance of its own (play.first).
+    const entrance = (!this.ready || !this.mesh) && play.first ? { ...play, ...play.first } : play;
+    const arrive = () => { this.applyGeometry(mesh, info); this.applySdf(sdf); this.begin('arrive', entrance); this.onArriving?.(); this.onArriving = null; };
     const phase = this.anim?.phase;
     if (!this.ready || !this.mesh || phase === 'rim') arrive();
     else if (phase === 'exit') this.anim.then = arrive;
@@ -296,7 +340,7 @@ export class TracedPendant {
   }
 
   // Take the inside away and leave the rim, until the next reveal().
-  drain(play = DEFAULT_PLAY) {
+  drain(play = this.defaultPlay) {
     this.gen++;   // a pendant still on its way belongs to the chart that is going
     if (!this.ready || !this.mesh) return;
     const phase = this.anim?.phase;
@@ -344,6 +388,15 @@ export class TracedPendant {
     this.rig.updateWorldMatrix(true, false);
     u.uRigInv.value.copy(this.rig.matrixWorld).invert();
     u.uCam.value.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(u.uRigInv.value);
+    const card = this.look.card;
+    if (card.follow) {
+      // Where the pendant's flat face mirrors the camera, plus the card's own lean. With
+      // the card fixed, tilting the pendant took it out of the face's reflection: the
+      // face went dark while its edges stayed bright, and lit edges round a dark face
+      // read as hollows.
+      const eye = u.uCam.value.clone().normalize();
+      this.aimCard(new THREE.Vector3(card.dir[0] - eye.x, card.dir[1] - eye.y, Math.max(0.05, eye.z)));
+    }
     this.advance(now);
   }
 
@@ -385,10 +438,10 @@ export class TracedPendant {
   }
 
   // Thickness (1 = finished) and edge rounding of the changing solid, and the box it is drawn in.
-  shape(rise, dome, drop) {
+  shape(rise, dome, drop, tallest = rise) {
     const u = this.uniforms;
     u.uRise.value = rise; u.uDome.value = dome; u.uDrop.value = drop;
-    u.uTop.value = -this.half + 2 * this.half * Math.max(1, rise) + 0.2;
+    u.uTop.value = -this.half + 2 * this.half * Math.max(1, tallest) + 0.2;
     const bottom = -this.half - 0.2;
     this.box.scale.z = u.uTop.value - bottom;
     this.box.position.z = (u.uTop.value + bottom) / 2;
@@ -410,21 +463,31 @@ export class TracedPendant {
   poseArrive(p, at) {
     const u = this.uniforms, round = u.uRound.value, q = clamp01(bezier(this.curve, clamp01(at)));
     const mode = MARCHED[p.kind] || 0, marched = mode > 0;
-    u.uKeepRim.value = p.keepRim ? 1 : 0;
+    const keepRim = p.keepRim && p.kind !== 'ceremony';   // in a ceremony the rim arrives too
+    u.uKeepRim.value = keepRim ? 1 : 0;
     u.uMode.value = mode;
     // The reshaping arrivals end by dissolving into the real mesh over their slow tail, rather than cutting to it.
-    const handover = marched ? smooth((q - 0.95) / 0.05) : 0;
-    this.mesh.visible = !marched || handover > 0 || p.keepRim;
+    const handover = marched ? smooth((q - 0.86) / 0.14) : 0;
+    this.mesh.visible = !marched || handover > 0 || keepRim;
     this.box.visible = marched;
     u.uAlpha.value = marched ? handover : p.kind === 'glint' ? smooth(q / 0.55) : q;
-    u.uShadowGain.value = marched ? 1 : u.uAlpha.value;
+    // Out of nothing, the metal's shadow and the gold it throws on the surface ease in with its first drop instead of appearing at once.
+    u.uShadowGain.value = p.kind === 'ceremony' ? smooth(at / 0.12) : marched ? 1 : u.uAlpha.value;
     u.uGlint.value = p.kind === 'glint' ? lerp(-1.3, 1.3, q) * u.uExtent.value : 1e5;
     let rise = 1, dome = round, drop = round;
     if (p.kind === 'outline') u.uP.value = q;
     if (p.kind === 'rise') rise = Math.max(0.03, back(q));
     if (p.kind === 'liquid') { u.uP.value = q; rise = Math.max(0.03, back(q)); dome = lerp(18, round, q); drop = lerp(2 * this.half, round, q); }
     if (p.kind === 'pour' || p.kind === 'flow') { u.uP.value = q; dome = lerp(8, round, q); drop = lerp(2 * this.half, round, q); }
-    this.shape(rise, dome, drop);
+    let tallest = rise;
+    if (p.kind === 'ceremony') {
+      // The rim flows round as a loop over the first half; the inside sets off just before the loop closes.
+      const forming = smooth(q / 0.5), inside = clamp01((q - 0.42) / 0.58);
+      u.uRimP.value = forming; u.uRimRise.value = 1;
+      u.uRimDome.value = lerp(7, round, forming); u.uRimDrop.value = lerp(2 * this.half, round, forming);
+      u.uP.value = inside; dome = lerp(8, round, inside); drop = lerp(2 * this.half, round, inside);
+    }
+    this.shape(rise, dome, drop, tallest);
   }
 
   // The inside leaving, `at` from 0 to 1 along the same timing curve.

@@ -4,7 +4,6 @@
 .halo {
   --pad: clamp(20px, 4.4vw, 64px);
   --bg: #f6f1ea;
-  --hero: #e9e2da;
   --tile: #ece5db;
   --ink: #3a3834;
   --ink-2: #6e6a63;
@@ -66,26 +65,6 @@
 .halo-lede { font-size: clamp(17px, 1.5vw, 21px); line-height: 1.45; max-width: 30em; text-wrap: pretty; }
 .halo-body { font-size: 16px; line-height: 1.55; color: var(--ink-2); max-width: 30em; }
 .halo-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
-
-/* ── Hero ─────────────────────────────────────────────────── */
-
-.halo-hero {
-  display: flex;
-  align-items: center;
-  min-height: min(100svh - var(--nav-h), 860px);
-  padding: 80px var(--pad);
-  background: var(--hero);
-  overflow: hidden;
-}
-.halo-hero-img {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 62%;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 34%);
-  mask-image: linear-gradient(to right, transparent, #000 34%);
-}
-.halo-hero-img img { object-fit: cover; object-position: 50% 58%; }
-.halo-hero-copy { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 24px; max-width: 58%; }
 
 /* ── Sections ─────────────────────────────────────────────── */
 
@@ -224,9 +203,6 @@
   .halo-nav .nav-bag > span:not(.nav-bag-count) { display: none; }
   .halo-nav .wordmark { font-size: 16px; }
 
-  .halo-hero { flex-direction: column; align-items: stretch; min-height: 0; padding: 0 0 56px; }
-  .halo-hero-img { position: relative; inset: auto; width: 100%; height: 112vw; max-height: 68svh; -webkit-mask-image: none; mask-image: none; }
-  .halo-hero-copy { max-width: none; padding: 32px var(--pad) 0; gap: 18px; }
 
   .halo-steps, .halo-types {
     grid-template-columns: none;
