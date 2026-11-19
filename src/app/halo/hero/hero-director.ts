@@ -49,7 +49,7 @@ const CURVE = [0.5, 0.04, 0.3, 1];   // gathers slowly, then runs, then a long s
 const STAY_S = 0.6;       // the close-up stays through the whole flow-in and this long after it, before cutting away
 const PAN_S = 4.6;        // how long the low pan lasts before the cut to the grid
 const GRID_S = 5;         // how long the pull-back over the grid lasts
-const CUT_IN_S = 0.45;     // the cut to the close-up comes this long after the lines begin to fade in
+const CUT_IN_S = 1.1;      // the cut to the close-up comes this long after the lines begin to fade in, so the flat chart has its moment
 const LEAD_S = 1.0;        // the chart is shown this long before its date changes
 const LATE_FRAME_MS = 25;  // a frame this long after the last one was late (a 60 Hz display shows one every 16.7)
 const MIN_QUALITY = 0.55;  // the fewest pixels the canvas is ever drawn on, as a share of each dimension
@@ -74,6 +74,7 @@ export class HeroDirector {
   private cutFrom: CutShot | null = null;
   private grid: THREE.Texture | null = null;   // the neighbours' pictures, once loaded
   private pitch = 0;          // how far apart the grid's pendants sit   // the shot the camera was last placed for, to cut when it changes
+  private chartAt = 0;        // clock time the flat shot of the chart began
   private linesDue = 0;       // clock time the close-up is due to begin, once the lines have started
   private linesAt = 0;        // clock time the lines began to draw
   private quality = 1;        // share of the usual pixels drawn, per dimension (see pace)
@@ -82,6 +83,7 @@ export class HeroDirector {
   private shown = false;      // whether a frame has been drawn yet
   private watch: IntersectionObserver;
   onSky: (sky: Sky) => void = () => {};
+  onChange: (index: number) => void = () => {};   // called just before the engine is given the next sky
   onReady: () => void = () => {};   // called once, after the first frame is drawn
 
   // `light`: start on fewer pixels, for phones.
@@ -109,11 +111,14 @@ export class HeroDirector {
   }
 
   // The engine says so when the planets have landed and the lines start to draw.
+  // (The first chart's lines may begin before this director exists; the page says so with linesBegan.)
+  linesBegan() { this.onLines(); }
   private onLines = () => { if (this.beat === 'chart' && !this.changeAt && !this.linesDue) this.linesDue = this.clock + CUT_IN_S; };
 
   // Which shot is on: the close-up carries on through the flow-in, so the gold is seen arriving from above.
   private get shotBeat(): CutShot {
     const held = this.clock - this.beatAt;
+    if (this.linesDue && (this.beat === 'chart' || this.beat === 'arrive')) return 'chart';   // the flat shot holds until its cut is due
     if (this.beat === 'arrive' || (this.beat === 'hold' && held < STAY_S)) return 'lines';
     return this.beat === 'hold' && this.grid && held > STAY_S + PAN_S ? 'grid' : this.beat;
   }
@@ -122,7 +127,7 @@ export class HeroDirector {
   // date changes a moment later, so the planets are seen setting off.
   next() {
     this.beat = 'chart';
-    this.beatAt = this.clock;
+    this.beatAt = this.chartAt = this.clock;
     this.linesDue = 0;
     this.changeAt = this.clock + LEAD_S;
   }
@@ -133,12 +138,15 @@ export class HeroDirector {
     if (this.changeAt && this.clock >= this.changeAt) {
       this.changeAt = 0;
       this.sky = (this.sky + 1) % HERO_SKIES.length;
+      this.onChange(this.sky);
       this.engine.setBirth(HERO_SKIES[this.sky]);
       this.onSky(HERO_SKIES[this.sky]);
     }
     if (this.linesDue && this.clock >= this.linesDue) {
+      // The gold may already be arriving by now; the close-up starts here either way.
       this.linesDue = 0;
-      if (this.beat === 'chart') { this.beat = 'lines'; this.beatAt = this.linesAt = this.clock; }
+      this.linesAt = this.clock;
+      if (this.beat === 'chart') { this.beat = 'lines'; this.beatAt = this.clock; }
     }
     if ((this.beat === 'chart' || this.beat === 'lines') && phase === 'arrive') { this.beat = 'arrive'; this.beatAt = this.clock; }
     else if (this.beat === 'arrive' && !phase) { this.beat = 'hold'; this.beatAt = this.clock; }
@@ -148,7 +156,7 @@ export class HeroDirector {
   // Where the current shot wants the camera at this moment. Each shot moves steadily; the camera cuts between them (see tick).
   private goal(): Cam {
     const t = this.clock - this.beatAt, on = this.shotBeat;
-    if (on === 'chart') return { ...FLAT, el: 87, dist: 900 - 14 * t };
+    if (on === 'chart') return { ...FLAT, el: 87, dist: 900 - 14 * (this.clock - this.chartAt) };
     if (on === 'lines') { const tl = this.clock - this.linesAt; return { dist: 400 - 9 * tl, el: 58, az: 261 + 2.2 * tl, tx: 0, ty: 0 }; }
     if (on === 'grid') {
       // From above the hero's own pendant, pulling back and across until the whole grid is in view.

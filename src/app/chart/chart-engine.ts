@@ -3,7 +3,7 @@
 // Imperative canvas/animation logic, called from React useEffect
 
 import { Horoscope, Origin } from '@/lib/horoscope';
-import { easeInOutCubic, easeOutQuartic } from '@/modules/easing';
+import { cubicBezier, easeInOutCubic, easeOutQuartic } from '@/modules/easing';
 import { polygonArea, buildPendantModel } from '@/modules/pendant-geometry';
 import { buildPreview, buildOutlineLoops, meshOptionsFor, pendantExtent, OUTLINE_STYLE_IDS, LIQUIDITY } from '@/modules/pendant-build';
 import { chordsFromHoroscope } from '@/lib/natal-chords';
@@ -73,6 +73,21 @@ export interface ChartEngineOptions {
   // outline's thickening than the live page can afford.
   canvasPx?: number;
   growSteps?: number;
+  // The thickening outline's frames, made ahead of time for the chart about
+  // to be drawn (a list of frames, each a list of loops of [x, y]), or null to
+  // build them live. With them the outline can have many more steps than a
+  // device could build while it animates.
+  growFrames?: () => number[][][][] | null;
+  // The birth to open on, instead of the form's own: the first chart drawn is
+  // this one, with nothing drawn or built for another first.
+  birth?: { year: number; month: number; day: number; hour: number; minute: number; lat: number; lon: number };
+  // Draw the lines in while the planets are still spreading apart, not after
+  // (for a page that wants the pendant sooner).
+  eagerLines?: boolean;
+  // Start the gold this many ms before the lines finish drawing, ahead of
+  // the outline's thickening (which otherwise starts it). Only happens if the
+  // pendant's 3D build is ready by then.
+  pourLead?: number;
 }
 
 // What the reading is currently about: these aspect lines (and planets) are
@@ -100,6 +115,8 @@ export interface ChartEngine {
   // The 3D viewer, once it has loaded, and half the width the 2D canvas
   // covers in the pendant's units: for a stage that films the chart itself.
   viewer(): Promise<any>;
+  // The frames of the last outline to thicken, for saving (see growFrames above).
+  lastGrowFrames(): number[][][][] | null;
   chartHalf(): number;
   // Start idle movement, or (null) ease the pendant back flat on the chart.
 }
@@ -130,6 +147,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     // Fade out old pendant + crossfade 3D back to ring
     pendantAlpha = 0;
     pendantModelData = null;
+    pouredKey = null;
     aspectAnimLines = [];
     aspectAnimDone = false;
     if (pendantViewer && shown3d) {
@@ -200,7 +218,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let targetState = null;
   let animStartTime = null;
   let animFrameId = null;
-  const ANIM_DURATION = 700;
+  const ANIM_DURATION = 600;
 
   let spreadT = 1;
   let spreadAnimId = null;
@@ -218,9 +236,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let ringShownAt = 0;       // when the bare rim last appeared
   let outlineShownAt = 0;    // when the growing outline's first frame appeared
   const fadeIn = (since) => { const x = Math.min(1, Math.max(0, (performance.now() - since) / STEP_FADE_MS)); return x * x * (3 - 2 * x); };
-  const ASPECT_LINE_DURATION = 500;
-  const ASPECT_STAGGER_INITIAL = 100;
-  const ASPECT_STAGGER_MIN = 25;
+  const ASPECT_LINE_DURATION = 400;
+  const ASPECT_STAGGER_INITIAL = 70;
+  const ASPECT_STAGGER_MIN = 18;
 
   let hoveredAspect = null;
   let drawnAspects = [];
@@ -654,6 +672,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     pendantAlpha = 0;
     _3dModelReady = false;
     pendantModelData = null;
+    pouredKey = null;
     prebuildGrowIn(newState);
 
     if (!displayState) {
@@ -698,6 +717,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     spreadT = 0;
     spreadAnimStart = null;
     spreadAnimId = requestAnimationFrame(spreadStep);
+    if (options.eagerLines) startAspectAnim();
   }
 
   function spreadStep(timestamp) {
@@ -710,7 +730,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       spreadAnimId = requestAnimationFrame(spreadStep);
     } else {
       spreadAnimId = null;
-      startAspectAnim();
+      if (!options.eagerLines) startAspectAnim();
     }
   }
 
@@ -798,6 +818,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     const allDone = elapsed >= totalDuration;
 
     drawChartState(displayState);
+    if (options.pourLead && elapsed >= totalDuration - options.pourLead) pourAhead();
 
     if (!allDone) {
       aspectAnimId = requestAnimationFrame(aspectAnimStep);
@@ -1581,6 +1602,10 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   let pendantExpansion = 0;
   const EXPANSION_STEP = 0.3;
   const EXPANSION_DURATION = 1000;   // how long the 2D outline takes to thicken
+  // It thickens fast and then settles, like the gold's flow-in: most of the width in the first third, the last sliver over the rest.
+  const GROW_CURVE = [0.25, 0.8, 0.39, 0.99];
+  // The gold sets off this long into the thickening instead of waiting for it to end. 0: the two start together.
+  const POUR_AT_MS = 0;
   let expansionAnimId = null;
   let expansionAnimStart = null;
 
@@ -1603,7 +1628,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
       // The finished pendant's 3D build normally started with the chart's
       // lines (prebuildGrowIn); if the chart has moved since, start it now.
-      if (prepared3d?.key !== growInKey(pendantChords)) prepare3D(pendantChords);
+      if (prepared3d?.key !== growInKey(pendantChords) && pouredKey !== growInKey(pendantChords)) prepare3D(pendantChords);
 
       if (outlineStyle === 'current') startExpansionAnim();
       else startGrowIn(result.model);
@@ -1749,9 +1774,11 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   }
 
   function buildGrowInFrames(chords) {
+    const baked = options.growFrames?.();
+    if (baked?.length) return { key: growInKey(chords), frames: baked, job: null, steps: baked.map((_, i) => (i + 1) / baked.length) };
     const frames = [];
     const job = requestOutlineFrames(GROW_IN_STEPS.map(sc => grownParams(chords, sc)), (i, loops) => { frames[i] = loops; });
-    return { key: growInKey(chords), frames, job };
+    return { key: growInKey(chords), frames, job, steps: GROW_IN_STEPS };
   }
 
   function prebuildGrowIn(state) {
@@ -1766,45 +1793,53 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     } catch {}
   }
 
+  let grownFrames = null;    // the frames of the outline now thickening, or last to
+  let finalLoops = null;     // the finished pendant's own outline, if its 3D build landed while the 2D one was still thickening
+
   function stopGrowIn() {
+    finalLoops = null;
     if (growInId) { cancelAnimationFrame(growInId); growInId = null; cancelOutlineFrames(); perf.end('outline'); }
   }
 
   function startGrowIn(finalModel) {
-    stopGrowIn();
     const chords = pendantChords;
+    const ahead3d = pouredKey === growInKey(chords);   // the gold set off before this outline did (pourAhead)
+    const loops = ahead3d ? finalLoops : null;
+    stopGrowIn();
+    finalLoops = loops;
     // The frames started ahead, unless the chart or its settings have moved since.
-    const ahead = growInAhead && growInAhead.key === growInKey(chords) && growInAhead.job === framesJob ? growInAhead : buildGrowInFrames(chords);
+    const ahead = growInAhead && growInAhead.key === growInKey(chords) && (!growInAhead.job || growInAhead.job === framesJob) ? growInAhead : buildGrowInFrames(chords);
     growInAhead = null;
-    const frames = ahead.frames;
-    const last = GROW_IN_STEPS.length - 1;
-    const hold = EXPANSION_DURATION / GROW_IN_STEPS.length;
+    const frames = grownFrames = ahead.frames, steps = ahead.steps;
+    const last = steps.length - 1;
     let shown = -1;
     let start = 0;
+    let poured = ahead3d;
     perf.begin('outline', EXPANSION_DURATION);
     const tick = (now) => {
       if (pendantChords !== chords) { growInId = null; perf.end('outline'); return; }
       if (!start && frames[0]) start = now;
       if (start) {
         // The frame the clock has reached, or the newest one built so far.
-        let want = Math.min(last, Math.floor((now - start) / hold));
+        let want = Math.min(last, Math.floor(cubicBezier(GROW_CURVE, (now - start) / EXPANSION_DURATION) * steps.length));
         while (want > shown && !frames[want]) want--;
         if (want > shown) {
           if (shown < 0) outlineShownAt = now;
           shown = want;
-          pendantExpansion = lineThickness * GROW_IN_STEPS[shown];
+          pendantExpansion = lineThickness * steps[shown];
           pendantModelData = { model: finalModel, r: 100, chords, expansion: pendantExpansion, loops: frames[shown] };
           if (displayState) drawChartState(displayState);
         }
+        if (!poured && now - start >= POUR_AT_MS) { poured = true; perf.begin('wait'); start3DTransition(); }
       }
       if (shown < last) {
         growInId = requestAnimationFrame(tick);
       } else {
         growInId = null;
         perf.end('outline');
-        perf.begin('wait');
+        if (finalLoops) { applyPreviewLoops(finalLoops); finalLoops = null; }
         canvas.dispatchEvent(new CustomEvent('outline-grown'));
-        start3DTransition();
+        if (!poured) { perf.begin('wait'); start3DTransition(); }
       }
     };
     growInId = requestAnimationFrame(tick);
@@ -2457,8 +2492,9 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
   // lines are still drawing in. `key` says which pendant and settings it
   // was built for.
   let prepared3d = null;
+  let prepared3dFor = null;   // the key of the last pendant prepared: the chart now being presented
   function prepare3D(chords) {
-    const key = growInKey(chords);
+    const key = prepared3dFor = growInKey(chords);
     const ready = ensureViewer()
       .then(() => (prepared3d?.key === key ? requestPreview({ ...outlineParams(chords, false), circleRadius: 100 }) : null))
       .then((res) => res && { res, sdf: pendantViewer.traced.prepare(res.mesh, tracedInfo(res.mesh)) })
@@ -2466,19 +2502,39 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     prepared3d = { key, ready };
   }
 
-  async function start3DTransition() {
-    if (!pendantModelData?.model) return;
+  // The gold may set off a little before its outline starts to thicken
+  // (options.pourLead), but only with a pendant already built: nothing is
+  // on the 2D canvas yet to build one from.
+  let pouredKey = null;      // the pendant (growInKey) whose gold has set off ahead of its outline
+  function pourAhead() {
+    const key = prepared3d?.key;
+    if (!key || pouredKey === key) return;
+    pouredKey = key;
+    start3DTransition(key);
+  }
+
+  // `aheadKey`: called before the outline exists, for the pendant prepared under that key.
+  async function start3DTransition(aheadKey = null) {
+    if (!aheadKey && !pendantModelData?.model) return;
     _3dModelReady = false;
     const gen = ++previewGen;
-    const data = pendantModelData;
+    // The outline may still be thickening, replacing pendantModelData each frame: the key says whether it is still this pendant.
+    const key = aheadKey || growInKey(pendantChords);
+    const still = () => (pendantModelData ? growInKey(pendantChords) === key : prepared3dFor === key);
     const version = paramsVersion;
     try {
       await ensureViewer();
       lastBuildWasDraft = false;
-      const early = prepared3d && prepared3d.key === growInKey(data.chords) ? await prepared3d.ready : null;
-      prepared3d = null;
+      const early = prepared3d && prepared3d.key === key ? await prepared3d.ready : null;
+      if (prepared3d?.key === key) prepared3d = null;
+      if (aheadKey && !early) {
+        // Nothing was ready after all: leave it to the outline, which may already be thickening.
+        pouredKey = null;
+        if (pendantModelData?.model && still()) start3DTransition();
+        return;
+      }
       const res = early?.res || await requestPreview(previewParams(false));
-      if (!res || gen !== previewGen || data !== pendantModelData) return;
+      if (!res || gen !== previewGen || !still()) { if (aheadKey) pouredKey = null; return; }
 
       if (!shown3d) {
         update3DCamera();
@@ -2504,7 +2560,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
         if (displayState) drawChartState(displayState);   // the dot loop keeps redrawing until the outline has faded
       };
       pendantViewer.traced.reveal(res.mesh, tracedInfo(res.mesh), undefined, early?.sdf);
-      applyPreviewLoops(res.loops);
+      if (growInId || !pendantModelData) finalLoops = res.loops; else applyPreviewLoops(res.loops);   // not over an outline that is still thickening, or yet to start
       _3dModelReady = true;
       if (displayState) drawChartState(displayState);
       // Settings moved while this was building.
@@ -2518,19 +2574,24 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   lastViewScale = viewScale();
 
+  if (options.birth) placeBirth(options.birth);
   generateChart();
 
   // ── Cleanup ────────────────────────────────────────────────
 
 
-  return { destroy, setParams, setFocus, setBirth, viewer: () => ensureViewer().then(() => pendantViewer), chartHalf: compute3DHalf };
+  return { destroy, setParams, setFocus, setBirth, viewer: () => ensureViewer().then(() => pendantViewer), chartHalf: compute3DHalf, lastGrowFrames: () => grownFrames };
 
-  function setBirth(b) {
+  function placeBirth(b) {
     const set = (id, v) => { (document.getElementById(id) as HTMLSelectElement).value = String(v); };
     set('birth-year', b.year); set('birth-month', b.month);
     updateDayMax();
     set('birth-day', b.day); set('birth-hour', b.hour); set('birth-minute', b.minute);
     selectedLat = b.lat; selectedLon = b.lon;
+  }
+
+  function setBirth(b) {
+    placeBirth(b);
     generateChart();
     syncURL();
   }

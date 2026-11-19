@@ -45,14 +45,34 @@ export function useHeroFilm() {
         bakeGrid(engine, viewer, chart.current, stage.current, status);
         return;
       }
+      // Dev only. /?outlines=1: instead of playing, save each sky's thickening outline as frames (see hero-outlines.ts).
+      if (dev && query.has('outlines')) {
+        const [{ initChartEngine }, { bakeOutlines, OUTLINE_STEPS }] = await Promise.all([import('@/app/chart/chart-engine'), import('./hero-outlines')]);
+        if (gone) return;
+        engine = initChartEngine(chart.current, stage.current, { params: PENDANT_DEFAULTS, urlOverrides: false, syncUrl: false, growSteps: OUTLINE_STEPS });
+        const status = { done: 0, finished: false, bytes: [] };
+        (window as any).__outlineBake = status;
+        setReady(true);
+        bakeOutlines(engine, chart.current, status);
+        return;
+      }
       const light = window.matchMedia(LIGHT).matches;
-      const [{ initChartEngine }, { HeroDirector }] = await Promise.all([import('@/app/chart/chart-engine'), import('./hero-director')]);
+      const [{ initChartEngine }, { HeroDirector }, { OutlineStore }] = await Promise.all([import('@/app/chart/chart-engine'), import('./hero-director'), import('./hero-outlines')]);
+      const outlines = new OutlineStore();
+      await outlines.load(0);
+      outlines.use(0);
       if (gone) return;
-      engine = initChartEngine(chart.current, stage.current, { params: PENDANT_DEFAULTS, urlOverrides: false, syncUrl: false, canvasPx: light ? LIGHT_CHART_PX : undefined });
-      engine.setBirth(HERO_SKIES[0]);
+      // The first chart's lines start as the engine does, before the 3D viewer and the director are up.
+      let lines = false;
+      chart.current.addEventListener('aspects-updated', () => { lines = true; }, { once: true });
+      engine = initChartEngine(chart.current, stage.current, { params: PENDANT_DEFAULTS, urlOverrides: false, syncUrl: false, canvasPx: light ? LIGHT_CHART_PX : undefined, growFrames: outlines.current,
+        // Straight to the first sky, the lines begin with the planets still settling, and the gold sets off just before the lines finish: it is on screen as soon as it can be.
+        birth: HERO_SKIES[0], eagerLines: true, pourLead: 250 });
       const viewer = await engine.viewer();
       if (gone) return;
       director = new HeroDirector(engine, viewer, chart.current, stage.current, light);
+      director.onChange = (i) => outlines.use(i);
+      if (lines) director.linesBegan();
       director.onSky = setSky;
       director.onReady = () => setReady(true);
     })();
