@@ -722,14 +722,15 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/* Phones: the birth-details sheet matches the reading sheet: same cream
-   card and grab handle, a centred serif heading, and pill buttons. Neither sheet uses a backdrop blur: the
+/* Phones: the birth-details sheet matches the reading sheet: same white
+   card (with a soft shadow, so it lifts off the cream page) and grab handle, a centred serif heading, and pill buttons. Neither sheet uses a backdrop blur: the
    chart behind them redraws while it animates, and blurring it every
    frame is what made scrolling stutter. */
 @media (max-width: 768px) {
   .chart-page.is-flow #controls,
   .chart-page.is-reading #controls {
-    background: rgba(250, 247, 240, 0.94);
+    background: #fff;
+    box-shadow: 0 -8px 28px rgba(58, 56, 52, 0.08);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

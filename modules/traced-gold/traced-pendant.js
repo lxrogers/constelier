@@ -144,6 +144,19 @@ export class TracedPendant {
     this.applyLook();
   }
 
+  // Start compiling the three shaders now, rather than in the first frame
+  // that draws each one: on a phone that is a visible hitch just as the metal
+  // starts to move.
+  precompile(renderer, camera, scene) {
+    const stub = new THREE.Mesh(this.box.geometry, this.goldMat);
+    const was = [this.object.visible, this.box.visible];
+    this.object.add(stub);
+    this.object.visible = this.box.visible = true;
+    try { renderer.compile(this.object, camera, scene); } catch (err) { console.warn('[traced gold] precompile', err); }
+    this.object.remove(stub);
+    [this.object.visible, this.box.visible] = was;
+  }
+
   // ── Look ────────────────────────────────────────────────────────────────
 
   setLook(look) { this.look = look; this.applyLook(); }
