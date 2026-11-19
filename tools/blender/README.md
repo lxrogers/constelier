@@ -89,3 +89,24 @@ Fetch it (202 with `{"status": "rendering"}` until done, then the PNG):
 The STL must be binary, in millimetres, with the bail toward -y and the disc
 centred on the origin, which is what the app's exporter writes. A mesh with no
 bail hole fails with a 422. Results are kept for 7 days.
+
+## The hero film
+
+`film.py` renders the homepage hero's film in Cycles: the chart drawing itself
+on paper, the gold flowing in, the low pan and the pull-back to a grid of
+twelve. `modal_film.py` renders it on Modal GPUs (32 frames per container, the
+set built once in each) and joins the frames into an MP4 under `renders/film/`.
+
+It needs `tools/blender/film/` (not in git), made in this order:
+
+```sh
+# 1. The 2D chart's animation as frames: open http://localhost:3000/?bake=1 in dev and wait for window.__bake.done
+node tools/blender/export-film.mjs        # 2. the film's pendant and the grid's eleven others, as STLs
+python3 tools/blender/grid-ink.py         # 3. the other charts' ink (needs Pillow; a stand-in, see the file)
+tools/blender/.venv/bin/modal run tools/blender/modal_film.py --width 640 --samples 32 --step 3 --run preview
+tools/blender/.venv/bin/modal run tools/blender/modal_film.py --width 1920 --samples 200 --run final
+```
+
+The film's timings and camera are copied by hand from
+`src/app/halo/hero/hero-director.ts`; change both together.
+

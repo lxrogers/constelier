@@ -7,31 +7,22 @@ import HaloHeader from './halo/components/HaloHeader';
 import HaloFooter from './halo/components/HaloFooter';
 import StepPanel from './halo/components/StepPanel';
 import DesignLink from './halo/components/DesignLink';
-import { CLOSING_IMAGE, HERO_IMAGE, SKIES, STEPS } from './halo/content';
+import HeroFilm from './halo/hero/HeroFilm';
+import { CLOSING_IMAGE, SKIES, STEPS } from './halo/content';
 import './halo/halo.css';
 
-export const metadata: Metadata = { title: 'CONSTELIER · Wear the sky you were born under' };
+export const metadata: Metadata = { title: 'CONSTELIER · Your sky, cast in gold' };
 
 // The homepage (its parts live in ./halo): warm and soft. Cream page, light
-// serif headlines, a pinned nav, rounded picture cards, and a dark footer.
+// serif headlines, a pinned nav, a hero that films a chart becoming a pendant,
+// rounded picture cards, and a dark footer.
 export default function Home() {
   return (
     <div className="halo" id="top">
       <HaloHeader />
 
       <main>
-        <section className="halo-hero">
-          <div className="halo-hero-img">
-            <Image src={HERO_IMAGE.src} alt={HERO_IMAGE.alt} fill priority sizes="(max-width: 860px) 100vw, 60vw" />
-          </div>
-          <div className="halo-hero-copy">
-            <h1 className="halo-h1 reveal">Wear the sky<br />you were born under</h1>
-            <p className="halo-lede reveal" style={{ ['--d' as string]: '100ms' }}>
-              Your planets at the minute you arrived, drawn as lines and cast in solid gold.
-            </p>
-            <DesignLink className="btn reveal" style={{ ['--d' as string]: '200ms' }}>Design yours</DesignLink>
-          </div>
-        </section>
+        <HeroFilm />
 
         <InView as="section" className="halo-sec halo-how">
           <div id="how" className="halo-anchor" />

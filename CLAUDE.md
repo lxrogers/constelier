@@ -57,6 +57,7 @@ The project has two parallel entry points for the same core logic:
 
 ### Next.js App (`src/`)
 - Uses the App Router (`src/app/`). `/` is the homepage (`src/app/page.tsx`, with its parts in `src/app/halo/`); `/chart` is the configurator.
+- The homepage hero is a live film, not a picture (`src/app/halo/hero/`): the real chart engine draws a chart and makes its pendant, and `hero-director.ts` films them in four cut shots. The 2D chart is printed on the paper under the pendant by the traced-gold shader. The last shot's eleven other pendants are pictures in `public/hero/grid/`, retaken in dev at `/?grid=1`.
 - `src/app/chart/page.tsx` renders the `NatalChart` component (`src/app/chart/NatalChart.tsx`), which drives the chart engine.
 - `src/lib/horoscope.ts` re-exports from the root `horoscope-bundle.js`.
 - Tailwind CSS v4 via `@tailwindcss/postcss`. Custom fonts (Graphik, Moulin) in `public/fonts/`.

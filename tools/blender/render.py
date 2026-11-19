@@ -896,4 +896,5 @@ def main():
         bpy.ops.render.render(write_still=True)
         print('WROTE', out)
 
-main()
+if __name__ == '__main__':      # film.py imports this file for its helpers
+    main()

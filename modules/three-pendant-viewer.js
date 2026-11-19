@@ -146,7 +146,8 @@ export class PendantViewer {
     // Phones report 3x; 2x is visually the same here and shades 2.25x fewer
     // pixels per pass (TAA renders the scene several times per frame).
     // `pixelLoad` (?perf=1&slow=N) shades that many times the pixels, to stand in for a slower GPU.
-    this._pixelRatio = Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2) * Math.sqrt(this.options.pixelLoad || 1);
+    this._fullPixelRatio = Math.min(window.devicePixelRatio, this.options.maxPixelRatio || 2) * Math.sqrt(this.options.pixelLoad || 1);
+    this._pixelRatio = this._fullPixelRatio;
     this.motionScale = 1;   // below 1 once this device has shown it cannot keep up (see _paceMotion)
     this.renderer.setPixelRatio(this._pixelRatio);
     this.renderer.shadowMap.enabled = true;
@@ -696,6 +697,12 @@ export class PendantViewer {
 
   stop() {
     this.running = false;
+  }
+
+  // Draw on a share of the usual pixels (1: all of them). For a page that
+  // keeps the canvas moving on a device that cannot keep up at full sharpness.
+  setQuality(scale) {
+    this._pixelRatio = this._fullPixelRatio * scale;
   }
 
   // Render a single frame on demand
