@@ -9,7 +9,7 @@
   gap: 2px;
 }
 .atb-price {
-  font-family: 'Moulin', serif;
+  font-family: var(--serif);
   font-size: 32px;
   color: #3a3630;
   line-height: 1.1;

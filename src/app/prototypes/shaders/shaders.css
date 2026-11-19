@@ -2,7 +2,7 @@
 .sl-stage { min-height: 0; overflow: hidden; }
 .sl-stage canvas { display: block; }
 .sl-panel { padding: 28px 24px; overflow-y: auto; border-left: 1px solid #e4dccf; display: flex; flex-direction: column; gap: 18px; }
-.sl-panel h1 { font-family: 'Moulin', 'Times New Roman', serif; font-weight: 300; font-size: 30px; line-height: 1.1; margin: 0; }
+.sl-panel h1 { font-family: var(--serif); font-weight: 300; font-size: 30px; line-height: 1.1; margin: 0; }
 .sl-lede { margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: #7a746a; }
 .sl-field { display: flex; flex-direction: column; gap: 6px; }
 .sl-label { font-size: 12px; color: #7a746a; padding: 0; }

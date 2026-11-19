@@ -7,6 +7,7 @@ import HaloHeader from './halo/components/HaloHeader';
 import HaloFooter from './halo/components/HaloFooter';
 import StepPanel from './halo/components/StepPanel';
 import DesignLink from './halo/components/DesignLink';
+import FontBar from './halo/components/FontBar';
 import HeroFilm from './halo/hero/HeroFilm';
 import { CLOSING_IMAGE, SKIES, STEPS } from './halo/content';
 import './halo/halo.css';
@@ -19,6 +20,7 @@ export const metadata: Metadata = { title: 'CONSTELIER · Your sky, cast in gold
 export default function Home() {
   return (
     <div className="halo" id="top">
+      {process.env.NODE_ENV === 'development' && <FontBar />}
       <HaloHeader />
 
       <main>

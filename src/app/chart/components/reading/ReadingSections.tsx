@@ -31,7 +31,7 @@ export function IntroSection({ big3, lineCount }: { big3: BigThree; lineCount: n
 export function HowToReadSection({ title = true }: { title?: boolean }) {
   return (
     <>
-      {title && <h3 className="reading-title">How to read a line.</h3>}
+      {title && <h3 className="reading-title">How to read an aspect line.</h3>}
       <p className="reading-text">
         Each line joins two planets. The angle between them, measured around the circle, sets the tone.
       </p>

@@ -569,7 +569,7 @@
 
   /* Birth details */
   .lab-root .chart-page.is-flow #controls h2 {
-    font-family: 'Moulin', serif;
+    font-family: var(--serif);
     font-weight: 400;
     font-size: 32px;
     line-height: 1.1;

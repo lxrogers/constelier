@@ -14,7 +14,7 @@ What the owner is going for, written down from the homepage work in November 202
 - Warm, soft and quiet, closer to a wellness or fine-jewelry brand than a storefront. The stated reference for the homepage layout is ouraring.com. A white, bold-sans, sportswear-style storefront was tried first and dropped.
 - One look only: the cream theme. Page `#f6f1ea`, warm charcoal ink `#3a3834` (never pure black), hairlines in a slightly darker cream. The dark, night and mono themes were tried and abandoned; do not bring them back unasked.
 - The gold is the only strong colour on the page, and it comes from the pendant itself. (Reading: no accent colours competing with it.)
-- Type: Moulin (serif) for headlines, light and in sentence case; Graphik for body and controls; the CONSTELIER wordmark in Bodoni Moda caps. No uppercase shouting, no heavy weights.
+- Type: Instrument Serif for headlines (it replaced Moulin), light and in sentence case; Graphik for body and controls; the CONSTELIER wordmark in Bodoni Moda caps. No uppercase shouting, no heavy weights.
 
 ### Pictures
 - Photography leads. Show the real thing: realistic renders of the pendant on stone or against a wall in sunlight, the maker at the bench, and the real configurator on screen. No illustrations or abstract decoration standing in for the product.
@@ -60,7 +60,7 @@ The project has two parallel entry points for the same core logic:
 - The homepage hero is a live film, not a picture (`src/app/halo/hero/`): the real chart engine draws a chart and makes its pendant, and `hero-director.ts` films them in four cut shots. The 2D chart is printed on the paper under the pendant by the traced-gold shader. The last shot's eleven other pendants are pictures in `public/hero/grid/`, retaken in dev at `/?grid=1`. Its outlines are made ahead of time (`public/hero/outlines/`, remade in dev at `/?outlines=1`); they record the pendant defaults they were made for and are ignored when those change, so remake them after changing `pendant-defaults.json`.
 - `src/app/chart/page.tsx` renders the `NatalChart` component (`src/app/chart/NatalChart.tsx`), which drives the chart engine.
 - `src/lib/horoscope.ts` re-exports from the root `horoscope-bundle.js`.
-- Tailwind CSS v4 via `@tailwindcss/postcss`. Custom fonts (Graphik, Moulin) in `public/fonts/`.
+- Tailwind CSS v4 via `@tailwindcss/postcss`. Graphik is in `public/fonts/`; Instrument Serif (headlines) and Bodoni Moda (wordmark) load through `next/font` in `src/app/layout.tsx`.
 
 ### Pendant settings and the lab (`/lab`)
 - `src/config/pendant-params.ts` defines every tunable setting (range, group, label). `src/config/pendant-defaults.json` holds the saved defaults that both `/chart` and `/lab` start from.

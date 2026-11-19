@@ -561,8 +561,11 @@ input[type="range"]::-moz-range-thumb {
 
   /* Birth details */
   .chart-page.is-flow #controls h2 {
-    font-family: 'Moulin', serif;
+    font-family: var(--serif);
     font-weight: 400;
+    /* Instrument Serif has one weight, so a thin outline stands in for a
+       slightly heavier cut. */
+    -webkit-text-stroke: 0.4px currentColor;
     font-size: 32px;
     line-height: 1.1;
     color: #2c2c2c;
@@ -749,8 +752,9 @@ input[type="range"]::-moz-range-thumb {
   }
   .chart-page.is-flow:not(.is-reading):not(.is-finish) #controls h2 { display: none; }
   .chart-page.is-flow .birth-field .form-group > label {
-    font-family: 'Moulin', serif;
+    font-family: var(--serif);
     font-size: 19px;
+    -webkit-text-stroke: 0.3px currentColor;
     line-height: 1.15;
     text-align: center;
     text-transform: none;

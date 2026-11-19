@@ -19,6 +19,8 @@
   background: var(--bg);
   color: var(--ink);
   overflow-x: clip;
+  /* Set here as well as on body so the dev font bar can override --sans. */
+  font-family: var(--sans);
 }
 .halo a:not(.btn) { color: inherit; }
 .halo .btn { height: 46px; padding: 0 22px; font-size: 15px; font-weight: 400; letter-spacing: 0; }
@@ -35,7 +37,7 @@
    (chart/site-nav.css), so the two pages read as one site. */
 .halo-nav {
   position: sticky;
-  top: 0;
+  top: var(--fontbar-h, 0px);
   z-index: 50;
   display: grid;
   grid-template-columns: 1fr auto 1fr;

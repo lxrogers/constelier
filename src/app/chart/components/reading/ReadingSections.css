@@ -26,7 +26,7 @@
 }
 .reading-title {
   margin: 0;
-  font-family: 'Moulin', serif;
+  font-family: var(--serif);
   font-weight: 400;
   font-size: 28px;
   line-height: 1.1;
@@ -115,7 +115,7 @@
 /* Before the chart is ready. */
 .reading-loading {
   margin: 0;
-  font-family: 'Moulin', serif;
+  font-family: var(--serif);
   font-size: 28px;
   color: #7a7568;
   animation: reading-loading 1.6s ease-in-out infinite;
