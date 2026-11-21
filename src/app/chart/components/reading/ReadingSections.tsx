@@ -1,6 +1,7 @@
 'use client';
 
-// The pieces of a reading: intro, how to read a line, one line, summary.
+// The pieces of a reading: intro, how to read a line, one line (in three
+// beats + optional generational insight), and summary.
 import './ReadingSections.css';
 import {
   ASPECT_TYPES, TYPE_ORDER,
@@ -33,7 +34,7 @@ export function HowToReadSection({ title = true }: { title?: boolean }) {
     <>
       {title && <h3 className="reading-title">How to read an aspect line.</h3>}
       <p className="reading-text">
-        Each line joins two planets. The angle between them, measured around the circle, sets the tone.
+        Each line joins two planets near one of four angles around the circle. The angle sets the tone.
       </p>
       <ul className="reading-types">
         {TYPE_ORDER.map(key => {
@@ -63,7 +64,37 @@ export function LineSection({ line, index }: { line: ReadingLine; index?: number
         <span className="reading-where">{line.where}</span>
       </div>
       <h3 className="reading-title">{line.title}</h3>
-      <p className="reading-text reading-text-lg">{line.body}</p>
+      <ol className="reading-steps">
+        <li className="reading-step">
+          <span className="reading-step-mark" aria-hidden="true">{line.first.glyph}</span>
+          <div className="reading-step-copy">
+            <p className="reading-step-head">{line.first.heading}</p>
+            <p className="reading-step-body">{line.first.text}</p>
+          </div>
+        </li>
+        <li className="reading-step">
+          <span className="reading-step-mark" aria-hidden="true">{line.second.glyph}</span>
+          <div className="reading-step-copy">
+            <p className="reading-step-head">{line.second.heading}</p>
+            <p className="reading-step-body">{line.second.text}</p>
+          </div>
+        </li>
+        <li className="reading-step is-relation">
+          <span className="reading-step-mark" aria-hidden="true">
+            <TypeIcon degrees={line.degrees} size={18} />
+          </span>
+          <div className="reading-step-copy">
+            <p className="reading-step-head">{line.relation.heading}</p>
+            <p className="reading-step-body">{line.relation.text}</p>
+          </div>
+        </li>
+      </ol>
+      {line.insight && (
+        <p className="reading-insight">
+          <InsightIcon />
+          <span>{line.insight}</span>
+        </p>
+      )}
     </>
   );
 }
@@ -73,10 +104,12 @@ export function SummarySection({ summary }: { summary: ReadingSummary }) {
     <>
       <p className="reading-eyebrow">Your reading, in short</p>
       <h3 className="reading-title">{summary.headline}</h3>
-      <ol className="reading-themes">
-        {summary.themes.map((t, i) => <li key={i}>{t}</li>)}
-      </ol>
-      <p className="reading-text">{summary.balance} Next, choose how your pendant is made.</p>
+      {summary.themes.length > 0 && (
+        <ol className="reading-themes">
+          {summary.themes.map((t, i) => <li key={i}>{t}</li>)}
+        </ol>
+      )}
+      <p className="reading-text">{summary.balance} Next, request a quote for yours.</p>
     </>
   );
 }
@@ -93,6 +126,27 @@ export function TypeIcon({ degrees, size = 32 }: { degrees: number; size?: numbe
     <svg className="reading-type-icon" viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
       <circle cx="20" cy="20" r="16" fill="none" stroke="#d4cfc5" strokeWidth="1.2" />
       <line x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke="#3a3630" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function InsightIcon() {
+  return (
+    <svg
+      className="reading-insight-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 18h6" />
+      <path d="M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.75 10.68c.55.44.75 1.12.75 1.82V16h6v-.5c0-.7.2-1.38.75-1.82A6 6 0 0 0 12 3Z" />
     </svg>
   );
 }

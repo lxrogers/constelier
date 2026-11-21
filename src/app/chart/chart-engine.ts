@@ -48,6 +48,14 @@ const PLANET_NAMES = {
   neptune: 'Neptune', pluto: 'Pluto',
 };
 
+const ASPECT_VERBS: Record<string, string> = {
+  conjunction: 'conjunct',
+  sextile: 'sextile',
+  square: 'square',
+  trine: 'trine',
+  opposition: 'opposite',
+};
+
 const ASPECT_STYLES = {
   conjunction: { color: '#2c2c2c', width: 1.2, dash: [],     opacity: 0.5 },
   sextile:     { color: '#2c2c2c', width: 0.8, dash: [4, 4], opacity: 0.5 },
@@ -408,7 +416,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
       const ha = hoveredAspect;
       const name1 = PLANET_NAMES[ha.point1Key] || ha.point1Key;
       const name2 = PLANET_NAMES[ha.point2Key] || ha.point2Key;
-      tooltip.textContent = `Your ${name1} and ${name2} are in ${ha.aspectKey}`;
+      const verb = ASPECT_VERBS[ha.aspectKey] || ha.aspectKey;
+      tooltip.textContent = `${name1} ${verb} ${name2}`;
       // Layout size, not the on-screen rect: the overlay sits inside the same
       // (possibly scaled) frame as the canvas.
       const scale = canvas.offsetWidth / SIZE;
@@ -772,6 +781,7 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
     canvas.dispatchEvent(new CustomEvent('chart-updated', {
       detail: {
         ascDeg,
+        birthYear: h.origin?.year,
         planets: displayState.planets.map(p => ({ key: p.key, deg: p.deg })),
       },
     }));

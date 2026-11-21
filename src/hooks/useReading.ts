@@ -8,7 +8,7 @@ import {
 // Everything a reading layout needs from the chart, plus the two focus
 // shapes they all use (the wide opening view and one line up close).
 export function useReading(aspects: ChartAspect[], bodies: ChartBodies | null) {
-  const lines = useMemo(() => buildReading(aspects), [aspects]);
+  const lines = useMemo(() => buildReading(aspects, bodies?.birthYear), [aspects, bodies?.birthYear]);
   const big3 = useMemo(() => bigThree(bodies), [bodies]);
   const summary = useMemo(() => summarize(lines), [lines]);
   // Changes when the chart does, so layouts can reset.

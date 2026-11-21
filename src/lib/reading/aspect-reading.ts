@@ -1,6 +1,11 @@
 // Turns a chart's aspects into a step-by-step reading. Pure data: no React,
-// no DOM. Each line is composed from what the two planets mean and how the
-// aspect type makes them relate, so it works for any chart.
+// no DOM. Each line is broken into three beats — planet one in its sign,
+// planet two in its sign, and the specialized meaning of their aspect — plus
+// an optional generational insight for slow outer-planet lines.
+
+import { generationalInsight } from './generational';
+import { pairReading, type MajorLineAspect } from './pair-readings';
+import { placementText } from './placements';
 
 export type AspectKey = 'opposition' | 'trine' | 'square' | 'sextile' | 'conjunction';
 
@@ -15,26 +20,26 @@ export interface ChartAspect {
 
 export interface ChartBodies {
   ascDeg: number;
+  birthYear?: number;
   planets: { key: string; deg: number }[];
 }
 
 type Element = 'fire' | 'earth' | 'air' | 'water';
 type Mode = 'cardinal' | 'fixed' | 'mutable';
 
-// manner: how a planet behaves in the sign, to finish "in Aries it works ...".
-export const SIGNS: { name: string; element: Element; mode: Mode; manner: string }[] = [
-  { name: 'Aries', element: 'fire', mode: 'cardinal', manner: 'head-on and fast' },
-  { name: 'Taurus', element: 'earth', mode: 'fixed', manner: 'slowly and steadily' },
-  { name: 'Gemini', element: 'air', mode: 'mutable', manner: 'with curiosity and quick turns' },
-  { name: 'Cancer', element: 'water', mode: 'cardinal', manner: 'protectively, guided by feeling' },
-  { name: 'Leo', element: 'fire', mode: 'fixed', manner: 'warmly and with flair' },
-  { name: 'Virgo', element: 'earth', mode: 'mutable', manner: 'carefully, with an eye for detail' },
-  { name: 'Libra', element: 'air', mode: 'cardinal', manner: 'gracefully, weighing both sides' },
-  { name: 'Scorpio', element: 'water', mode: 'fixed', manner: 'intensely, all or nothing' },
-  { name: 'Sagittarius', element: 'fire', mode: 'mutable', manner: 'freely, with big aims' },
-  { name: 'Capricorn', element: 'earth', mode: 'cardinal', manner: 'patiently, with a plan' },
-  { name: 'Aquarius', element: 'air', mode: 'fixed', manner: 'independently, on its own terms' },
-  { name: 'Pisces', element: 'water', mode: 'mutable', manner: 'softly, by intuition' },
+export const SIGNS: { name: string; element: Element; mode: Mode }[] = [
+  { name: 'Aries', element: 'fire', mode: 'cardinal' },
+  { name: 'Taurus', element: 'earth', mode: 'fixed' },
+  { name: 'Gemini', element: 'air', mode: 'mutable' },
+  { name: 'Cancer', element: 'water', mode: 'cardinal' },
+  { name: 'Leo', element: 'fire', mode: 'fixed' },
+  { name: 'Virgo', element: 'earth', mode: 'mutable' },
+  { name: 'Libra', element: 'air', mode: 'cardinal' },
+  { name: 'Scorpio', element: 'water', mode: 'fixed' },
+  { name: 'Sagittarius', element: 'fire', mode: 'mutable' },
+  { name: 'Capricorn', element: 'earth', mode: 'cardinal' },
+  { name: 'Aquarius', element: 'air', mode: 'fixed' },
+  { name: 'Pisces', element: 'water', mode: 'mutable' },
 ];
 
 export function signOf(deg: number) {
@@ -48,28 +53,28 @@ export function degInSign(deg: number) {
 interface PlanetInfo {
   name: string;
   glyph: string;
-  essence: string; // a phrase: what this planet stands for
-  short: string; // a few words, used inside sentences
+  short: string; // used inside summary themes
   weight: number; // how central it is to a reading
 }
 
 // ︎ keeps the glyphs as text rather than emoji.
 export const PLANETS: Record<string, PlanetInfo> = {
-  sun: { name: 'Sun', glyph: '☉︎', essence: 'your core self and vitality', short: 'who you are', weight: 10 },
-  moon: { name: 'Moon', glyph: '☽︎', essence: 'your emotional needs and instincts', short: 'what you need', weight: 9 },
-  mercury: { name: 'Mercury', glyph: '☿︎', essence: 'how you think and speak', short: 'your mind', weight: 5 },
-  venus: { name: 'Venus', glyph: '♀︎', essence: 'how you love and what you value', short: 'your heart', weight: 6 },
-  mars: { name: 'Mars', glyph: '♂︎', essence: 'your drive, desire and courage', short: 'your drive', weight: 6 },
-  jupiter: { name: 'Jupiter', glyph: '♃︎', essence: 'your faith, growth and generosity', short: 'your appetite for more', weight: 4 },
-  saturn: { name: 'Saturn', glyph: '♄︎', essence: 'your discipline and sense of limits', short: 'your discipline', weight: 4 },
-  uranus: { name: 'Uranus', glyph: '♅︎', essence: 'your need for freedom and change', short: 'your restlessness', weight: 2 },
-  neptune: { name: 'Neptune', glyph: '♆︎', essence: 'your imagination and ideals', short: 'your imagination', weight: 2 },
-  pluto: { name: 'Pluto', glyph: '♇︎', essence: 'your capacity for transformation', short: 'your depth', weight: 2 },
+  sun: { name: 'Sun', glyph: '☉︎', short: 'your sense of self', weight: 10 },
+  moon: { name: 'Moon', glyph: '☽︎', short: 'your emotional life', weight: 9 },
+  mercury: { name: 'Mercury', glyph: '☿︎', short: 'your mind', weight: 5 },
+  venus: { name: 'Venus', glyph: '♀︎', short: 'your heart', weight: 6 },
+  mars: { name: 'Mars', glyph: '♂︎', short: 'your drive', weight: 6 },
+  jupiter: { name: 'Jupiter', glyph: '♃︎', short: 'your urge to grow', weight: 4 },
+  saturn: { name: 'Saturn', glyph: '♄︎', short: 'your discipline', weight: 4 },
+  uranus: { name: 'Uranus', glyph: '♅︎', short: 'your independence', weight: 2 },
+  neptune: { name: 'Neptune', glyph: '♆︎', short: 'your imagination', weight: 2 },
+  pluto: { name: 'Pluto', glyph: '♇︎', short: 'your depth', weight: 2 },
 };
 
 export interface AspectTypeInfo {
   name: string;
   verb: string; // "Sun opposite Mars"
+  stepHeading: string; // Step 3 lead: "These are in opposition"
   degrees: number;
   definition: string; // the "how to read a line" entry
   tone: 'hard' | 'soft' | 'blend';
@@ -77,24 +82,49 @@ export interface AspectTypeInfo {
 
 export const ASPECT_TYPES: Record<AspectKey, AspectTypeInfo> = {
   opposition: {
-    name: 'Opposition', verb: 'opposite', degrees: 180, tone: 'hard',
-    definition: 'Opposite signs, so complementary elements in the same mode. A hard aspect of polarity and awareness, often lived through other people, that asks for integration.',
+    name: 'Opposition',
+    verb: 'opposite',
+    stepHeading: 'These are in opposition',
+    degrees: 180,
+    tone: 'hard',
+    definition:
+      'Across the wheel from each other — the longest lines in your pendant. A tug of war that asks you to hold both ends rather than pick a side.',
   },
   trine: {
-    name: 'Trine', verb: 'trine', degrees: 120, tone: 'soft',
-    definition: 'Signs of the same element. The most harmonious aspect: innate ease and talent, which can drift into complacency.',
+    name: 'Trine',
+    verb: 'trine',
+    stepHeading: 'These form a trine',
+    degrees: 120,
+    tone: 'soft',
+    definition:
+      'A third of the circle apart. Natural ease and flow between two parts of your chart — a gift that works best when you use it on purpose.',
   },
   square: {
-    name: 'Square', verb: 'square', degrees: 90, tone: 'hard',
-    definition: 'Signs of the same mode but clashing elements. A hard aspect of inner tension and crisis that demands action.',
+    name: 'Square',
+    verb: 'square',
+    stepHeading: 'These form a square',
+    degrees: 90,
+    tone: 'hard',
+    definition:
+      'A quarter turn apart, cutting across the chart at right angles. Creative friction that pushes you to move and build.',
   },
   sextile: {
-    name: 'Sextile', verb: 'sextile', degrees: 60, tone: 'soft',
-    definition: 'Compatible elements (fire with air, earth with water). A soft aspect of opportunity, which needs effort to pay off.',
+    name: 'Sextile',
+    verb: 'sextile',
+    stepHeading: 'These form a sextile',
+    degrees: 60,
+    tone: 'soft',
+    definition:
+      'A sixth of the circle apart — short lines near the rim. A quiet opening between two planets that rewards you once you reach for it.',
   },
   conjunction: {
-    name: 'Conjunction', verb: 'conjunct', degrees: 0, tone: 'blend',
-    definition: 'The same part of the sky. The two planets fuse and act as one, for better and worse.',
+    name: 'Conjunction',
+    verb: 'conjunct',
+    stepHeading: 'These sit in conjunction',
+    degrees: 0,
+    tone: 'blend',
+    definition:
+      'In the same slice of the sky. Two planets blended so closely they act as one.',
   },
 };
 
@@ -106,13 +136,27 @@ function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+export interface ReadingStep {
+  glyph: string;
+  heading: string; // "Your Sun is in Virgo"
+  text: string;    // One crisp sentence about that placement
+}
+
 export interface ReadingLine {
   aspect: ChartAspect;
   type: AspectKey;
   kind: string; // "Opposition"
+  degrees: number; // 180
   title: string; // "Sun opposite Mars"
-  where: string; // "☉ 24° Aries · ♂ 26° Libra"
-  body: string;
+  where: string; // "☉︎ 24° Aries · ♂︎ 26° Libra"
+  first: ReadingStep;
+  second: ReadingStep;
+  relation: {
+    heading: string; // "These are in opposition"
+    text: string;    // Specialized meaning for this planet pair & aspect
+  };
+  insight: string | null; // Optional generational insight for slow-planet lines
+  body: string; // Plain-text summary fallback
 }
 
 function placement(key: string, deg?: number) {
@@ -121,36 +165,28 @@ function placement(key: string, deg?: number) {
   return `${p?.glyph ?? ''} ${degInSign(deg)}° ${signOf(deg).name}`;
 }
 
-// "The Sun is your core self and vitality, and in Aries it works head-on and fast."
-function portrait(p: PlanetInfo, deg?: number): string {
-  const name = p.name === 'Sun' || p.name === 'Moon' ? `The ${p.name}` : p.name;
-  const how = deg !== undefined ? `, and in ${signOf(deg).name} it works ${signOf(deg).manner}` : '';
-  return `${name} is ${p.essence}${how}.`;
+function stepFor(planetKey: string, deg?: number): ReadingStep {
+  const p = PLANETS[planetKey];
+  const sign = deg !== undefined ? signOf(deg).name : undefined;
+  return {
+    glyph: p?.glyph ?? '•',
+    heading: sign ? `Your ${p.name} is in ${sign}` : `Your ${p.name}`,
+    text: placementText(planetKey, sign),
+  };
 }
 
-// A short paragraph: where the two planets sit, what each one is, how the
-// aspect makes them relate, and what to do with it.
-function bodyFor(type: AspectKey, a: PlanetInfo, b: PlanetInfo, deg1?: number, deg2?: number): string {
-  const s1 = deg1 !== undefined ? signOf(deg1) : null;
-  const s2 = deg2 !== undefined ? signOf(deg2) : null;
-  const where1 = s1 ? `Your ${a.name} in ${s1.name}` : `Your ${a.name}`;
-  const where2 = s2 ? `your ${b.name} in ${s2.name}` : `your ${b.name}`;
-  const portraits = `${portrait(a, deg1)} ${portrait(b, deg2)}`;
+function fallbackRelation(type: AspectKey, a: PlanetInfo, b: PlanetInfo): string {
   switch (type) {
     case 'opposition':
-      return `${where1} faces ${where2} across the chart. ${portraits} With ${a.short} at one end and ${b.short} at the other, it can feel as if you have to choose. You tend to own one side and meet the other in the people around you. The work is letting each keep the other honest, rather than picking a winner.`;
-    case 'trine': {
-      const shared = s1 && s2 && s1.element === s2.element ? `, both in ${s1.element} signs` : '';
-      return `${where1} and ${where2} flow together${shared}. ${portraits} ${cap(a.short)} and ${b.short} support each other so easily it can go unnoticed. You were born with this rather than earning it, which is why you may not count it as a talent. Use it on purpose and it becomes a real strength; leave it alone and it stays a comfortable habit.`;
-    }
-    case 'square': {
-      const shared = s1 && s2 && s1.mode === s2.mode ? `, both ${s1.mode} signs` : '';
-      return `${where1} meets ${where2} at a right angle${shared}. ${portraits} ${cap(a.short)} and ${b.short} want different things at once, and neither will give way. You feel it as pressure, most of all when you try to stand still. That friction is the engine of this line: each time you act on it, both sides grow stronger.`;
-    }
+      return `${cap(a.short)} and ${b.short} pull from opposite sides of the chart, asking you to hold both in balance.`;
+    case 'trine':
+      return `${cap(a.short)} and ${b.short} flow easily into one another, giving you a quiet natural strength here.`;
+    case 'square':
+      return `${cap(a.short)} and ${b.short} rub against each other, creating friction that pushes both sides to grow.`;
     case 'sextile':
-      return `${where1} and ${where2} are on friendly terms. ${portraits} ${cap(a.short)} and ${b.short} speak a similar language, so one readily opens a door for the other. Nothing happens here unprompted, though. This line is an invitation, and it pays off once you reach for it.`;
+      return `${cap(a.short)} and ${b.short} are on friendly terms, offering an easy opening whenever you lean into it.`;
     case 'conjunction':
-      return `${where1} sits right beside ${where2}. ${portraits} ${cap(a.short)} and ${b.short} fuse, so one is rarely felt without the other. That gives you focus and force in this part of your life, and a blind spot too, because you have never known one without the other.`;
+      return `${cap(a.short)} and ${b.short} sit right beside each other, acting together as one.`;
   }
 }
 
@@ -162,23 +198,35 @@ function score(a: ChartAspect) {
 
 // The lines in the pendant, most central first (Sun and Moon before the
 // outer planets; oppositions and squares before softer aspects on ties).
-export function buildReading(aspects: ChartAspect[]): ReadingLine[] {
+export function buildReading(aspects: ChartAspect[], birthYear?: number): ReadingLine[] {
   const usable = aspects.filter(a =>
     a.enabled && a.aspectKey in ASPECT_TYPES && a.aspectKey !== 'conjunction' &&
     PLANETS[a.point1Key] && PLANETS[a.point2Key]);
   const sorted = [...usable].sort((x, y) => score(y) - score(x));
   return sorted.map(aspect => {
-    const type = aspect.aspectKey as AspectKey;
+    const type = aspect.aspectKey as MajorLineAspect;
     const info = ASPECT_TYPES[type];
     const p1 = PLANETS[aspect.point1Key];
     const p2 = PLANETS[aspect.point2Key];
+    const first = stepFor(aspect.point1Key, aspect.deg1);
+    const second = stepFor(aspect.point2Key, aspect.deg2);
+    const relationText = pairReading(aspect.point1Key, aspect.point2Key, type) ?? fallbackRelation(type, p1, p2);
+    const insight = generationalInsight(aspect.point1Key, aspect.point2Key, type, birthYear);
     return {
       aspect,
       type,
       kind: info.name,
+      degrees: info.degrees,
       title: `${p1.name} ${info.verb} ${p2.name}`,
       where: `${placement(aspect.point1Key, aspect.deg1)}  ·  ${placement(aspect.point2Key, aspect.deg2)}`,
-      body: bodyFor(type, p1, p2, aspect.deg1, aspect.deg2),
+      first,
+      second,
+      relation: {
+        heading: info.stepHeading,
+        text: relationText,
+      },
+      insight,
+      body: `${first.heading}. ${first.text} ${second.heading}. ${second.text} ${info.stepHeading}: ${relationText}`,
     };
   });
 }
@@ -190,6 +238,23 @@ export interface BigThree {
   headline: string; // "Aries sun, Leo moon, Gemini rising."
   elements: string; // "Fire at your core, ..."
   placements: { label: string; glyph: string; value: string }[];
+}
+
+function describeElements(sun?: Element, moon?: Element, rising?: Element): string {
+  if (!sun && !moon && !rising) return '';
+  if (sun && moon && rising && sun === moon && moon === rising) {
+    return `${cap(sun)} all the way through — at your core, in your feelings, and in how you meet the world.`;
+  }
+  const parts: string[] = [];
+  if (sun) parts.push(`${cap(sun)} at your core`);
+  if (moon) {
+    parts.push(`${sun === moon ? 'more ' + moon : moon} in your feelings`);
+  }
+  if (rising) {
+    const repeats = rising === moon || rising === sun;
+    parts.push(`${repeats ? 'and ' + rising + ' again' : 'and ' + rising} in how you meet the world`);
+  }
+  return parts.join(', ') + '.';
 }
 
 export function bigThree(bodies: ChartBodies | null): BigThree {
@@ -205,18 +270,13 @@ export function bigThree(bodies: ChartBodies | null): BigThree {
     moon && `${moon.name} moon`,
     rising && `${rising.name} rising`,
   ].filter(Boolean);
-  const el = [
-    sun && `${cap(sun.element)} at your core`,
-    moon && `${sun?.element === moon.element ? 'more ' + moon.element : moon.element} in your feelings`,
-    rising && `${rising.element} in how you meet the world`,
-  ].filter(Boolean);
   const fmt = (d?: number) => (d === undefined ? '—' : `${degInSign(d)}° ${signOf(d).name}`);
   return {
     sun: sun?.name ?? null,
     moon: moon?.name ?? null,
     rising: rising?.name ?? null,
-    headline: parts.length ? parts.join(', ') + '.' : 'Your chart',
-    elements: el.length ? el.join(', ') + '.' : '',
+    headline: parts.length ? parts.join(', ') + '.' : 'Your chart.',
+    elements: describeElements(sun?.element, moon?.element, rising?.element),
     placements: [
       { label: 'Sun', glyph: PLANETS.sun.glyph, value: fmt(sunDeg) },
       { label: 'Moon', glyph: PLANETS.moon.glyph, value: fmt(moonDeg) },
@@ -234,6 +294,13 @@ export interface ReadingSummary {
 export function summarize(lines: ReadingLine[]): ReadingSummary {
   const hard = lines.filter(l => ASPECT_TYPES[l.type].tone === 'hard').length;
   const soft = lines.filter(l => ASPECT_TYPES[l.type].tone === 'soft').length;
+  if (hard === 0 && soft === 0) {
+    return {
+      headline: 'A quiet sky.',
+      balance: 'Very few major lines cross this chart, leaving wide open space in the pendant.',
+      themes: [],
+    };
+  }
   const headline = hard > soft * 1.4
     ? 'Built for tension that turns into motion.'
     : soft > hard * 1.4
@@ -246,8 +313,8 @@ export function summarize(lines: ReadingLine[]): ReadingSummary {
     switch (l.type) {
       case 'opposition': return `${cap(a.short)}, balanced against ${b.short}.`;
       case 'square': return `${cap(a.short)} and ${b.short}, sharpened by friction.`;
-      case 'trine': return `${cap(a.short)} and ${b.short}, flowing as one.`;
-      case 'sextile': return `${cap(a.short)} and ${b.short}, an opening to take.`;
+      case 'trine': return `${cap(a.short)} and ${b.short}, moving in easy step.`;
+      case 'sextile': return `${cap(a.short)} and ${b.short}, working quietly together.`;
       default: return `${cap(a.short)} and ${b.short}, fused.`;
     }
   });
