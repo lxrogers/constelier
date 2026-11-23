@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LegalPage from '../components/LegalPage';
 import Value from '../components/Value';
-import { POLICY as P } from '../policy';
+import { POLICY as P, decided } from '../policy';
 
 export const metadata: Metadata = { title: 'Warranty and repairs' };
 
@@ -29,7 +29,7 @@ export default function WarrantyPage() {
           <li>Damage from accidents, snagging, chemicals or heat</li>
           <li>Loss or theft</li>
           <li>Pieces altered or repaired by someone else</li>
-          <li>Chains, unless we supplied them (<Value v={P.chainIncluded} />)</li>
+          <li>Chains, unless we supplied them{decided(P.chainIncluded) && <> (<Value v={P.chainIncluded} />)</>}</li>
         </ul>
       </section>
 
@@ -42,10 +42,12 @@ export default function WarrantyPage() {
         </p>
       </section>
 
-      <section>
-        <h2>After the warranty</h2>
-        <p><Value v={P.postWarrantyRepairs} />.</p>
-      </section>
+      {decided(P.postWarrantyRepairs) && (
+        <section>
+          <h2>After the warranty</h2>
+          <p><Value v={P.postWarrantyRepairs} />.</p>
+        </section>
+      )}
 
       <section>
         <h2>Caring for gold</h2>

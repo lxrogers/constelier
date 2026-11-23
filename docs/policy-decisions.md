@@ -1,10 +1,17 @@
 # Policy decisions to make
 
-The pages at /legal/* are drafts. Every undecided value lives in
-`src/app/legal/policy.ts`: `fill()` shows as [brackets], `confirm()` is a
-suggestion shown highlighted. Replace each with plain text, then set
-`LEGAL_DRAFT = false` to drop the banner and let search engines index them.
-These drafts are not legal advice; have a lawyer read them before launch.
+The pages at /legal/* are live (`LEGAL_DRAFT = false` since November 23,
+2026, so Twilio's text-message review can read them). Every value lives in
+`src/app/legal/policy.ts`. A `confirm()` value is a suggestion that now reads
+as plain text; a sentence whose value is still a `fill()` is left out of the
+page until you fill it in. Set `LEGAL_DRAFT = true` locally to see every blank
+and suggestion marked. They are not legal advice and have not been read by a
+lawyer.
+
+Decided: business name (Constelier, LLC), contact email, and a city-only
+mailing address. Still undecided, and so not shown: governing state, carrier,
+the lost-package rule, the chain line, repairs after the warranty, and what
+works today for accessibility.
 
 ## Who you are
 - Business legal name (LLC, or your name doing business as Constelier)

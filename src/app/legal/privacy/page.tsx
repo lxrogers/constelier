@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import LegalPage from '../components/LegalPage';
 import Value from '../components/Value';
 import { POLICY as P } from '../policy';
 
-export const metadata: Metadata = { title: 'Privacy' };
+export const metadata: Metadata = { title: 'Privacy Policy' };
 
 export default function PrivacyPage() {
   return (
     <LegalPage
-      title="Privacy"
-      intro="Your birth date, time and place are personal. We use them to draw your chart and make your pendant, and for nothing else. We don't sell your information or use it for advertising."
+      title="Privacy Policy"
+      intro={<>This is the privacy policy of <Value v={P.businessName} /> (“Constelier”, “we”). Your birth date, time and place are personal. We use them to draw your chart and make your pendant, and for nothing else. We don't sell your information or use it for advertising.</>}
     >
       <section>
         <h2>What we collect</h2>
@@ -18,6 +19,10 @@ export default function PrivacyPage() {
             <strong>Your birth details:</strong> date, time and place. Your chart is calculated in your browser.
             To price a design, our server builds it once and doesn't keep it. We store your details only when
             you request a quote or start checkout, so we can make the exact pendant you chose.
+          </li>
+          <li>
+            <strong>Quote request details:</strong> your first name and the email address or mobile number
+            you give us, with the design you made.
           </li>
           <li>
             <strong>Order details:</strong> your name, email, phone number and shipping address, and what you
@@ -40,7 +45,7 @@ export default function PrivacyPage() {
           <li>To calculate your chart, build your pendant and quote its price</li>
           <li>To take payment, make and ship your order, and send you updates about it</li>
           <li>To answer your questions and handle repairs</li>
-          <li>To tell you when we launch, if you joined the waitlist</li>
+          <li>To send you your quote and answer you by email or text, whichever you chose</li>
           <li>To find and fix problems with the site</li>
           <li>To keep records the law requires, such as for sales tax</li>
         </ul>
@@ -66,17 +71,22 @@ export default function PrivacyPage() {
         <p>
           We email you about your quote request and order. We only text you if you ask to be texted when
           requesting a quote or at checkout—message frequency varies, message and data rates may apply, and you
-          can reply STOP at any time to opt out or HELP for help. Mobile phone numbers and SMS opt-in data or
-          consent are never shared with third parties or affiliates for marketing or promotional purposes.
-          Marketing emails go only to people who signed up, and every one has an unsubscribe link.
+          can reply STOP at any time to opt out or HELP for help. The full text message terms are in
+          our <Link href="/legal/terms#sms">Terms of Service</Link>.
         </p>
+        <p>
+          We do not sell or share your SMS opt-in data or personal information with third parties for
+          marketing purposes. Mobile phone numbers and SMS consent are never shared with third parties or
+          affiliates for marketing or promotional purposes.
+        </p>
+        <p>Marketing emails go only to people who signed up, and every one has an unsubscribe link.</p>
       </section>
 
       <section>
         <h2>How long we keep it</h2>
         <p>
           Order records, including the birth details behind your design, are kept for{' '}
-          <Value v={P.dataRetention} />. Waitlist sign-ups are kept <Value v={P.waitlistRetention} />.
+          <Value v={P.dataRetention} />. Quote requests that don't become orders are kept <Value v={P.quoteRetention} />.
         </p>
       </section>
 

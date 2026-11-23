@@ -6,7 +6,7 @@ import DesignLink from './DesignLink';
 const COLUMNS = [
   { title: 'Design', links: [{ href: DESIGN_PATH, label: 'Design yours' }, { href: '#how', label: 'How it works' }, { href: '#reading', label: 'The reading' }] },
   { title: 'Support', links: [{ href: '/legal/shipping', label: 'Shipping' }, { href: '/legal/returns', label: 'Returns and final sale' }, { href: '/legal/warranty', label: 'Warranty and repairs' }] },
-  { title: 'Company', links: [{ href: '/legal/terms', label: 'Terms of sale' }, { href: '/legal/privacy', label: 'Privacy' }, { href: '/legal/accessibility', label: 'Accessibility' }] },
+  { title: 'Company', links: [{ href: '/legal/terms', label: 'Terms of Service' }, { href: '/legal/privacy', label: 'Privacy Policy' }, { href: '/legal/accessibility', label: 'Accessibility' }] },
 ];
 
 export default function HaloFooter() {

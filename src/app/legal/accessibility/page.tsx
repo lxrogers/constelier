@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LegalPage from '../components/LegalPage';
 import Value from '../components/Value';
-import { POLICY as P } from '../policy';
+import { POLICY as P, decided } from '../policy';
 
 export const metadata: Metadata = { title: 'Accessibility' };
 
@@ -14,7 +14,7 @@ export default function AccessibilityPage() {
       <section>
         <h2>Where we are</h2>
         <ul>
-          <li><Value v={P.accessibilityToday} />.</li>
+          {decided(P.accessibilityToday) && <li><Value v={P.accessibilityToday} />.</li>}
           <li>Checkout runs on Stripe, which publishes its own accessibility commitments.</li>
           <li>The 3D pendant and the chart wheel are visual. <Value v={P.accessibilityPlan} /></li>
         </ul>

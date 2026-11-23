@@ -3,26 +3,35 @@ import { formatUSD } from '@/lib/commerce/format';
 
 // Every name, number and promise the policy pages use, in one place.
 //
-//   fill('…')     not decided yet: shows as [label] until you replace it
-//   confirm('…')  a suggested or current value: highlighted until you confirm
+//   fill('…')     not decided yet
+//   confirm('…')  a suggested or current value
 //   'plain text'  final
 //
-// To finish a page: replace each fill() and confirm() with a plain string,
-// then set LEGAL_DRAFT to false to drop the draft banner and the highlights
-// and let search engines index the pages.
+// The pages are live (LEGAL_DRAFT is false): there is no draft banner, the
+// suggested values read as plain text, and a sentence whose value is still a
+// fill() is left out of the page until it is filled in (see `decided`). Set
+// LEGAL_DRAFT back to true to see every blank as [label] and every suggestion
+// highlighted while you work through them.
 
-export const LEGAL_DRAFT = true;
-export const LAST_UPDATED = 'November 12, 2026';
+export const LEGAL_DRAFT = false;
+export const LAST_UPDATED = 'November 23, 2026';
 
 export type PolicyValue = string | { kind: 'fill' | 'confirm'; text: string };
 const fill = (label: string): PolicyValue => ({ kind: 'fill', text: label });
 const confirm = (value: string): PolicyValue => ({ kind: 'confirm', text: value });
 
+// Whether a sentence that depends on this value should be shown. Undecided
+// values are shown (as [label]) only while the pages are drafts.
+export function decided(v: PolicyValue) {
+  return LEGAL_DRAFT || typeof v === 'string' || v.kind !== 'fill';
+}
+
 export const POLICY = {
   // Who you are
-  businessName: fill('Business legal name, e.g. "Constelier LLC" or your name dba Constelier'),
-  businessAddress: fill('Business mailing address'),
-  contactEmail: fill('Contact email, e.g. hello@constelier.com'),
+  businessName: 'Constelier, LLC',
+  // City only, so no street address is published.
+  businessAddress: 'Brooklyn, NY',
+  contactEmail: 'lawrence@constelier.com',
   governingState: fill('State whose law governs, e.g. New York'),
   minimumAge: confirm('18'),
 
@@ -52,7 +61,7 @@ export const POLICY = {
   // Privacy
   dataRetention: confirm('seven years, as tax and accounting records require'),
   privacyReplyDays: confirm('30 days'),
-  waitlistRetention: confirm('until you unsubscribe or ask us to delete it'),
+  quoteRetention: confirm('until you ask us to delete them'),
   textingProvider: confirm('Twilio, for texts about your quote and order'),
   accessibilityToday: fill('What works today with a keyboard and a screen reader: test the birth form, wheel pickers, bag and checkout first'),
   accessibilityPlan: confirm("We're adding text descriptions of each aspect and of the finished piece, so the design can be understood without seeing it."),

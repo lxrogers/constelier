@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import LegalPage from '../components/LegalPage';
 import Value from '../components/Value';
-import { POLICY as P, FINAL_SALE_SHORT } from '../policy';
+import { POLICY as P, FINAL_SALE_SHORT, decided } from '../policy';
 
-export const metadata: Metadata = { title: 'Terms of sale' };
+export const metadata: Metadata = { title: 'Terms of Service' };
 
 export default function TermsPage() {
   return (
     <LegalPage
-      title="Terms of sale"
-      intro={<>These terms cover buying a pendant from Constelier, which is run by <Value v={P.businessName} />. By placing an order you agree to them.</>}
+      title="Terms of Service"
+      intro={<>These terms cover requesting a quote and buying a pendant from Constelier, which is run by <Value v={P.businessName} />. By requesting a quote or placing an order you agree to them.</>}
     >
       <section>
         <h2>Your design</h2>
@@ -70,6 +70,38 @@ export default function TermsPage() {
         </p>
       </section>
 
+      <section id="sms">
+        <h2>SMS terms</h2>
+        <p>
+          If you choose “Text me” when you request a quote, or ask for text updates at checkout, you agree to
+          receive text messages from Constelier (<Value v={P.businessName} />) at the mobile number you gave
+          us. Texting is optional: you can ask to be emailed instead, and agreeing to texts is not a condition
+          of buying anything.
+        </p>
+        <ul>
+          <li>
+            <strong>What we send:</strong> messages about your quote request and your pendant, such as
+            questions about your design, a link to your pendant page, replies to your questions and, if you
+            order, updates about your order. We don't send marketing texts.
+          </li>
+          <li><strong>How often:</strong> message frequency varies with the conversation.</li>
+          <li><strong>Cost:</strong> message and data rates may apply, depending on your mobile plan.</li>
+          <li>
+            <strong>Stopping:</strong> reply STOP to any message to opt out. You'll get one message confirming
+            it and no more after that. Reply START to opt back in.
+          </li>
+          <li>
+            <strong>Help:</strong> reply HELP to any message, or email <Value v={P.contactEmail} />.
+          </li>
+          <li>Mobile carriers are not liable for delayed or undelivered messages.</li>
+        </ul>
+        <p>
+          How we handle your number is covered in our <Link href="/legal/privacy">Privacy Policy</Link>. We
+          do not sell or share your SMS opt-in data or personal information with third parties for marketing
+          purposes.
+        </p>
+      </section>
+
       <section>
         <h2>Natural variation</h2>
         <p>
@@ -100,7 +132,8 @@ export default function TermsPage() {
       <section>
         <h2>The legal part</h2>
         <p>
-          These terms are governed by the laws of <Value v={P.governingState} />. If we change them, the version
+          {decided(P.governingState) && <>These terms are governed by the laws of <Value v={P.governingState} />. </>}
+          If we change these terms, the version
           on this page when you ordered applies to your order.
         </p>
       </section>

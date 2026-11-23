@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import LegalPage from '../components/LegalPage';
 import Value from '../components/Value';
-import { POLICY as P } from '../policy';
+import { POLICY as P, decided } from '../policy';
 
 export const metadata: Metadata = { title: 'Shipping' };
 
@@ -23,7 +23,8 @@ export default function ShippingPage() {
           <li><strong>Express:</strong> <Value v={P.expressShipping} />.</li>
         </ul>
         <p>
-          We ship with <Value v={P.carrier} />. Sales tax on shipping is added at checkout where your state
+          {decided(P.carrier) && <>We ship with <Value v={P.carrier} />. </>}
+          Sales tax on shipping is added at checkout where your state
           charges it.
         </p>
       </section>
@@ -53,7 +54,7 @@ export default function ShippingPage() {
             <Value v={P.damageReportDays} /> of delivery and we'll repair or replace it.
           </li>
           <li>If tracking stops moving for <Value v={P.trackingStallDays} />, tell us and we'll open a claim with the carrier.</li>
-          <li>Marked delivered but not there: <Value v={P.lostPackageRule} />.</li>
+          {decided(P.lostPackageRule) && <li>Marked delivered but not there: <Value v={P.lostPackageRule} />.</li>}
         </ul>
       </section>
 
