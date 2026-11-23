@@ -20,7 +20,8 @@ import '../pendant.css';
 
 // One customer's pendant page: photos, a note, metal and size, the price
 // and Add to bag. Everything shown comes from the offer.
-export default function OfferView({ offer: base }: { offer: PendantOffer }) {
+// `preview` is the admin's look at a draft: everything but buying.
+export default function OfferView({ offer: base, preview = false }: { offer: PendantOffer; preview?: boolean }) {
   const { offer, ownDesign, ownThumbnail } = useSampleWithPreview(base);
   const [metalId, setMetalId] = useState<MetalId>(offer.metals[0].id);
   const [mm, setMm] = useState(offer.sizes[0].mm);
@@ -29,7 +30,7 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
   const [bagError, setBagError] = useState('');
 
   const metal = offer.metals.find((m) => m.id === metalId) ?? offer.metals[0];
-  const price = offer.prices[metal.id][mm];
+  const price = offer.prices[metal.id]?.[mm] ?? 0;
   const { images, standIn } = useMemo(() => offerImages(offer, metal.tone, mm), [offer, metal.tone, mm]);
 
   const figure = useNatalFigure(offer.birth, offer.aspects);
@@ -60,7 +61,7 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
   }, [images, standIn, figure, offer.subtitle]);
 
   async function addToBag() {
-    if (bagState === 'adding') return;
+    if (bagState === 'adding' || preview) return;
     setBagState('adding');
     try {
       // Loaded on demand: building a design pulls in the astronomy code.
@@ -85,8 +86,8 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
   }
 
   const bagButton = (
-    <button type="button" className="pdp-checkout" onClick={addToBag} disabled={bagState === 'adding'}>
-      {bagState === 'adding' ? 'Adding…' : 'Add to bag'}
+    <button type="button" className="pdp-checkout" onClick={addToBag} disabled={bagState === 'adding' || preview}>
+      {preview ? 'Add to bag (off in preview)' : bagState === 'adding' ? 'Adding…' : 'Add to bag'}
     </button>
   );
 
@@ -102,7 +103,9 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
             <p className="pdp-subtitle">{offer.subtitle}</p>
           </header>
 
-          <MakerNote from={offer.note.from} paragraphs={offer.note.paragraphs} firstName={offer.firstName} />
+          {offer.note.paragraphs.length > 0 && (
+            <MakerNote from={offer.note.from} paragraphs={offer.note.paragraphs} firstName={offer.firstName} />
+          )}
 
           <MetalPicker
             metals={offer.metals}
@@ -117,7 +120,7 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
 
           <div className="pdp-buy">
             <div className="pdp-price-row">
-              <span className="pdp-price">{formatUSD(price)}</span>
+              <span className="pdp-price">{price ? formatUSD(price) : 'No price yet'}</span>
               <span className="pdp-price-what">{metal.name} · {mm} mm · chain included</span>
             </div>
             {bagButton}
@@ -132,7 +135,7 @@ export default function OfferView({ offer: base }: { offer: PendantOffer }) {
       {/* Phones: the price and Add to bag stay in reach while scrolling. */}
       <div className="pdp-bar">
         <div className="pdp-bar-text">
-          <span className="pdp-bar-price">{formatUSD(price)}</span>
+          <span className="pdp-bar-price">{price ? formatUSD(price) : 'No price yet'}</span>
           <span className="pdp-bar-what">{metal.short} · {mm} mm</span>
         </div>
         {bagButton}
@@ -172,5 +175,9 @@ function useSampleWithPreview(offer: PendantOffer): {
       images: [...own, ...offer.images],
     };
   }, [offer, preview]);
-  return { offer: merged, ownDesign: preview?.design ?? null, ownThumbnail: preview?.thumbnail ?? null };
+  return {
+    offer: merged,
+    ownDesign: preview?.design ?? offer.design ?? null,
+    ownThumbnail: preview?.thumbnail ?? null,
+  };
 }

@@ -153,3 +153,12 @@
   .chart-page.is-finish .quote-request .controls-step-btn { min-height: 46px; border-radius: 999px; font-size: 14px; }
   .chart-page.is-finish .quote-ig-btn { width: 100%; padding: 0 20px; }
 }
+
+/* Not for people: see the note in QuoteRequestPanel. */
+.quote-request .quote-website {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}

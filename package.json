@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server scripts/db-seed.ts",
-    "test": "tsx --conditions=react-server --test scripts/test-orders.ts",
+    "test": "tsx --conditions=react-server --test scripts/test-orders.ts scripts/test-quotes.ts",
     "test:rings": "node --expose-gc --test scripts/rings/*.test.mjs",
     "test:rings:browser": "node scripts/rings/check-browser.cjs"
   },

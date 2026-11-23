@@ -53,10 +53,10 @@ export const POLICY = {
   dataRetention: confirm('seven years, as tax and accounting records require'),
   privacyReplyDays: confirm('30 days'),
   waitlistRetention: confirm('until you unsubscribe or ask us to delete it'),
-  textingProvider: fill('Text message provider, if you add texting (e.g. Twilio)'),
+  textingProvider: confirm('Twilio, for texts about your quote and order'),
   accessibilityToday: fill('What works today with a keyboard and a screen reader: test the birth form, wheel pickers, bag and checkout first'),
   accessibilityPlan: confirm("We're adding text descriptions of each aspect and of the finished piece, so the design can be understood without seeing it."),
-  emailProvider: fill('Email provider (e.g. Resend)'),
+  emailProvider: confirm('Twilio SendGrid, for emails about your quote and order'),
 } satisfies Record<string, PolicyValue>;
 
 // The one final-sale rule. Every page that mentions returns uses these words.

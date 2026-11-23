@@ -1,11 +1,13 @@
-// Fills a local or test database with one sample customer, design and order,
-// so pages that read orders have something to show.
+// Fills a local or test database with one sample quote request and one
+// sample customer, design and order, so the admin panel and pages that read
+// orders have something to show.
 //   DATABASE_URL=pglite:./.data/pglite npm run db:seed
 // Refuses a real Postgres URL unless you pass --allow-remote (for a Neon
 // development branch, never the production one).
 import { openDb } from '../src/lib/db/client';
 import { recordPaidOrder, saveDesigns } from '../src/lib/commerce/orders';
 import { designId } from '../src/lib/commerce/order-metadata';
+import { createQuoteRequest } from '../src/lib/quotes/requests';
 import { sampleDesign, sampleSession } from './fixtures';
 
 const url = process.env.DATABASE_URL;
@@ -25,6 +27,10 @@ async function main() {
   await saveDesigns(handle, [{ id, design }]);
   const result = await recordPaidOrder(handle, sampleSession({ designIds: [id], sessionId: 'cs_test_seed_0001' }), 'script');
   console.log(result.status === 'skipped' ? `Skipped: ${result.reason}` : `Order C${result.number} ${result.status}.`);
+  const quote = await createQuoteRequest(handle, {
+    firstName: 'Sample', channel: 'email', email: 'sample.request@example.com', phone: null, design: sampleDesign(1),
+  });
+  console.log(`Quote request ${quote.request.id} added.`);
   await handle.close();
 }
 

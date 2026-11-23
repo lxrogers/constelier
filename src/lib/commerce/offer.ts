@@ -2,8 +2,8 @@
 // product detail page (/pendant/[offerId]) shows. Each offer is written by
 // hand after a quote request: renders, sizes, prices and a note.
 //
-// Prototype: there is one sample offer and no store behind it yet. When the
-// quoting system exists, getOffer() is the only thing that has to change.
+// Real offers live in the offers table (see offers-store.ts). The sample
+// offer below is built in, for trying the page without a database.
 
 import type { BirthData } from '@/lib/natal-chords';
 import type { PendantDesign } from './design';
@@ -54,7 +54,12 @@ export interface PendantOffer {
   aspects?: string[];
   // Reopens this design in the configurator (see designQuery).
   designQuery?: string;
+  // The design that goes in the bag. Filled in from the designs table.
+  design?: PendantDesign;
 }
+
+// What the offers table stores: the page's content without its id.
+export type OfferContent = Omit<PendantOffer, 'id' | 'design'>;
 
 export const SAMPLE_OFFER_ID = 'sample';
 
@@ -98,6 +103,36 @@ const SAMPLE_OFFER: PendantOffer = {
   chain: '45 cm cable chain in the same metal',
   leadTime: 'Cast to order. Ships within 3 weeks, with free insured shipping in the US.',
 };
+
+// What a new offer starts from: the metals, sizes and wording the sample
+// page already uses. Prices start empty and are set by hand.
+export function blankOfferContent(): OfferContent {
+  return {
+    firstName: '',
+    title: SAMPLE_OFFER.title,
+    subtitle: '',
+    note: { from: SAMPLE_OFFER.note.from, paragraphs: [] },
+    metals: SAMPLE_OFFER.metals.map((m) => ({ ...m })),
+    sizes: SAMPLE_OFFER.sizes.map((s) => ({ ...s })),
+    prices: { silver: {}, gold10: {}, gold14: {} },
+    images: [],
+    chain: SAMPLE_OFFER.chain,
+    leadTime: SAMPLE_OFFER.leadTime,
+  };
+}
+
+// Why an offer cannot be published yet. Empty when it can.
+export function offerProblems(content: OfferContent): string[] {
+  const problems: string[] = [];
+  if (content.sizes.length === 0) problems.push('Add at least one size.');
+  for (const m of content.metals) {
+    for (const s of content.sizes) {
+      const cents = content.prices[m.id]?.[s.mm];
+      if (!Number.isInteger(cents) || cents <= 0) problems.push(`Set a price for ${m.short} at ${s.mm} mm.`);
+    }
+  }
+  return problems;
+}
 
 export function getOffer(id: string): PendantOffer | null {
   return id === SAMPLE_OFFER_ID ? SAMPLE_OFFER : null;

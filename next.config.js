@@ -3,6 +3,8 @@ const nextConfig = {
   // Local dev database (DATABASE_URL=pglite:…): loaded from node_modules at
   // runtime instead of bundled, because it ships its own WebAssembly.
   serverExternalPackages: ['@electric-sql/pglite'],
+  // The admin panel uploads pendant photos through a server action.
+  experimental: { serverActions: { bodySizeLimit: '4mb' } },
   // No dev-mode badge in the corner (it covers buttons in screenshots).
   devIndicators: false,
   // Include WASM in the serverless bundle for the sun-arcs prototype API

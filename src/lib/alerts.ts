@@ -1,4 +1,4 @@
-// Error alerts without a third-party sign-up: every alert is logged (Vercel
+// Alerts and notices without a third-party sign-up: every one is logged (Vercel
 // keeps logs and can email on errors), and if ALERT_WEBHOOK_URL is set it is
 // also posted there. A Slack or Discord incoming-webhook URL works as is:
 // the body carries both `text` (Slack) and `content` (Discord).
@@ -17,10 +17,14 @@ export interface Alert {
   detail?: string;
   // Groups repeats. Defaults to the title.
   key?: string;
+  // 'info' is for news, not trouble (a new quote request): logged plainly.
+  level?: 'error' | 'info';
 }
 
-export async function sendAlert({ title, detail, key }: Alert) {
-  console.error(`[alert] ${title}${detail ? `\n${detail}` : ''}`);
+export async function sendAlert({ title, detail, key, level = 'error' }: Alert) {
+  const line = `${title}${detail ? `\n${detail}` : ''}`;
+  if (level === 'info') console.log(`[notice] ${line}`);
+  else console.error(`[alert] ${line}`);
 
   const url = process.env.ALERT_WEBHOOK_URL;
   if (!url) return;

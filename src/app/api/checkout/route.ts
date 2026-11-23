@@ -2,7 +2,8 @@ import type Stripe from 'stripe';
 import { after } from 'next/server';
 import { parseDesign, describeDesign, MAX_BAG_ITEMS, MAX_QUANTITY } from '@/lib/commerce/design';
 import { quoteDesign, type Quote } from '@/lib/commerce/pricing';
-import { getOffer, offerPrice, SAMPLE_OFFER_ID } from '@/lib/commerce/offer';
+import { offerPrice, SAMPLE_OFFER_ID } from '@/lib/commerce/offer';
+import { loadOffer } from '@/lib/commerce/offers-store';
 import { encodeDesignMetadata, designId } from '@/lib/commerce/order-metadata';
 import { saveDesigns, designsWithoutThumbnail, setDesignThumbnail } from '@/lib/commerce/orders';
 import { parseThumbnail, blobConfigured, storeThumbnail } from '@/lib/commerce/thumbnails';
@@ -38,7 +39,9 @@ export async function POST(request: Request) {
     let metadata: Record<string, string>;
     let detail: string;
     if (item?.offer) {
-      const offer = typeof item.offer.offerId === 'string' ? getOffer(item.offer.offerId) : null;
+      const offer = typeof item.offer.offerId === 'string'
+        ? await loadOffer(dbReady ? await dbReady.catch(() => null) : null, item.offer.offerId)
+        : null;
       const priced = offer && offerPrice(offer, item.offer.metal, item.offer.mm);
       if (!offer || !priced) return Response.json({ error: 'invalid item in bag' }, { status: 400 });
       // The sample offer's prices are placeholders: never take real money for it.

@@ -9,7 +9,6 @@ Three places the site runs, each with its own data.
 | Vercel environment | Production | Preview | none |
 | Database | Neon store `neon-citron-curtain` | Neon store `constelier-staging` | pglite (`.data/pglite`) |
 | Stripe | none yet (shop is off) | sandbox key | your `.env.local` |
-| `NEXT_PUBLIC_SHOP_ENABLED` | unset: waitlist | `true`: bag and checkout | your `.env.local` |
 
 Pull-request previews are the same environment as staging: every preview,
 `main` included, shares the one staging database. There is no database per
@@ -62,6 +61,11 @@ Vercel. It does not undo a migration.
 - To rehearse a risky migration on real-shaped data, make a temporary branch
   of production in the Neon console, run `npm run db:migrate` against that
   branch's connection string, then delete the branch.
+
+## The admin panel
+
+One panel, on the live site at `/admin`, with a switch between production's
+data and staging's. See docs/quotes-admin.md.
 
 ## Things that are shared
 

@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto';
 import type Stripe from 'stripe';
 import { eq, isNull, and, inArray, sql } from 'drizzle-orm';
 import { atomically, isUniqueViolation, type DbHandle } from '@/lib/db/client';
-import { customers, designs, orders, orderItems, orderEvents, type ShippingAddress } from '@/lib/db/schema';
+import {
+  customers, designs, offers, orders, orderItems, orderEvents, quoteRequests, type ShippingAddress,
+} from '@/lib/db/schema';
 import type { PendantDesign } from './design';
 import { decodeDesignMetadata } from './order-metadata';
 import { SHIP_WITHIN_DAYS } from './checkout';
@@ -60,6 +62,7 @@ export async function recordPaidOrder(
     const meta = product?.metadata ?? {};
     return {
       designId: meta.design_id,
+      offerId: meta.offer_id || null,
       legacyDesign: meta.spec ? decodeDesignMetadata(meta) : null,
       description: li.description ?? product?.name ?? null,
       metal: meta.metal || 'unknown',
@@ -86,18 +89,50 @@ export async function recordPaidOrder(
   const name = session.customer_details?.name ?? null;
   const phone = session.customer_details?.phone ?? null;
   const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
-  const [customer] = await db.insert(customers)
-    .values({ email, name, phone, stripeCustomerId })
-    .onConflictDoUpdate({
-      target: customers.email,
-      set: {
-        name: sql`coalesce(excluded.name, ${customers.name})`,
-        phone: sql`coalesce(excluded.phone, ${customers.phone})`,
-        stripeCustomerId: sql`coalesce(excluded.stripe_customer_id, ${customers.stripeCustomerId})`,
-        updatedAt: sql`now()`,
-      },
-    })
-    .returning({ id: customers.id });
+
+  // Bought from a pendant page: the order belongs to that offer and to the
+  // person it was written for (who may have asked by text and had no email
+  // on file until now).
+  const offerIds = [...new Set(lines.map((l) => l.offerId).filter((id): id is string => Boolean(id)))];
+  const [offer] = offerIds.length
+    ? await db.select({ id: offers.id, customerId: offers.customerId, quoteRequestId: offers.quoteRequestId })
+      .from(offers).where(inArray(offers.id, offerIds))
+    : [];
+  let customerId: string | null = null;
+  if (offer) {
+    const [known] = await db.select().from(customers).where(eq(customers.id, offer.customerId));
+    if (known && (known.email === null || known.email === email)) {
+      try {
+        await db.update(customers).set({
+          email,
+          name: known.name ?? name,
+          phone: known.phone ?? phone,
+          stripeCustomerId: stripeCustomerId ?? known.stripeCustomerId,
+          updatedAt: sql`now()`,
+        }).where(eq(customers.id, known.id));
+        customerId = known.id;
+      } catch (err) {
+        // That email already belongs to another customer row: use that one.
+        if (!isUniqueViolation(err)) throw err;
+      }
+    }
+  }
+  if (!customerId) {
+    const [row] = await db.insert(customers)
+      .values({ email, name, phone, stripeCustomerId })
+      .onConflictDoUpdate({
+        target: customers.email,
+        set: {
+          name: sql`coalesce(excluded.name, ${customers.name})`,
+          phone: sql`coalesce(excluded.phone, ${customers.phone})`,
+          stripeCustomerId: sql`coalesce(excluded.stripe_customer_id, ${customers.stripeCustomerId})`,
+          updatedAt: sql`now()`,
+        },
+      })
+      .returning({ id: customers.id });
+    customerId = row.id;
+  }
+  const customer = { id: customerId };
 
   const orderId = randomUUID();
   const pi = session.payment_intent;
@@ -120,6 +155,7 @@ export async function recordPaidOrder(
         total: session.amount_total ?? 0,
         shippingAddress: shippingAddressOf(session),
         promisedShipBy: shipBy,
+        offerId: offer?.id ?? null,
       }),
       q.insert(orderItems).values(lines.map((l) => ({
         orderId,
@@ -138,6 +174,10 @@ export async function recordPaidOrder(
       }),
       q.update(designs).set({ customerId: customer.id })
         .where(and(inArray(designs.id, designIds), isNull(designs.customerId))),
+      ...(offer?.quoteRequestId ? [
+        q.update(quoteRequests).set({ status: 'paid', updatedAt: sql`now()` })
+          .where(eq(quoteRequests.id, offer.quoteRequestId)),
+      ] : []),
     ]);
   } catch (err) {
     // Lost a race with another call for the same session: that one wrote it.
