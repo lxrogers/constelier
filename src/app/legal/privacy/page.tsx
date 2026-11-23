@@ -53,7 +53,6 @@ export default function PrivacyPage() {
           <li><strong>Stripe</strong> for payment, tax and receipts</li>
           <li><strong>Vercel</strong> and <strong>Neon</strong> for hosting, our database and cookie-free usage counts</li>
           <li><strong>OpenStreetMap</strong> to look up the birth place you type</li>
-          <li><strong>Formspree</strong> for quote requests</li>
           <li><strong>Our casting partner</strong>, who receives the design file only, without your name or birth details</li>
           <li><strong>Our shipping carrier</strong>, who receives your name, address and phone number</li>
           <li><strong>Email:</strong> <Value v={P.emailProvider} /></li>

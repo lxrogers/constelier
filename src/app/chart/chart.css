@@ -305,49 +305,6 @@ input[type="range"]::-moz-range-thumb {
 .controls-back-btn:hover {
   color: #3a3630;
 }
-.waitlist-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.waitlist-form form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.waitlist-intro {
-  font-size: 14px;
-  color: #3a3630;
-  line-height: 1.5;
-  margin: 0;
-}
-.waitlist-form input[type="email"] {
-  background: #faf7f0;
-  border: 1px solid #d4cfc5;
-  color: #2c2c2c;
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 16px;
-  font-family: inherit;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-}
-.waitlist-form input[type="email"]:focus {
-  border-color: #8b7d6b;
-}
-.waitlist-disclosure {
-  font-size: 11px;
-  color: #9a9084;
-  line-height: 1.4;
-  margin: 0;
-}
-.waitlist-thanks p {
-  font-size: 14px;
-  color: #3a3630;
-  line-height: 1.5;
-  margin: 0;
-}
 .controls-step-btn:disabled {
   opacity: 0.6;
   cursor: default;
@@ -694,7 +651,7 @@ input[type="range"]::-moz-range-thumb {
   .focus-line-end { animation: none; opacity: 1; }
 }
 
-/* ── Last step (bag / waitlist) in the flow layout ──────────── */
+/* ── Last step (bag / quote request) in the flow layout ──────────── */
 @media (min-width: 769px) {
   .chart-page.is-flow.is-finish #controls h2 { font-size: 32px; order: 1; }
   .chart-page.is-flow.is-finish .controls-back-btn {
@@ -704,15 +661,11 @@ input[type="range"]::-moz-range-thumb {
     color: #5a524a;
   }
   .chart-page.is-flow.is-finish #controls > div { order: 2; }
-  .chart-page.is-flow.is-finish .add-to-bag,
-  .chart-page.is-flow.is-finish .waitlist-form { gap: 18px; }
+  .chart-page.is-flow.is-finish .add-to-bag { gap: 18px; }
   .chart-page.is-flow.is-finish .atb-price { font-size: 32px; }
   .chart-page.is-flow.is-finish .atb-metal { font-size: 13px; }
-  .chart-page.is-flow.is-finish .atb-note,
-  .chart-page.is-flow.is-finish .waitlist-intro,
-  .chart-page.is-flow.is-finish .waitlist-thanks p { font-size: 15px; line-height: 1.6; }
+  .chart-page.is-flow.is-finish .atb-note { font-size: 15px; line-height: 1.6; }
   .chart-page.is-flow.is-finish .add-to-bag > .controls-step-btn,
-  .chart-page.is-flow.is-finish .waitlist-form .controls-step-btn,
   .chart-page.is-flow.is-finish .atb-added .btn-row > * {
     flex: 0 0 auto;
     width: auto;
@@ -721,12 +674,6 @@ input[type="range"]::-moz-range-thumb {
     padding: 0 28px;
     border-radius: 999px;
     font-size: 14px;
-  }
-  .chart-page.is-flow.is-finish .waitlist-form input[type="email"] {
-    min-height: 48px;
-    padding: 0 14px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.6);
   }
 }
 @media (max-width: 768px) {

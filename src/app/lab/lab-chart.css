@@ -308,49 +308,6 @@
 .lab-root .controls-back-btn:hover {
   color: #3a3630;
 }
-.lab-root .waitlist-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.lab-root .waitlist-form form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.lab-root .waitlist-intro {
-  font-size: 14px;
-  color: #3a3630;
-  line-height: 1.5;
-  margin: 0;
-}
-.lab-root .waitlist-form input[type="email"] {
-  background: #faf7f0;
-  border: 1px solid #d4cfc5;
-  color: #2c2c2c;
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 16px;
-  font-family: inherit;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-}
-.lab-root .waitlist-form input[type="email"]:focus {
-  border-color: #8b7d6b;
-}
-.lab-root .waitlist-disclosure {
-  font-size: 11px;
-  color: #9a9084;
-  line-height: 1.4;
-  margin: 0;
-}
-.lab-root .waitlist-thanks p {
-  font-size: 14px;
-  color: #3a3630;
-  line-height: 1.5;
-  margin: 0;
-}
 .lab-root .controls-step-btn:disabled {
   opacity: 0.6;
   cursor: default;

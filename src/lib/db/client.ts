@@ -19,7 +19,7 @@ export interface DbHandle { db: Db; kind: DbKind; close(): Promise<void> }
 
 export const MIGRATIONS_FOLDER = path.join(process.cwd(), 'drizzle');
 
-const g = globalThis as typeof globalThis & { __constelierDb?: Promise<DbHandle> };
+const g = globalThis as typeof globalThis & { __constelierDbs?: Map<string, Promise<DbHandle>> };
 
 export function databaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
@@ -28,13 +28,21 @@ export function databaseConfigured() {
 // Returns null when no database is configured.
 export function getDb(): Promise<DbHandle> | null {
   const url = process.env.DATABASE_URL;
-  if (!url) return null;
+  return url ? getDbAt(url) : null;
+}
+
+// One open handle per connection string. The admin panel uses this to reach
+// the staging database from the production site (see lib/admin/env.ts).
+export function getDbAt(url: string): Promise<DbHandle> {
   // Survives Next's dev reloads, so the pglite folder is opened once.
-  if (!g.__constelierDb) {
-    g.__constelierDb = openDb(url, { migrate: url.startsWith('pglite:') });
-    g.__constelierDb.catch(() => { g.__constelierDb = undefined; });
+  const open = (g.__constelierDbs ??= new Map());
+  let handle = open.get(url);
+  if (!handle) {
+    handle = openDb(url, { migrate: url.startsWith('pglite:') });
+    handle.catch(() => { open.delete(url); });
+    open.set(url, handle);
   }
-  return g.__constelierDb;
+  return handle;
 }
 
 export async function openDb(url: string, opts: { migrate?: boolean } = {}): Promise<DbHandle> {

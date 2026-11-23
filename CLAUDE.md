@@ -69,6 +69,11 @@ The project has two parallel entry points for the same core logic:
 - "Save as default" in the lab POSTs to `/api/lab/defaults`, which rewrites the JSON file (dev only; commit the file to ship new defaults).
 - The chart engine takes params via `initChartEngine(..., { params })` and `engine.setParams(partial, { draft })`.
 
+### Quote requests, pendant pages and the admin panel
+- The configurator's last step posts to `/api/quote-requests`, which saves the customer, their design and a `quote_requests` row (`src/lib/quotes/`).
+- `/admin` (one password, `ADMIN_PASSWORD`) lists requests and, per request, edits the offer behind `/pendant/[offerId]` (`src/lib/commerce/offers-store.ts`) and sends and shows email and text (`src/lib/messaging/`, Twilio and Twilio SendGrid over plain HTTPS). Its address names the data shown: `/admin/production` or `/admin/staging` (`src/lib/admin/env.ts`).
+- Flow, tables, env vars and provider setup: `docs/quotes-admin.md`.
+
 ### Shared ES Modules (`modules/`)
 These are plain JS ES modules imported by both the standalone HTML files and the Next.js app:
 

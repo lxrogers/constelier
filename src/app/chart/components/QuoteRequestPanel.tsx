@@ -39,9 +39,6 @@ function MakerSignature() {
   );
 }
 
-// Quote requests land in this Formspree form (https://formspree.io).
-const FORMSPREE_ID = 'xjgeozgv';
-
 type Channel = 'email' | 'text';
 
 // The configurator's last step: who to send the quote to. The quote itself is
@@ -56,6 +53,8 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
   const [contact, setContact] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  // Hidden from people; a filled-in value marks an automated submission.
+  const [website, setWebsite] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,22 +66,25 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
     const spec = snap?.design.spec;
     const query = spec ? designQuery(spec) : '';
     try {
-      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+      const res = await fetch('/api/quote-requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          request: 'quote',
           firstName: name,
-          [channel === 'email' ? 'email' : 'phone']: contact.trim(),
-          birth: spec ? describeDesign(spec).subtitle : '',
-          birthtime: spec ? `${spec.birth.hour}:${spec.birth.minute.padStart(2, '0')}` : '',
-          design: query ? `${window.location.origin}/chart?${query}` : '',
+          channel,
+          contact: contact.trim(),
+          design: snap?.design ?? null,
+          thumbnail: snap?.thumbnail ?? null,
+          website,
         }),
       });
-      if (!res.ok) throw new Error('send failed');
-    } catch {
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(typeof data?.error === 'string' && res.status !== 500 ? data.error : '');
+      }
+    } catch (err) {
       setSending(false);
-      setError('That did not go through. Please try again.');
+      setError((err as Error).message || 'That did not go through. Please try again.');
       return;
     }
     try {
@@ -180,6 +182,10 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
             />
           )}
         </div>
+        <input
+          type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="quote-website"
+          value={website} onChange={(e) => setWebsite(e.target.value)}
+        />
         {error && <p className="quote-error">{error}</p>}
         <button type="submit" className="controls-step-btn" disabled={sending}>
           {sending ? 'Sending…' : 'Request my quote'}
