@@ -30,7 +30,7 @@ Order numbers start at C1001.
 
 | Value | Used for |
 | --- | --- |
-| `postgres://…neon.tech/…` | Production and previews (set by the Neon integration) |
+| `postgres://…neon.tech/…` | Production, and a separate staging database shared by all previews (both set by the Neon integration; see docs/environments.md) |
 | `pglite:./.data/pglite` | Local dev: embedded Postgres in a folder, migrated automatically |
 | `pglite:memory` | Tests |
 | unset | No database: orders are only logged and designs ride in Stripe metadata, as before this change |
@@ -73,9 +73,10 @@ Commit the generated SQL and `drizzle/meta` with the schema change.
    `DATABASE_URL`, holds a Postgres advisory lock so parallel preview builds
    take turns, does nothing when no URL is set (local and fork builds), and
    fails the build if a migration fails. `SKIP_DB_MIGRATE=1` skips it.
-   If Preview and Production share one database, a preview build of a branch
-   with a new migration changes the production schema before the branch is
-   merged. Give previews their own Neon branch to avoid that.
+   Previews do not share the production database: they use a second Neon
+   store, `constelier-staging`, connected to Preview only, so a preview
+   build only migrates staging. Production is migrated by the build of the
+   `production` git branch, at release time.
 4. Redeploy. Start a test-mode checkout and check that one row appears in
    `orders` (Neon's console has a table viewer). Use Stripe's "Resend" on the
    webhook event and check that nothing new appears.

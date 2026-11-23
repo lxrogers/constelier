@@ -44,6 +44,7 @@ What the owner is going for, written down from the homepage work in November 202
 - `npm run dev` — Start Next.js dev server (Turbopack)
 - `npm run build` — Production build
 - `npm run start` — Serve production build
+- `npm run release` — Move the `production` branch up to `main`. `main` is staging (staging.constelier.com, its own database); `production` is the live site. See `docs/environments.md`.
 - No test suite configured
 
 ## Architecture
