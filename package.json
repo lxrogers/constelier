@@ -8,6 +8,7 @@
     "build": "tsx scripts/migrate-on-deploy.ts && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "release": "git fetch origin main production && git push origin origin/main:production",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server scripts/db-seed.ts",

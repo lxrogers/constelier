@@ -27,20 +27,6 @@ const nextConfig = {
     };
     return config;
   },
-  // staging.constelier.com is a short address for the newest build of main,
-  // the one waiting to be promoted. Vercel will not attach a domain to the
-  // production branch's unpromoted builds, so it forwards to their fixed link.
-  async redirects() {
-    return [
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: 'staging.constelier.com' }],
-        destination:
-          'https://constelier-git-main-lawrences-projects-c9c8f187.vercel.app/:path*',
-        permanent: false,
-      },
-    ];
-  },
   async headers() {
     return [
       {
