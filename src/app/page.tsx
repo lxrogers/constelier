@@ -6,6 +6,7 @@ import { ASPECT_TYPES, READING_ORDER } from '@/lib/reading';
 import HaloHeader from './halo/components/HaloHeader';
 import HaloFooter from './halo/components/HaloFooter';
 import StepPanel from './halo/components/StepPanel';
+import StudioNote from './halo/components/StudioNote';
 import DesignLink from './halo/components/DesignLink';
 import FontBar from './halo/components/FontBar';
 import HeroFilm from './halo/hero/HeroFilm';
@@ -26,12 +27,16 @@ export default function Home() {
       <main>
         <HeroFilm />
 
+        <InView as="section" className="halo-sec halo-note-sec">
+          <StudioNote />
+        </InView>
+
         <InView as="section" className="halo-sec halo-how">
           <div id="how" className="halo-anchor" />
           <div className="halo-intro">
             <h2 className="halo-h2 rise">Handcrafted in Brooklyn, New York</h2>
             <p className="halo-lede rise" style={{ ['--i' as string]: 1 }}>
-              We map your planets, draw every aspect between them as a line, and make the result by hand.
+              I map your planets, draw every aspect between them as a line, and make the result by hand.
             </p>
           </div>
           <ol className="halo-steps">

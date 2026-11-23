@@ -213,8 +213,8 @@ export function initChartEngine(canvas: HTMLCanvasElement, canvas3d: HTMLCanvasE
 
   // ── State ──────────────────────────────────────────────────
 
-  let selectedLat = urlParams.has('lat') ? parseFloat(urlParams.get('lat')!) : 38.0464;
-  let selectedLon = urlParams.has('lon') ? parseFloat(urlParams.get('lon')!) : -84.4970;
+  let selectedLat = urlParams.has('lat') ? parseFloat(urlParams.get('lat')!) : 40.6782;
+  let selectedLon = urlParams.has('lon') ? parseFloat(urlParams.get('lon')!) : -73.9442;
   let chartOpacity = 0.85;
   let filletRadius = P.filletRadius;
   let borderThickness = P.borderThickness;

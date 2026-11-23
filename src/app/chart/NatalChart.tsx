@@ -6,7 +6,6 @@ import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { trackFunnel } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 import SettingsPanel from './components/SettingsPanel';
-import AddToBagPanel from './components/AddToBagPanel';
 import QuoteRequestPanel from './components/QuoteRequestPanel';
 import ReadingScroll from './components/reading/ReadingScroll';
 import type { ChartAspect, ChartBodies } from '@/lib/reading/aspect-reading';
@@ -15,9 +14,6 @@ import type { ChartEngine, FocusSpec } from './chart-engine';
 const WheelDatePicker = dynamic(() => import('./components/WheelDatePicker'), { ssr: false });
 const WheelTimePicker = dynamic(() => import('./components/WheelTimePicker'), { ssr: false });
 import './chart.css';
-
-// Off until launch: the last step stays the waitlist unless this is 'true'.
-const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true';
 
 interface NatalChartProps {
   // Controlled pendant settings (the lab). Without them the page uses the
@@ -45,11 +41,11 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
   const [ownDraft, setOwnDraft] = useState(false);
   const params = controlledParams ?? ownParams;
   const isDraft = controlledParams ? draft : ownDraft;
-  const [step, setStep] = useState<'birth' | 'reading' | 'waitlist'>('birth');
+  const [step, setStep] = useState<'birth' | 'reading' | 'quote'>('birth');
   // No bail while entering birth details or reading the lines: the pendant
   // reads as the chart's shape. It joins the design at the last step.
   const shownParams = useMemo(
-    () => (step === 'waitlist' ? params : { ...params, bailEnabled: false }),
+    () => (step === 'quote' ? params : { ...params, bailEnabled: false }),
     [params, step],
   );
   const latest = useRef({ params: shownParams, isDraft });
@@ -153,20 +149,15 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
 
   // Birth details and the reading share one layout: model left, text right.
   // (The lab keeps its card for birth details, beside its own side panel.)
-  // The last step (bag or waitlist) keeps that layout too, so finishing the
+  // The last step (quote request) keeps that layout too, so finishing the
   // reading doesn't flip the model to the other side.
-  const flow = step === 'reading' || (!sidePanel && (step === 'birth' || step === 'waitlist'));
+  const flow = step === 'reading' || (!sidePanel && (step === 'birth' || step === 'quote'));
 
   const page = (
-    <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'waitlist' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
+    <div className={`chart-page${flow ? ' is-flow' : ''}${stepped ? ' has-stepped' : ''}${flow && step === 'quote' ? ' is-finish' : ''}${step === 'reading' ? ' is-reading reading-scroll' : ''}${className ? ' ' + className : ''}`}>
       <div id="controls" ref={controlsRef}>
         <h2>{step === 'reading' ? 'Your Reading' : step === 'birth' ? 'Your birth chart'
-          : SHOP_ENABLED ? 'Customize your Aspect Pendant' : submitted ? 'Thank you' : 'Request your quote'}</h2>
-        {step === 'birth' && (
-          <p className="controls-intro hide-mobile">
-            Your date, time and place of birth set the lines. The pendant redraws as you change them.
-          </p>
-        )}
+          : submitted ? 'Thank you' : 'Request your quote'}</h2>
         {step !== 'birth' && (
           <button className="controls-back-btn hide-mobile" onClick={() => goStep(step === 'reading' ? 'birth' : 'reading')}>
             &larr; {step === 'reading' ? 'Birth Details' : 'Your Reading'}
@@ -174,7 +165,7 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
         )}
         {step !== 'reading' && (
           <h3 className="controls-subheading">
-            {step === 'birth' ? 'Birth Details' : SHOP_ENABLED ? 'Your Pendant' : 'Request a Quote'}
+            {step === 'birth' ? 'Birth Details' : 'Request a Quote'}
           </h3>
         )}
 
@@ -221,10 +212,10 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
             <div className="form-group">
               <label>Location</label>
               <div className="location-input-wrap">
-                <input type="text" id="location" defaultValue="Lexington, Fayette County" autoComplete="off" />
+                <input type="text" id="location" defaultValue="Brooklyn, NY" autoComplete="off" />
                 <div id="location-dropdown" className="dropdown"></div>
               </div>
-              <div id="location-info" className="location-display">38.0464°, -84.4970°</div>
+              <div id="location-info" className="location-display">40.6782°, -73.9442°</div>
             </div>
             <div className="btn-row mobile-only">
               <button className="controls-back-btn-mobile" onClick={() => setBirthStep('time')}>
@@ -253,22 +244,18 @@ export default function NatalChart({ params: controlledParams, draft = false, ur
               active: step === 'reading',
               onFocus: handleFocus,
               onBack: () => goStep('birth'),
-              onFinish: () => goStep('waitlist'),
+              onFinish: () => goStep('quote'),
             };
             return <ReadingScroll {...props} />;
           })()}
         </div>
 
-        <div style={{ display: step === 'waitlist' ? undefined : 'none' }}>
-          {SHOP_ENABLED ? (
-            <AddToBagPanel canvasRef={canvasRef} active={step === 'waitlist'} />
-          ) : (
-            <QuoteRequestPanel
-              canvasRef={canvasRef}
-              submitted={submitted}
-              onSubmitted={() => { setSubmitted(true); trackFunnel('quote_requested'); }}
-            />
-          )}
+        <div style={{ display: step === 'quote' ? undefined : 'none' }}>
+          <QuoteRequestPanel
+            canvasRef={canvasRef}
+            submitted={submitted}
+            onSubmitted={() => { setSubmitted(true); trackFunnel('quote_requested'); }}
+          />
         </div>
       </div>
       <div id="main" ref={mainRef}>

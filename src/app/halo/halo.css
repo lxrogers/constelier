@@ -39,25 +39,23 @@
   position: sticky;
   top: var(--fontbar-h, 0px);
   z-index: 50;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   height: var(--nav-h);
   padding: 0 var(--pad);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
-.halo-home { text-decoration: none; justify-self: start; }
+.halo-home { display: inline-flex; align-items: center; text-decoration: none; }
 .halo-nav .wordmark { font-size: 20px; }
-.halo-nav-links { display: flex; gap: 36px; }
-.halo-nav-links a { text-decoration: none; font-size: 15px; }
-.halo-nav-links a:hover { color: var(--ink-2); }
-.halo-nav-end { justify-self: end; display: flex; align-items: center; gap: 16px; }
+.halo-nav-end { display: flex; align-items: center; gap: 16px; }
 .halo .halo-nav-cta { height: 38px; padding: 0 18px; font-size: 14px; }
 
 /* ── Type ─────────────────────────────────────────────────── */
 
-.halo-h1, .halo-h2, .halo-step-title, .halo-type-quote, .halo-foot-line {
+.halo-h1, .halo-h2, .halo-note-title, .halo-step-title, .halo-type-quote, .halo-foot-line {
   font-family: var(--serif);
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -72,6 +70,42 @@
 
 .halo-sec { padding: clamp(80px, 10vw, 140px) var(--pad) 0; display: flex; flex-direction: column; gap: clamp(36px, 5vw, 64px); }
 .halo-intro { display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; max-width: 900px; margin: 0 auto; }
+
+/* Maker's studio note right below the hero */
+.halo-note-sec { padding-top: clamp(48px, 6vw, 88px); }
+.halo-note {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: clamp(24px, 3.6vw, 40px);
+  background: var(--tile);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.halo-note .maker-avatar { background: var(--bg); }
+.halo-note-head { display: flex; align-items: center; gap: 14px; }
+.halo-note-meta { display: flex; flex-direction: column; gap: 2px; }
+.halo-note-title { margin: 0; font-size: clamp(22px, 2.2vw, 28px); line-height: 1.12; }
+.halo-note-byline { margin: 0; font-size: 13px; color: var(--ink-2); }
+.halo-note-body { display: flex; flex-direction: column; gap: 14px; }
+.halo-note-body p { margin: 0; font-size: clamp(15px, 1.25vw, 17px); line-height: 1.62; color: var(--ink); text-wrap: pretty; }
+.halo-note-ig {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+  transition: border-color 0.2s, color 0.2s;
+}
+.halo-note-ig:hover { border-color: var(--ink); }
+.halo-note-arrow { font-size: 13px; color: var(--ink-2); transition: transform 0.2s; }
+.halo-note-ig:hover .halo-note-arrow { transform: translate(2px, -2px); color: var(--ink); }
 
 /* How it works: three panels */
 .halo-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -199,8 +233,6 @@
 
 @media (max-width: 860px) {
   .halo { --nav-h: 56px; }
-  .halo-nav { grid-template-columns: 1fr auto; }
-  .halo-nav-links { display: none; }
   .halo-nav-end { gap: 12px; }
   .halo-nav .nav-bag > span:not(.nav-bag-count) { display: none; }
   .halo-nav .wordmark { font-size: 16px; }

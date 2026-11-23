@@ -1,0 +1,19 @@
+.maker-avatar {
+  flex: none;
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #ece5db;
+  border: 1px solid #d9d1c1;
+  color: #3a3834;
+  font-family: var(--serif);
+  font-weight: 400;
+  line-height: 1;
+  user-select: none;
+}
+
+.maker-avatar img {
+  object-fit: cover;
+}

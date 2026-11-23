@@ -76,14 +76,18 @@
 .b3-controls input[type="text"] {
   flex: 1;
   min-width: 0;
-  background: #faf7f0;
+  background-color: #faf7f0;
   border: 1px solid #d4cfc5;
   color: #2c2c2c;
-  padding: 7px 8px;
+  padding: 7px 10px;
   border-radius: 4px;
   font-size: 16px;
   font-family: inherit;
   outline: none;
+}
+.b3-controls select {
+  padding-right: 30px;
+  background-position: right 10px center;
 }
 .b3-controls select:focus,
 .b3-controls input[type="text"]:focus { border-color: #8b7d6b; }

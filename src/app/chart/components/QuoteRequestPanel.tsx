@@ -2,28 +2,57 @@
 
 import { useState, type RefObject } from 'react';
 import Link from 'next/link';
+import MakerAvatar from '@/components/MakerAvatar';
+import { MAKER } from '@/config/maker';
 import { QUOTE_RANGES } from '@/config/quote-ranges';
 import { formatUSD } from '@/lib/commerce/format';
 import { describeDesign, designQuery } from '@/lib/commerce/design';
-import { OFFER_PREVIEW_KEY, SAMPLE_OFFER_ID, type OfferPreview } from '@/lib/commerce/offer';
+import { OFFER_PREVIEW_KEY, type OfferPreview } from '@/lib/commerce/offer';
 import { requestSnapshot } from './design-snapshot';
 import './QuoteRequestPanel.css';
+
+function InstagramGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
+      <circle cx="12" cy="12" r="4.25" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ArrowUpRight() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4.5 11.5L11.5 4.5" />
+      <path d="M5.5 4.5H11.5V10.5" />
+    </svg>
+  );
+}
+
+function MakerSignature() {
+  return (
+    <div className="quote-signature">
+      <MakerAvatar size={26} />
+      <span className="quote-maker-name">{MAKER.name}</span>
+    </div>
+  );
+}
 
 // Quote requests land in this Formspree form (https://formspree.io).
 const FORMSPREE_ID = 'xjgeozgv';
 
 type Channel = 'email' | 'text';
 
-// The configurator's last step while the shop is closed: who to send the
-// quote to. The quote itself is written by hand and sent later, with a link
-// to that customer's pendant page.
+// The configurator's last step: who to send the quote to. The quote itself is
+// written by hand and sent later, with a link to that customer's pendant page.
 export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   submitted: boolean;
   onSubmitted: () => void;
 }) {
   const [firstName, setFirstName] = useState('');
-  const [channel, setChannel] = useState<Channel>('email');
+  const [channel, setChannel] = useState<Channel>('text');
   const [contact, setContact] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +85,6 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
       setError('That did not go through. Please try again.');
       return;
     }
-    // For the prototype's "see the pendant page" button below.
     try {
       const preview: OfferPreview = {
         firstName: name,
@@ -83,28 +111,32 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
   if (submitted) {
     return (
       <div className="quote-request quote-thanks">
-        <p className="quote-lede">
-          {firstName.trim() ? `Thank you, ${firstName.trim()}.` : 'Thank you.'} Look out for a message from me with your quote.
-        </p>
         <p className="quote-text">
-          It will come with a page for your pendant: photos in each metal, the sizes I would make it in, and the price for each.
+          I’ll review your pendant and reach out with your unique order page. In the meantime, follow along at the bench on Instagram—I share castings, wax models, and finished pieces as I make them.
         </p>
-        <div className="quote-proto">
-          <span className="quote-proto-label">Prototype only</span>
-          <Link href={`/pendant/${SAMPLE_OFFER_ID}`} className="controls-step-btn quote-proto-btn">
-            See the pendant page &rarr;
-          </Link>
-        </div>
+        <a
+          href={MAKER.instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="controls-step-btn quote-ig-btn"
+        >
+          <InstagramGlyph />
+          <span>Follow {MAKER.instagramHandle}</span>
+          <ArrowUpRight />
+        </a>
       </div>
     );
   }
 
   return (
     <div className="quote-request">
-      <p className="quote-text">
-        Each pendant is made to order: cast from your chart, finished by hand, and sized to suit your design.
-        Tell me where to reach you and I will send a quote for yours.
-      </p>
+      <div className="quote-note">
+        <p className="quote-greeting">Hi!</p>
+        <p className="quote-text">
+          I’m making these in small batches right now, so I review every pendant myself before it’s cast. Request a quote below and I’ll text or email you a private page for your piece with high quality renders and exact pricing. No obligation to order!
+        </p>
+        <MakerSignature />
+      </div>
 
       <dl className="quote-ranges">
         {QUOTE_RANGES.map((r) => (
@@ -114,7 +146,6 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
           </div>
         ))}
       </dl>
-      <p className="quote-fine">Most pendants fall in these ranges. Yours depends on its size and how much metal the design uses.</p>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -126,7 +157,7 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
         </div>
         <div className="form-group">
           <div className="quote-channel" role="radiogroup" aria-label="How should I send your quote?">
-            {(['email', 'text'] as const).map((c) => (
+            {(['text', 'email'] as const).map((c) => (
               <button
                 key={c} type="button" role="radio" aria-checked={channel === c}
                 className={`quote-channel-btn${channel === c ? ' on' : ''}`}
@@ -156,7 +187,17 @@ export default function QuoteRequestPanel({ canvasRef, submitted, onSubmitted }:
       </form>
 
       <p className="quote-fine">
-        Your birth date, time and place are sent with your request so I can make your pendant. They are not shared with anyone else.
+        {channel === 'text' ? (
+          <>
+            By requesting a quote, you agree to receive text messages from Constelier about your quote and pendant request. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help.{' '}
+            <Link href="/legal/privacy">Privacy</Link> · <Link href="/legal/terms">Terms</Link>
+          </>
+        ) : (
+          <>
+            Your birth details are sent with your request so I can make your pendant, and are never shared.{' '}
+            <Link href="/legal/privacy">Privacy</Link>
+          </>
+        )}
       </p>
     </div>
   );

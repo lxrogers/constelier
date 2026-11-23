@@ -80,10 +80,11 @@
 }
 .bag-qty { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #7a7568; }
 .bag-qty select {
-  background: #faf7f0;
+  background-color: #faf7f0;
   border: 1px solid #d4cfc5;
-  border-radius: 4px;
-  padding: 2px 6px;
+  border-radius: 6px;
+  padding: 4px 26px 4px 10px;
+  background-position: right 8px center;
   font-family: inherit;
   font-size: 13px;
 }

@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Your birth details:</strong> date, time and place. Your chart is calculated in your browser.
             To price a design, our server builds it once and doesn't keep it. We store your details only when
-            you join the waitlist or start checkout, so we can make the exact pendant you chose.
+            you request a quote or start checkout, so we can make the exact pendant you chose.
           </li>
           <li>
             <strong>Order details:</strong> your name, email, phone number and shipping address, and what you
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <li><strong>Stripe</strong> for payment, tax and receipts</li>
           <li><strong>Vercel</strong> and <strong>Neon</strong> for hosting, our database and cookie-free usage counts</li>
           <li><strong>OpenStreetMap</strong> to look up the birth place you type</li>
-          <li><strong>Formspree</strong> for the waitlist sign-up form</li>
+          <li><strong>Formspree</strong> for quote requests</li>
           <li><strong>Our casting partner</strong>, who receives the design file only, without your name or birth details</li>
           <li><strong>Our shipping carrier</strong>, who receives your name, address and phone number</li>
           <li><strong>Email:</strong> <Value v={P.emailProvider} /></li>
@@ -65,9 +65,11 @@ export default function PrivacyPage() {
       <section>
         <h2>Emails and texts</h2>
         <p>
-          We email you about your order. We only text you if you ask for text updates at checkout, and you can
-          stop them any time by replying STOP. Marketing emails go only to people who signed up, and every one
-          has an unsubscribe link.
+          We email you about your quote request and order. We only text you if you ask to be texted when
+          requesting a quote or at checkout—message frequency varies, message and data rates may apply, and you
+          can reply STOP at any time to opt out or HELP for help. Mobile phone numbers and SMS opt-in data or
+          consent are never shared with third parties or affiliates for marketing or promotional purposes.
+          Marketing emails go only to people who signed up, and every one has an unsubscribe link.
         </p>
       </section>
 

@@ -5,7 +5,8 @@ import { useBag } from '@/hooks/useBag';
 
 export default function BagLink() {
   const { count } = useBag();
-  if (process.env.NEXT_PUBLIC_SHOP_ENABLED !== 'true') return null;
+  // Only show the bag in the nav once someone has added a quoted pendant.
+  if (count === 0) return null;
   return (
     <Link href="/bag" className="nav-bag" aria-label={`Bag, ${count} item${count === 1 ? '' : 's'}`}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">

@@ -74,8 +74,8 @@
 .lab-renders-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lab-renders-controls label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #7a7568; }
 .lab-renders-controls select {
-  border: 1px solid #d4cfc5; background: white; color: #3a3630; border-radius: 8px;
-  padding: 5px 8px; font: inherit; font-size: 12px;
+  border: 1px solid #d4cfc5; background-color: white; color: #3a3630; border-radius: 8px;
+  padding: 5px 28px 5px 10px; background-position: right 9px center; font: inherit; font-size: 12px;
 }
 .lab-render-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
 .lab-render { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 6px; align-items: start; }

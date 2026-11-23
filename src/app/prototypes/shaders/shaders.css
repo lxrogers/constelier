@@ -2,14 +2,14 @@
 .sl-stage { min-height: 0; overflow: hidden; }
 .sl-stage canvas { display: block; }
 .sl-panel { padding: 28px 24px; overflow-y: auto; border-left: 1px solid #e4dccf; display: flex; flex-direction: column; gap: 18px; }
-.sl-panel h1 { font-family: var(--serif); font-weight: 300; font-size: 30px; line-height: 1.1; margin: 0; }
+.sl-panel h1 { font-family: 'Moulin', 'Times New Roman', serif; font-weight: 300; font-size: 30px; line-height: 1.1; margin: 0; }
 .sl-lede { margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: #7a746a; }
 .sl-field { display: flex; flex-direction: column; gap: 6px; }
 .sl-label { font-size: 12px; color: #7a746a; padding: 0; }
 .sl-seg { display: flex; border: 1px solid #d9d0c1; border-radius: 999px; padding: 2px; }
 .sl-seg button { flex: 1; font: inherit; font-size: 13px; border: 0; background: none; color: inherit; border-radius: 999px; padding: 7px 8px; cursor: pointer; }
 .sl-seg button[aria-pressed='true'] { background: #3a3834; color: #f6f1ea; }
-.sl-field select { font: inherit; font-size: 13px; color: inherit; background: #fff; border: 1px solid #d9d0c1; border-radius: 10px; padding: 8px 10px; }
+.sl-field select { font: inherit; font-size: 13px; color: inherit; background-color: #fff; border: 1px solid #d9d0c1; border-radius: 10px; padding: 8px 32px 8px 10px; background-position: right 10px center; }
 .sl-toggles { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .sl-toggles:disabled { opacity: 0.45; }
 .sl-toggles label { font-size: 14px; display: grid; grid-template-columns: 20px 1fr; column-gap: 6px; align-items: start; cursor: pointer; }
