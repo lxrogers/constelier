@@ -7,12 +7,20 @@ Three places the site runs, each with its own data.
 | Address | www.constelier.com | staging.constelier.com | localhost:3000 |
 | Git | `production` branch | `main` branch | your working copy |
 | Vercel environment | Production | Preview | none |
-| Database | Neon default branch | Neon branch `preview/main` | pglite (`.data/pglite`) |
+| Database | Neon store `neon-citron-curtain` | Neon store `constelier-staging` | pglite (`.data/pglite`) |
 | Stripe | none yet (shop is off) | sandbox key | your `.env.local` |
 | `NEXT_PUBLIC_SHOP_ENABLED` | unset: waitlist | `true`: bag and checkout | your `.env.local` |
 
-Pull-request previews work like staging, each on its own Neon branch
-(`preview/<git branch>`), made by the Neon integration on first deploy.
+Pull-request previews are the same environment as staging: every preview,
+`main` included, shares the one staging database. There is no database per
+branch (Neon's free plan allows 10 branches and they ran out within a week).
+A PR with a migration therefore changes the staging schema as soon as its
+preview builds, so keep unmerged migrations additive.
+
+The two databases are separate Neon projects, each connected through
+Vercel's Storage tab: `neon-citron-curtain` to Production only,
+`constelier-staging` to Preview only. Vercel sets `DATABASE_URL` and
+`DATABASE_URL_UNPOOLED` for each; nothing is pasted by hand.
 
 ## Day to day
 
@@ -44,18 +52,16 @@ Vercel. It does not undo a migration.
 
 ## Staging data
 
-- Staging's database starts as a copy of production taken when the
-  `preview/main` Neon branch was first made, and drifts from there.
-- To refresh it from production (for example to rehearse a risky migration
-  on real-shaped data): Neon console → Branches → `preview/main` → Reset
-  from parent. Staging's own rows are lost.
-- To add sample rows, run the seed script against the staging branch's
-  connection string (from the Neon console):
+- Staging's database starts empty and holds only what you create there. It
+  is never copied from production, so no real customer or waitlist details
+  reach it.
+- To add sample rows, run the seed script against the staging connection
+  string (Vercel → Storage → `constelier-staging` → `.env.local` tab):
   `DATABASE_URL=… npm run db:seed -- --allow-remote`. Never point it at
-  the default branch.
-- A refresh copies real customer and waitlist emails into staging. Before
-  the site sends any email, make non-production sends go only to an
-  allowlist of your own addresses.
+  `neon-citron-curtain`.
+- To rehearse a risky migration on real-shaped data, make a temporary branch
+  of production in the Neon console, run `npm run db:migrate` against that
+  branch's connection string, then delete the branch.
 
 ## Things that are shared
 
